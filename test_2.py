@@ -7,6 +7,10 @@ class PyButton(Tag, name='button'):
     title: str = state()
     increment: int = state(1)
 
+    style = Style(
+        margin='8px',
+    )
+
     @on
     def click(self, event):
         self.parent.count += self.increment
@@ -15,12 +19,21 @@ class PyButton(Tag, name='button'):
         return self.title
 
 
-class View(div):
+class View(div, name='view'):
     title: str = state()
     count: int = attr(0)
 
+    style = Style(
+        color='white',
+        zoom=5,
+        button=dict(
+            color='gray',
+            backgroundColor='lightblue',
+        )
+    )
+
     button_inc = PyButton(title='+')
-    button_dec = PyButton(title='-', increment=-1)
+    button_dec = PyButton(title='–', increment=-1)
 
     def content(self):
         return (

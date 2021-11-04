@@ -1,3 +1,4 @@
+from collections import defaultdict
 from typing import Union, Callable, Any, Type, Iterable, Optional
 from types import FunctionType, MethodType
 from functools import wraps, partial
@@ -101,11 +102,14 @@ class Renderer:
 
 
 class MethodChildWrapper(Renderer):
-    def __init__(self, method):
+    def __init__(self, method, raw=False):
         self.method = method
-        self.element = js.document.createElement('div')
+        self.raw = raw
+        if raw:
+            self.element = js.document.createDocumentFragment()
+        else:
+            self.element = js.document.createElement('div')
         self.element._py = self
-        # self.element = js.document.createDocumentFragment()
 
     def __mount__(self, element):
         self.parent = element
@@ -121,7 +125,11 @@ class MethodChildWrapper(Renderer):
                 if renderer not in self.method.__self__._dependents:
                     self.method.__self__._dependents.append(renderer)
 
-        self.element.innerHTML = self._render(self.method())
+        result = self._render(self.method())
+        if self.raw:  # fragment can't be re-rendered
+            self.parent.innerHTML = result
+        else:
+            self.element.innerHTML = result
 
         print('[END __RENDER__]', _current)
         if _current['render'][-1] is self:
@@ -133,7 +141,7 @@ class MethodChildWrapper(Renderer):
 
 class _MetaTag(type):
     def __new__(mcs, _name, bases, namespace, **kwargs):
-        is_sub_tag = any(getattr(base, '_name', '') not in ('__ROOT__', '') for base in bases)
+        is_sub_tag = any(getattr(base, '_name', '') for base in bases)
 
         is_root = kwargs.pop('_root', False)
         if is_root:
@@ -144,6 +152,9 @@ class _MetaTag(type):
 
         if tag_name:
             namespace['_name'] = tag_name
+
+        raw_content = kwargs.get('raw_content')
+
         attrs = {}
 
         if not is_root and (annotations := namespace.get('__annotations__')):
@@ -194,7 +205,7 @@ class _MetaTag(type):
             original_init_func = cls.__init__
             setattr(
                 cls, '__init__', wraps(cls.__init__)(
-                    lambda self, *a, **kw: mcs.__init_wrapper(self, original_init_func, a, kw)
+                    lambda self, *a, **kw: mcs.__init_wrapper(self, original_init_func, raw_content, a, kw)
                 )
             )
 
@@ -220,7 +231,7 @@ class _MetaTag(type):
 
         return result
 
-    def __init_wrapper(self: 'Tag', original_func, args, kwargs):
+    def __init_wrapper(self: 'Tag', original_func, raw_content, args, kwargs):
         # prevent super() call
         _hasnt_calling_attr = not hasattr(self, '_init_wrapper_calling')
         if _hasnt_calling_attr:
@@ -240,15 +251,16 @@ class _MetaTag(type):
                     child = self.content
                     self.children = self.children.copy()
                 if isinstance(child, (MethodType, FunctionType)):
-                    self.children[index] = child = MethodChildWrapper(child)
+                    self.children[index] = child = MethodChildWrapper(child, raw=raw_content)
 
                 child.__mount__(self.mount_element)
             print('[__CHILDREN__]', self, self.children)
 
             print('[M]', self, self.methods)
-            for event, method in self.methods.items():
-                print(event, method)
-                self.mount_element.addEventListener(event, method.__get__(self, type(self)))
+            for event, methods in self.methods.items():
+                print(event, methods)
+                for method in methods:
+                    self.mount_element.addEventListener(event, getattr(self, method.method_name))
 
             for key, value in kwargs.items():
                 if key not in self.attrs:
@@ -275,7 +287,7 @@ class Tag(Renderer, metaclass=_MetaTag, _root=True):
 
     _name: str
     attrs: dict[str, AttrType]
-    methods: dict[str, Callable[['Tag', dict], AttrType]] = {}
+    methods: defaultdict[str, list['on', ...]] = defaultdict(list)
     mount_element: Any  # js.HtmlTag
     mount_parent: Any
     content: Union[ContentType, Callable[['Tag'], ContentType]]
@@ -307,7 +319,7 @@ class Tag(Renderer, metaclass=_MetaTag, _root=True):
 
         print(self.children)
         for child in self.children:
-            if isinstance(child, (Tag, MethodChildWrapper)):
+            if isinstance(child, Renderer):
                 child.__render__()
             else:  # string ?
                 self.mount_element.append(self._render(child))
@@ -332,11 +344,25 @@ class Tag(Renderer, metaclass=_MetaTag, _root=True):
 
 
 class on:
-    __slots__ = ('name', 'callback')
+    __slots__ = ('method_name', 'name', 'callback')
+
+    method_name: Optional[str]
+    name: Optional[str]
+    callback: Callable[['Tag', ...], Any]
 
     def __init__(self, method):
+        self.method_name = None
+
+        if isinstance(method, str):
+            self.name = method
+            return
+
         self.name = None
         self.callback = method
+
+    def __call__(self, method):
+        self.callback = method
+        return self
 
     def __get__(self, instance, owner):
         print('[ON]', self, instance, owner)
@@ -373,19 +399,16 @@ class on:
         pass
 
     def __set_name__(self, owner, name):
-        self.name = name
-        owner.methods[name] = self
+        if self.name is None:
+            self.name = name
+
+        self.method_name = name
+
+        owner.methods[self.name].append(self)
         print('[__SET_NAME__]', self, owner)
 
     def __str__(self):
         return f'on_{self.name}({self.callback})'
-
-
-class div(Tag, name='div'):
-    pass
-
-
-br = '<br/>'
 
 
 def mount(element: Tag, root_element: str):
