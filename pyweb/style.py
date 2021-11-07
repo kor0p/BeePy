@@ -89,7 +89,7 @@ def dict_to_css(selectors: dict, parent: str = ''):
     yield from dict_of_parents_to_css(children, parent)
 
 
-class Style(Tag, name='style', raw_content=True):
+class style(Tag, name='style', raw_content=True):
     def __init__(self, **styles):
         self.styles = styles
         super().__init__()

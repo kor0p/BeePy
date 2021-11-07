@@ -7,7 +7,7 @@ class PyButton(Tag, name='button'):
     title: str = state()
     increment: int = state(1)
 
-    style = Style(
+    style = style(
         margin='8px',
     )
 
@@ -23,9 +23,9 @@ class View(div, name='view'):
     title: str = state()
     count: int = attr(0)
 
-    style = Style(
+    style = style(
         color='white',
-        zoom=5,
+        zoom=7,
         button=dict(
             color='gray',
             backgroundColor='lightblue',
