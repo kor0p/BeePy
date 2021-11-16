@@ -66,7 +66,7 @@ class attr:
     def __delete__(self, instance):
         return delattr(instance, self.private_name)
 
-    def __str__(self):
+    def __repr__(self):
         return f'{self.name}({self.value})'
 
 
@@ -139,8 +139,9 @@ class ChildWrapper(Renderer):
         if _current['render'][-1] is self:
             _current['render'].pop()
 
-    def __str__(self):
-        return f'{type(self)}[{self.child}]'
+    def __repr__(self):
+        fn = self.child.__func__ if isinstance(self.child, MethodType) else self.child
+        return f'wrapper[{self.parent._py} -> {fn.__name__}]'
 
 
 def _wrapper_for_lifecycle_methods(fn):
@@ -192,7 +193,7 @@ class _MetaTag(type):
             if '__SUPER__' in super_children:
                 super_children_index = super_children.index('__SUPER__')
             else:
-                super_children = None
+                super_children_index = 0
 
         attrs = {}
 
@@ -215,7 +216,7 @@ class _MetaTag(type):
         else:
             cls.attrs = attrs
 
-        if is_sub_tag:
+        if is_sub_tag or getattr(cls, 'children', None):
             if super_children:
                 super_children = super_children.copy()
                 super_children[super_children_index: super_children_index + 1] = cls.children
@@ -316,6 +317,9 @@ class Tag(Renderer, metaclass=_MetaTag, _root=True):
                 def value(*a, **kw):
                     return _fn(self, *a, **kw)
             setattr(self, key, value)
+
+    def __repr__(self):
+        return f'{type(self).__name__}(<{self._name}/>)'
 
     @property
     def parent(self):
@@ -426,7 +430,7 @@ class on:
         owner.methods[self.name].append(self)
         print('[__SET_NAME__]', self, owner)
 
-    def __str__(self):
+    def __repr__(self):
         return f'on_{self.name}({self.callback})'
 
 

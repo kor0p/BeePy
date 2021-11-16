@@ -92,9 +92,13 @@ def dict_to_css(selectors: dict, parent: str = ''):
 class style(Tag, name='style', raw_content=True):
     def __init__(self, **styles):
         self.styles = styles
+        self._content = ''
         super().__init__()
 
-    def content(self):
-        return '\n'.join(
+    def __mount__(self, element):
+        self._content = '\n'.join(
             list(dict_to_css(self.styles, self.parent._name))
         )
+
+    def content(self):
+        return self._content
