@@ -6,9 +6,12 @@ from pyweb import *
 class PyButton(Tag, name='button'):
     title: str = state()
     increment: int = state(1)
+    color: str = state('gray')
+    test: bool = attr(True)
 
     style = style(
         margin='8px',
+        color='%(color)s',
     )
 
     @on
@@ -27,12 +30,11 @@ class View(div, name='view'):
         color='white',
         zoom=7,
         button=dict(
-            color='gray',
             backgroundColor='lightblue',
         )
     )
 
-    button_inc = PyButton(title='+')
+    button_inc = PyButton(title='+', color='red')
     button_dec = PyButton(title='–', increment=-1)
 
     def content(self):

@@ -39,9 +39,9 @@
 
         async function main () {
             await _load()
-            console.log(py('import sys; sys.version'))
+            py('import sys; print(sys.version)')
 
-            for (const file of ['framework.py', 'style.py', 'tags.py', 'utils.py']) {
+            for (const file of ['utils.py', 'framework.py', 'style.py', 'tags.py']) {
                 await apyf(`pyweb/${file}`)
             }
 

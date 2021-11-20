@@ -1,8 +1,8 @@
 import re
 
 # [PYWEB IGNORE START]
-from .framework import Tag
-from .utils import camel_or_snake_to_kebab_case
+from .framework import Tag, attr
+from .utils import get_random_name, to_kebab_case
 # [PYWEB IGNORE END]
 
 SPACES_4 = '    '
@@ -14,7 +14,7 @@ def dict_of_properties_to_css(properties):
             prop = (prop,)
         result = ''
         for _property in prop:
-            _property = camel_or_snake_to_kebab_case(_property)
+            _property = to_kebab_case(_property)
 
             # if '&' in _property:
             #     _property = re.sub('&', parent, _property)
@@ -96,9 +96,17 @@ class style(Tag, name='style', raw_content=True):
         super().__init__()
 
     def __mount__(self, element):
+        parent = self.parent
+
+        name = get_random_name()
+        style_id = attr(name)
+        parent.attrs['style_id'] = style_id
+        style_id.__set_name__(parent, 'style_id')
+        style_id.__set__(parent, name)
+
         self._content = '\n'.join(
-            list(dict_to_css(self.styles, self.parent._name))
+            list(dict_to_css(self.styles, f'{parent._name}[style-id="{name}"]'))
         )
 
     def content(self):
-        return self._content
+        return self._content % self.parent.__states__

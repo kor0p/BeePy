@@ -1,17 +1,24 @@
 from collections import defaultdict
 from typing import Union, Callable, Any, Type, Iterable, Optional
-from types import FunctionType, MethodType
+from types import MethodType
 from functools import wraps, partial
 
 import js
+
+# [PYWEB IGNORE START]
+from .utils import to_kebab_case
+# [PYWEB IGNORE END]
 
 
 AttrType = Union[None, str, int, bool, list['AttrType', ...], dict[str, 'AttrType'], 'Tag']
 ContentType = Union[str, Iterable, 'Renderer']
 
 
-_current: dict[str, list['Renderer', ...]] = {
-    'render': [],
+_current_render: list['Renderer', ...] = []
+_current__lifecycle_method: dict[str, dict[str, 'Tag']] = {}
+_current = {
+    'render': _current_render,
+    '_lifecycle_method': _current__lifecycle_method,
 }
 
 
@@ -23,7 +30,7 @@ class attr:
     name: Optional[str]
     private_name: Optional[str]
     value: Any
-    factory: Union[FunctionType, MethodType]
+    factory: Callable
     type: Optional[Type]
 
     def __init__(self, value=None, *, default_factory=None):
@@ -32,9 +39,9 @@ class attr:
         self.value = value
         self.factory = default_factory
 
-        self.type = None
+        self.type = type(None)
 
-    def __get__(self, instance, owner):
+    def __get__(self, instance, owner=None):
         if instance is None:
             return self
 
@@ -60,14 +67,33 @@ class attr:
         setattr(instance, self.private_name, value)
 
     def __set_name__(self, owner, name):
-        self.name = name
+        self.name = to_kebab_case(name)
         self.private_name = '_' + name
+        self.__set__(owner, self.value)
+
+    def __set_type__(self, type):
+        self.type = type
 
     def __delete__(self, instance):
         return delattr(instance, self.private_name)
 
     def __repr__(self):
-        return f'{self.name}({self.value})'
+        return f'{self.name}({self.value!r})'
+
+    def __get_view_value__(self, instance):
+        value = self.__get__(instance)
+
+        if issubclass(self.type, bool):
+            if value:
+                return ''
+            else:
+                return
+
+        # support for custom types for attr
+        if hasattr(self.type, '__view_value__'):
+            return value.__view_value__()
+
+        return value
 
 
 class state(attr):
@@ -83,7 +109,7 @@ class Renderer:
         if isinstance(string, str):
             return string
 
-        if isinstance(string, (MethodType, FunctionType)):
+        if callable(string):
             string = string()
         if isinstance(string, Tag):
             string = string._render(string.content)
@@ -140,38 +166,39 @@ class ChildWrapper(Renderer):
             _current['render'].pop()
 
     def __repr__(self):
-        fn = self.child.__func__ if isinstance(self.child, MethodType) else self.child
-        return f'wrapper[{self.parent._py} -> {fn.__name__}]'
+        return f'<<{self.parent._py} -> {self.child.__name__}>>'
 
 
-def _wrapper_for_lifecycle_methods(fn):
+def _lifecycle_method(fn):
     name = fn.__name__
-    wrapper_attr_name = f'_wrapper_{name}_calling'
+    attr_name = f'_wrapper_{name}_calling'
+    _cache = _current['_lifecycle_method'][attr_name] = {}
 
     @wraps(fn)
-    def wrapper(original_func, *a, **kw):
+    def lifecycle_method(original_func, *a, **kw):
         @wraps(original_func)
-        def method(self, *args, **kwargs):
+        def original_method(self, *args, **kwargs):
             # prevent calling super() calls extra code twice
-            not_in_super_call = not hasattr(self, wrapper_attr_name)
+            not_in_super_call = str(self) not in _cache
 
             if not_in_super_call:
-                setattr(self, wrapper_attr_name, True)
+                _cache[str(self)] = self
 
             result = fn(
                 self, args, kwargs, *a, **kw, _original_func=original_func, _not_in_super_call=not_in_super_call
             )
 
             if not_in_super_call:
-                delattr(self, wrapper_attr_name)
+                del _cache[str(self)]
 
             return result
-        return method
-    return wrapper
+        return original_method
+    return lifecycle_method
 
 
 class _MetaTag(type):
     def __new__(mcs, _name, bases, namespace, **kwargs):
+        print('[__NAMESPACE__]', namespace)
         is_sub_tag = any(getattr(base, '_name', '') for base in bases)
 
         is_root = kwargs.get('_root')
@@ -182,7 +209,7 @@ class _MetaTag(type):
             tag_name = kwargs.get('name')
 
         if tag_name:
-            namespace['_name'] = tag_name
+            namespace['_name'] = to_kebab_case(tag_name)
 
         raw_content = kwargs.get('raw_content')
 
@@ -190,10 +217,9 @@ class _MetaTag(type):
         super_children_index = -1
 
         if super_children:
-            if '__SUPER__' in super_children:
-                super_children_index = super_children.index('__SUPER__')
-            else:
-                super_children_index = 0
+            if '__SUPER__' not in super_children:
+                super_children.insert(0, '__SUPER__')
+            super_children_index = super_children.index('__SUPER__')
 
         attrs = {}
 
@@ -202,7 +228,7 @@ class _MetaTag(type):
                 if not (attribute := namespace.get(name)) or not isinstance(attribute, attr):
                     continue
 
-                attribute.type = _type
+                attribute.__set_type__(_type)
                 attrs[name] = attribute
 
         try:
@@ -230,21 +256,21 @@ class _MetaTag(type):
         if is_sub_tag or hasattr(cls, 'methods'):
             cls.methods = cls.methods.copy()
         else:
-            cls.methods = {}
+            cls.methods = defaultdict(list)
 
         if '__mount__' in namespace:
-            cls.__mount__ = mcs.__mount_wrapper(cls.__mount__)
+            cls.__mount__ = mcs.__mount(cls.__mount__)
 
         if '__render__' in namespace:
-            cls.__render__ = mcs.__render_wrapper(cls.__render__)
+            cls.__render__ = mcs.__render(cls.__render__)
 
         if '__init__' in namespace:
-            cls.__init__ = mcs.__init_wrapper(cls.__init__, raw_content=raw_content)
+            cls.__init__ = mcs.__init(cls.__init__, raw_content=raw_content)
 
         return cls
 
-    @_wrapper_for_lifecycle_methods
-    def __mount_wrapper(self: 'Tag', args, kwargs, _original_func, _not_in_super_call):
+    @_lifecycle_method
+    def __mount(self: 'Tag', args, kwargs, _original_func, _not_in_super_call):
         print('[__MOUNT__]', self, args, kwargs, _original_func, _not_in_super_call)
 
         element, = args
@@ -254,13 +280,14 @@ class _MetaTag(type):
 
         return _original_func(self, *args, **kwargs)
 
-    @_wrapper_for_lifecycle_methods
-    def __render_wrapper(self: 'Tag', args, kwargs, _original_func, _not_in_super_call):
+    @_lifecycle_method
+    def __render(self: 'Tag', args, kwargs, _original_func, _not_in_super_call):
         return _original_func(self, *args, **kwargs)
 
-    @_wrapper_for_lifecycle_methods
-    def __init_wrapper(self: 'Tag', args, kwargs, _original_func, _not_in_super_call, raw_content):
+    @_lifecycle_method
+    def __init(self: 'Tag', args, kwargs, _original_func, _not_in_super_call, raw_content):
         if _not_in_super_call:
+            self._kwargs = kwargs
             self._dependents = []
             self.mount_element = js.document.createElement(self._name)
             self.mount_element._py = self
@@ -272,11 +299,13 @@ class _MetaTag(type):
             for index, child in enumerate(self.children):
                 if child == '__CONTENT__':
                     child = self.content
-                    if not isinstance(child, (MethodType, FunctionType)):
+                    if not callable(child):
                         child = MethodType(lambda s: child, self)
                     # TODO: line below fixes when tag is used several times, '__CONTENT__' does not work properly
                     self.children = self.children.copy()
-                if isinstance(child, (MethodType, FunctionType)):
+                if isinstance(child, Tag):
+                    self.children[index] = child = child.clone()
+                elif callable(child):
                     self.children[index] = child = ChildWrapper(child, raw=raw_content)
 
                 child.__mount__(self.mount_element)
@@ -295,52 +324,58 @@ class Child(property):
 
 
 class Tag(Renderer, metaclass=_MetaTag, _root=True):
-    _dependents: list['Tag', ...] = []
+    _dependents: list['Tag', ...]
+    _kwargs: dict[str, AttrType]
 
     _name: str
     attrs: dict[str, attr]
-    methods: defaultdict[str, list['on', ...]] = defaultdict(list)
+    methods: defaultdict[str, list['on', ...]]
     mount_element: js.HTMLElement
     mount_parent: js.HTMLElement
     content: Union[ContentType, Callable[['Tag'], ContentType]]
     children: list[ContentType, ...] = []
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: AttrType):
         for key, _attr in self.attrs.items():
-            value = kwargs.get(key) or _attr.value
+            if key not in kwargs:
+                continue
+
+            value = kwargs[key]
 
             # TODO: check this
-            if isinstance(value, FunctionType):
-                _fn = value
-
-                @wraps(_fn)
-                def value(*a, **kw):
-                    return _fn(self, *a, **kw)
+            if callable(value):
+                value = partial(value, self)
             setattr(self, key, value)
 
     def __repr__(self):
         return f'{type(self).__name__}(<{self._name}/>)'
 
     @property
-    def parent(self):
-        print(self, self.__dict__, self.__class__.__dict__)
+    def parent(self) -> Optional['Tag']:
         return self.mount_parent._py
 
     @classmethod
-    def comment(cls, string):
-        return f'<!-- {string} -->\n'
+    def comment(cls, string) -> str:
+        return f'<!-- {string} -->'
 
     @property
-    def __attrs__(self):
+    def __attrs__(self) -> dict[str, AttrType]:
         return {
-            key: value
-            for key, value in self.attrs.items()
-            if value._view
+            _attr.name: value
+            for _attr in self.attrs.values()
+            if _attr._view and (value := _attr.__get_view_value__(self)) is not None
+        }
+
+    @property
+    def __states__(self) -> dict[str, AttrType]:
+        return {
+            _attr.name: _attr.__get__(self)
+            for _attr in self.attrs.values()
         }
 
     def __render__(self):
         _current['render'].append(self)
-        print('[__RENDER__]', _current)
+        print('[__RENDER__]', _current, self)
 
         for name, value in self.__attrs__.items():
             self.mount_element.setAttribute(name, value)
@@ -356,11 +391,11 @@ class Tag(Renderer, metaclass=_MetaTag, _root=True):
         if _current['render'][-1] is self:
             _current['render'].pop()
 
-    def content(self):
+    def content(self) -> str:
         return ''
 
     def __mount__(self, element):
-        pass  # see _MetaTag.__mount_wrapper
+        pass  # see _MetaTag.__mount
 
     # descriptor part
     def __get__(self, instance, owner):
@@ -368,6 +403,10 @@ class Tag(Renderer, metaclass=_MetaTag, _root=True):
 
     def __set_name__(self, owner: 'Tag', name: str):
         owner.children.append(self)
+
+    def clone(self) -> 'Tag':
+        clone = type(self)(**self._kwargs)
+        return clone
 
 
 class on:
