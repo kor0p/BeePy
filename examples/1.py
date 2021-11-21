@@ -1,9 +1,11 @@
 # [PYWEB IGNORE START]
-from pyweb import *
+from pyweb import Tag, mount, state, attr, on, style, div, br
 # [PYWEB IGNORE END]
 
 
 class PyButton(Tag, name='button'):
+    parent: 'View'
+
     title: str = state()
     increment: int = state(1)
     color: str = state('gray')
