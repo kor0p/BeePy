@@ -2,53 +2,17 @@
 <html lang='en'>
 <head>
     <meta charset='UTF-8'>
-    <title>PyWeb</title>
     <style>
         html {
             background: #333333;
         }
     </style>
-    <script type='application/javascript' src='https://cdn.jsdelivr.net/pyodide/v0.18.1/full/pyodide.js'></script>
-    <script type='application/python' src='pyweb/__init__.py' id='main_python'></script>
+    <script type='application/javascript' src='./pyweb/pyweb.js'></script>
     <script>
-        async function _load () {
-            window.pyodide = await loadPyodide({ indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.18.1/full/' })
-            window.py = pyodide.runPython
-            window.apy = pyodide.runPythonAsync
-
-            window.pyweb = {}
-            pyweb.loadRawFile = async function loadRawFile (filePath) {
-                return await (await fetch(filePath)).text()
-            }
-            pyweb.handleText = function handleText (text) {
-                return text.replace(/# ?\[PYWEB IGNORE START\][^(\[PYWEB)]*# ?\[PYWEB IGNORE END\]/gm, '')
-            }
-            pyweb.loadFile = async function loadFile (filePath) {
-                return pyweb.handleText(await pyweb.loadRawFile(filePath))
-            }
-
-            window.pyf = async function runPythonFile (filePath) {
-                return window.py(await pyweb.loadFile(filePath))
-            }
-            window.apyf = async function runPythonAsyncFile (filePath) {
-                return await window.apy(await pyweb.loadFile(filePath))
-            }
-
-        }
-
-
-        async function main () {
-            await _load()
-            py('import sys; print(sys.version)')
-
-            for (const file of ['utils.py', 'framework.py', 'style.py', 'tags.py']) {
-                await apyf(`pyweb/${file}`)
-            }
-
+        async function __main__(event) {
             await apyf('./examples/1.py')
         }
-
-        main()
+        document.addEventListener('__PYWEB_LOADED__', __main__);
     </script>
 </head>
 <body>
