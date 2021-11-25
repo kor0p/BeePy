@@ -124,20 +124,20 @@ class Renderer:
 
 
 class ChildWrapper(Renderer):
-    __slots__ = ('child', 'raw', 'element', 'parent')
+    __slots__ = ('child', 'tag', 'element', 'parent')
 
     child: Any
-    raw: bool
+    tag: Optional[str]
     element: js.HTMLElement
     parent: js.HTMLElement  # Optional[js.HTMLElement]  # raises error due to JsProxy is not hashable
 
-    def __init__(self, child, raw=False):
+    def __init__(self, child, tag):
         self.child = child
-        self.raw = raw
-        if raw:
-            self.element = js.document.createDocumentFragment()
+        self.tag = tag
+        if tag:
+            self.element = js.document.createElement(tag)
         else:
-            self.element = js.document.createElement('div')
+            self.element = js.document.createDocumentFragment()
         self.element._py = self
         self.parent: None = None
 
@@ -156,10 +156,10 @@ class ChildWrapper(Renderer):
                     self.parent._py._dependents.append(renderer)
 
         result = self._render(self.child())
-        if self.raw:  # fragment can't be re-rendered
-            self.parent.innerHTML = result
-        else:
+        if self.tag:
             self.element.innerHTML = result
+        else:  # fragment can't be re-rendered
+            self.parent.innerHTML = result
 
         print('[END __RENDER__]', _current)
         if _current['render'][-1] is self:
@@ -211,7 +211,8 @@ class _MetaTag(type):
         if tag_name:
             namespace['_name'] = to_kebab_case(tag_name)
 
-        raw_content = kwargs.get('raw_content')
+        if 'content_tag' in kwargs:
+            namespace['_content_tag'] = kwargs['content_tag']
 
         super_children = namespace.pop('children', None)
         super_children_index = -1
@@ -236,6 +237,9 @@ class _MetaTag(type):
         except Exception as e:
             print(e.__cause__, e)
             raise e
+
+        if not hasattr(cls, '_content_tag'):
+            cls._content_tag = 'div'
 
         if is_sub_tag:
             cls.attrs.update(attrs)
@@ -265,7 +269,7 @@ class _MetaTag(type):
             cls.__render__ = mcs.__render(cls.__render__)
 
         if '__init__' in namespace:
-            cls.__init__ = mcs.__init(cls.__init__, raw_content=raw_content)
+            cls.__init__ = mcs.__init(cls.__init__, content_tag=cls._content_tag)
 
         return cls
 
@@ -285,7 +289,7 @@ class _MetaTag(type):
         return _original_func(self, *args, **kwargs)
 
     @_lifecycle_method
-    def __init(self: 'Tag', args, kwargs, _original_func, _not_in_super_call, raw_content):
+    def __init(self: 'Tag', args, kwargs, _original_func, _not_in_super_call, content_tag):
         if _not_in_super_call:
             self._kwargs = kwargs
             self._dependents = []
@@ -306,7 +310,7 @@ class _MetaTag(type):
                 if isinstance(child, Tag):
                     self.children[index] = child = child.clone()
                 elif callable(child):
-                    self.children[index] = child = ChildWrapper(child, raw=raw_content)
+                    self.children[index] = child = ChildWrapper(child, content_tag)
 
                 child.__mount__(self.mount_element)
             print('[__CHILDREN__]', self, self.children)
@@ -320,7 +324,7 @@ class _MetaTag(type):
 
 class Child(property):
     def __set_name__(self, owner: 'Tag', name: str):
-        owner.children.append(ChildWrapper(self.fget))
+        owner.children.append(ChildWrapper(self.fget, self.fget.__name__))
 
 
 class Tag(Renderer, metaclass=_MetaTag, _root=True):

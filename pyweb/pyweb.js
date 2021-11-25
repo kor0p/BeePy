@@ -19,7 +19,7 @@
             return await (await fetch(filePath)).text()
         }
         pyweb.handleText = function handleText (text) {
-            return text.replace(/# ?\[PYWEB IGNORE START\][^(\[PYWEB)]*# ?\[PYWEB IGNORE END\]/gm, '')
+            return text.replace(/# ?\[PYWEB IGNORE START\][^(\[PYWEB)]*# ?\[PYWEB IGNORE END\]/gm, '\n\n')
         }
         pyweb.loadFile = async function loadFile (filePath) {
             return pyweb.handleText(await pyweb.loadRawFile(filePath))
