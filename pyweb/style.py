@@ -95,17 +95,16 @@ class style(Tag, name='style', content_tag=None):
         self._content = ''
         super().__init__()
 
-    def __mount__(self, element):
+    def mount(self):
         parent = self.parent
 
         name = get_random_name()
         style_id = attr(name)
         parent.attrs['style_id'] = style_id
         style_id.__set_name__(parent, 'style_id')
-        style_id.__set__(parent, name)
 
         self._content = '\n'.join(
-            list(dict_to_css(self.styles, f'{parent._name}[style-id="{name}"]'))
+            list(dict_to_css(self.styles, f'{parent._tag_name_}[style-id="{name}"]'))
         )
 
     def content(self):

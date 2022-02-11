@@ -1,15 +1,16 @@
 # [PYWEB IGNORE START]
-from pyweb import Tag, mount, state, attr, on, style, div, br
+from pyweb import Tag, mount, state, attr, on, style, br
 # [PYWEB IGNORE END]
 
 
 class PyButton(Tag, name='button'):
     parent: 'View'
 
+    test: bool = attr(True)
+
     title: str = state()
     increment: int = state(1)
     color: str = state('gray')
-    test: bool = attr(True)
 
     style = style(
         margin='8px',
@@ -24,16 +25,15 @@ class PyButton(Tag, name='button'):
         return self.title
 
 
-class View(div, name='view'):
-    title: str = state()
+class View(Tag, name='view'):
     count: int = attr(0)
+
+    title: str = state()
 
     style = style(
         color='white',
         zoom=7,
-        button=dict(
-            backgroundColor='lightblue',
-        )
+        button=dict(backgroundColor='lightblue')
     )
 
     button_inc = PyButton(title='+', color='red')

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+    <meta charset='UTF-8'>
+    <title>Test 1</title>
+    <style>
+        html {
+            background: #333333;
+        }
+    </style>
+    <script>
+        window.pyweb = {
+            config: {},
+        }
+    </script>
+    <script type='module' src='../pyweb/pyweb.js'></script>
+    <script>
+        pyweb.__main__ = async function () {
+            await apyf('./1.py')
+        }
+    </script>
+</head>
+<body>
+    <div id='pyweb'></div>
+</body>
+</html>
