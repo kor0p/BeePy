@@ -19,3 +19,7 @@ export function mergeDeep(...objects) {
     return acc
   }, {})
 }
+
+export async function delay(ms) {
+  return new Promise(r => setTimeout(r, ms))
+}

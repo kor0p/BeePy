@@ -1,99 +1,149 @@
+from __future__ import annotations
+
 # [PYWEB IGNORE START]
-from .framework import Tag, attr, const_attr, state, on, ContentType
-from .tags import a, ul, div
+from .framework import Tag, attr, state, on
+from .style import style
+from .tags import div
 
 import js
 import pyodide
 # [PYWEB IGNORE END]
 
 
-class tab(Tag, name='tab'):
-    id: str = attr()
-    href: str = attr()
+class tab(div, name='tab'):
+    tab_id: str = state()
+    visible: bool = attr()
+    title: tab_title = state()
 
-    name: str = state()
-    children_content: ContentType = state()
+    @attr()
+    def id(self) -> str:
+        return f'tab-{self.parent.name}/{self.tab_id}'
 
-    title = a()
+    parent: tabs
 
-    def __init__(self, name: str, content: ContentType, href=''):
-        super().__init__(id=name, name=name, href=href, children_content=content)
+    def __set_ref__(self, ref):
+        super().__set_ref__(ref)
+        self.tab_id = ref.name
 
-        self.title.href = href
-        # self.title.children.append(name)
-        self.title.children += [name]
+    @visible.onchange
+    def onchange(self, value):
+        print(value)
+
+
+class tab_title(Tag, name='li', content_tag=None):
+    _tab: tab = state()
+    selected: bool = attr(False)
 
     @on
     def click(self, event):
-        self.parent.parent.select_tab(self.id)
-
-    def __render__(self, attrs=None, children=None):
-        # self.title.href = self.href
-        # self.title.children.append(self.name)
-        return super().__render__(attrs=attrs, children=(self.title,))
+        self._tab.parent.select_tab(self._tab.tab_id)
 
 
-class tabs(Tag, name='tabs'):
-    name: str = const_attr()
-    selected_id: str = state()
+class tabs(Tag, name='tabs', content_tag='ul'):
+    selected_id: str = attr()
     selected: tab = state()
 
-    children_tabs: list[tab, ...]
+    name: str = 'Unknown'
+    tabs_titles: dict = {
+        # id: tab_title(text),
+    }
 
-    tabs_list = ul()
-    tabs_content = div()
+    style = style(**{
+        'ul': {
+            '': '''
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #1e1e1e;
+            ''',
+            'li': {
+                '': '''
+                float: left;
+                font-family: "Lato", sans-serif;
+                display: inline-block;
+                text-align: center;
+                padding: 14px 16px;
+                text-decoration: none;
+                transition: 0.3s;
+                font-size: 17px;
+                ''',
+                '&:hover': {
+                    'background-color': '#222222',
+                },
+                '&[selected]': {
+                    'background-color': '#3e3e3e',
+                },
+            },
+        },
+        'tab': {
+            'padding': '6px 12px',
+            'animation': 'fadeEffect 1s',
+            'display': 'none',
+            '&[visible]': {
+                'display': 'block',
+            }
+        },
+    })
 
-    def __init__(self, name, tabs, selected_id=None):
-        super().__init__(name=name, selected_id=selected_id)
+    @property
+    def tabs_list(self) -> dict[str, tab]:
+        return {name: _tab for name, _tab in self.ref_children.items() if isinstance(_tab, tab)}
 
-        tabs = list(tabs)
-        if selected_id is None:
-            url = js.URL.new(js.location.href)
-            selected_id = url.searchParams.get(self.name) or tabs[0].id
+    def content(self):
+        return [title for title in self.tabs_titles.values()]
 
-        self.children_tabs = tabs
-        self.tabs_list.children = self.children_tabs
-        self.tabs_content.children = [
-            child.children_content for child in self.children_tabs
-        ]
+    def mount(self):
+        for tab_id, tab in self.tabs_list.items():
+            title = self.tabs_titles[tab_id]
+            title._tab = tab
+            tab.title = title
 
-        self.select_tab(selected_id)
+        url = js.URL.new(js.location.href)
+
+        selected = None
+        if url.hash and url.hash.startswith(f'#tab-{self.name}/'):
+            selected = self.select_tab(url.hash[len(f'#tab-{self.name}/'):])
+            if selected:
+                js.location.hash = ''
+        if not selected:
+            selected = self.select_tab(url.searchParams.get(self.name))
+        if not selected:
+            self.select_tab(tuple(self.tabs_titles.keys())[0])
 
     def select_tab(self, tab_id):
+        if not tab_id or not hasattr(self, tab_id):
+            return
+
         self.selected_id = tab_id
-        if not self.selected or self.selected.id != tab_id:
-            self.selected = self.find_tab(id=self.selected_id)
-            self._update_url()
+        if not self.selected or self.selected.tab_id != tab_id:
+            for child in self.tabs_list.values():
+                child.visible = False
+            for title in self.tabs_titles.values():
+                title.selected = False
+            self.selected = getattr(self, tab_id)
+            self.selected.visible = True
+            self.tabs_titles[tab_id].selected = True
 
-    def find_tab(self, **tab_attrs):
-        result = None
-
-        for _tab in self.children_tabs:
-            for attr_name, attr_value in tab_attrs.items():
-                if getattr(_tab, attr_name) != attr_value:
-                    continue
-                result = _tab
-                break
-            else:  # no break
-                continue
-            break
-
-        return result
+        return self.selected
 
     def _update_url(self):
         selected_tab = self.selected
 
         url = js.URL.new(js.location.href)
-        if url.searchParams.get(self.name) == selected_tab.id:
+        if (not url.hash and url.href[-1] == '#') or url.hash == '#':
+            url.href = url.href[:-1]
+        if url.searchParams.get(self.name) == selected_tab.tab_id:
             return
 
-        url.searchParams.set(self.name, selected_tab.id)  # modifies url.href
+        url.searchParams.set(self.name, selected_tab.tab_id)  # modifies url.href
 
         js.history.pushState(
             pyodide.to_js({
-                'name': f'{self.name}:{selected_tab.name}',
+                'name': selected_tab.id,
+                'title': ''.join(selected_tab.title.content()),
             }),
-            selected_tab.name,
+            selected_tab.id,
             url.href,
         )
 

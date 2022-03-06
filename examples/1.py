@@ -14,7 +14,7 @@ class PyButton(Tag, name='button'):
 
     style = style(
         margin='8px',
-        color='%(color)s',
+        color='{color}',
     )
 
     @on

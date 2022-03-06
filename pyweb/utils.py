@@ -22,6 +22,6 @@ def to_kebab_case(name: str):
     >>> style(backgroundColor='red')  # background-color: red
     """
     name = name.strip('_')
-    name = re.sub('_', '-', name)
+    name = re.sub('[_ ]', '-', name)
     name = re.sub(r'([A-Z])', lambda m: '-' + m.group(1).lower(), name)
     return name
