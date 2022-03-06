@@ -1,17 +1,17 @@
-# PyWeb v0.0.2b
+# PyWeb v0.1.0b
 
-## A frontend framework, written in python, using [pyodide](https://pyodide.org/), that uses [WASM](https://webassembly.org/)
+## A frontend framework for python, using [pyodide](https://pyodide.org/), that uses [WASM](https://webassembly.org/)
 ### Use classes, descriptors and rest python in browser!
 
 ## examples
 > ### Netlify static pages:
 > - ### [First try](https://pyweb.netlify.app/examples/)
-> - ### [Tabs](https://pyweb.netlify.app/examples/tabs.html)
+> - ### [Tabs](https://pyweb.netlify.app/examples/tabs/)
 
 Code:
 ```python
 # examples/1.py
-## [PYWEB IGNORE START]
+# [PYWEB IGNORE START]
 from pyweb import Tag, mount, state, attr, on, style, br
 # [PYWEB IGNORE END]
 
@@ -27,7 +27,7 @@ class PyButton(Tag, name='button'):
 
     style = style(
         margin='8px',
-        color='%(color)s',
+        color='{color}',
     )
 
     @on
@@ -70,30 +70,30 @@ will render html as below, and will react on buttons click like native JS
 ```html
 <body>
     <div id="pyweb">
-        <view count="0" style-id="62Ldyb....">
+        <view count="0" style-id="6....">
             <div>PyWeb Test 2<br>Count: 0</div>
             <style>
-                view[style-id="62Ldyb...."] {
+                view[style-id="6...."] {
                     color: white;
                     zoom: 7;
                 }
-                view[style-id="62Ldyb...."] button {
+                view[style-id="6...."] button {
                     background-color: lightblue;
                 }
             </style>
-            <button test style-id="BdGmbd....">
+            <button test style-id="B....">
                 <div>+</div>
                 <style>
-                    button[style-id="BdGmbd...."] {
+                    button[style-id="B...."] {
                         margin: 8px;
                         color: red;
                     }
                 </style>
             </button>
-            <button test style-id="cGrw7s....">
+            <button test style-id="c....">
                 <div>–</div>
                 <style>
-                    button[style-id="cGrw7s...."] {
+                    button[style-id="c...."] {
                         margin: 8px;
                         color: gray;
                     }
