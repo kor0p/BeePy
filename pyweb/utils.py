@@ -1,6 +1,8 @@
 import re
 import string
 import random
+import builtins
+import pyodide
 
 _w = string.ascii_letters + string.digits + '_'
 
@@ -21,7 +23,32 @@ def to_kebab_case(name: str):
     >>> style(font_size='20px')  # font-size: 20px
     >>> style(backgroundColor='red')  # background-color: red
     """
-    name = name.strip('_')
-    name = re.sub('[_ ]', '-', name)
-    name = re.sub(r'([A-Z])', lambda m: '-' + m.group(1).lower(), name)
-    return name
+    return re.sub(
+        r'([A-Z])',
+        lambda m: '-' + m.group(1).lower(),
+        re.sub('[_ ]', '-', name)
+    ).strip('-')
+
+
+def js_func(once=False):
+    if once:
+        create_proxy = pyodide.create_once_callable
+    else:
+        create_proxy = pyodide.create_proxy
+
+    return create_proxy
+
+
+_all_globals = builtins.__dict__
+_globals = {}
+_allowed_globals = ('__name__', 'abs', 'all', 'any', 'ascii', 'bin', 'breakpoint', 'callable', 'chr', 'delattr', 'dir', 'divmod', 'format', 'getattr', 'hasattr', 'hash', 'hex', 'id', 'input', 'isinstance', 'issubclass', 'iter', 'len', 'max', 'min', 'next', 'oct', 'ord', 'pow', 'print', 'repr', 'round', 'setattr', 'sorted', 'sum', 'vars', 'None', 'Ellipsis', 'False', 'True', 'bool', 'memoryview', 'bytearray', 'bytes', 'complex', 'dict', 'enumerate', 'filter', 'float', 'frozenset', 'int', 'list', 'map', 'object', 'range', 'reversed', 'set', 'slice', 'str', 'tuple', 'type', 'zip')
+for key, value in _all_globals.items():
+    if key in _allowed_globals:
+        _globals[key] = value
+
+
+def safe_eval(code, _locals=None):
+    if _locals is None:
+        _locals = {}
+
+    return eval(code, _globals, _locals)

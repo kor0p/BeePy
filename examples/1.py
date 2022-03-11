@@ -31,7 +31,6 @@ class View(Tag, name='view'):
     title: str = state()
 
     style = style(
-        color='white',
         zoom=7,
         button=dict(backgroundColor='lightblue')
     )

@@ -2,7 +2,7 @@
 <html lang='en'>
 <head>
     <meta charset='UTF-8'>
-    <title>Tabs example</title>
+    <title>Todo List</title>
     <style>
         html {
             background: #333333;
@@ -13,14 +13,13 @@
         window.pyweb = {
             config: {
                 debug: true,
-                modules: ['tabs.py'],
             },
         }
     </script>
-    <script src='../pyweb/pyweb.js' type='module'></script>
+    <script type='module' src='../pyweb/pyweb.js'></script>
     <script>
         pyweb.__main__ = async function () {
-            await apyf('./tabs.py')
+            await apyf('./todos.py')
         }
     </script>
 </head>

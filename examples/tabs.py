@@ -1,43 +1,38 @@
 # [PYWEB IGNORE START]
-from pyweb import Tag, mount, style, div, a, p, select, br, attr, state, on
+from pyweb import Tag, mount, style, button, p, select, br, attr, state
 from pyweb.tabs import tab, tab_title, tabs
 # [PYWEB IGNORE END]
 
 
-class PyButton(Tag, name='button'):
-    parent: 'View'
-
-    test: bool = attr(True)
-
-    title: str = state()
-    increment: int = state(1)
-    color: str = state('gray')
-
-    style = style(
-        margin='8px',
-        color='{color}',
-    )
-
-    @on
-    def click(self, event):
-        self.parent.count += self.increment
-
-    def content(self):
-        return self.title
-
-
 class View(Tag, name='view'):
+    class PyButton(button):
+        color: str = state('gray')
+
+        style = style(
+            margin='8px',
+            color='{color}',
+        )
+
     count: int = attr(0)
 
     title: str = state()
 
     style = style(
-        color='white',
-        button=dict(backgroundColor='lightblue')
+        button=dict(
+            backgroundColor='lightblue',
+        )
     )
 
-    button_inc = PyButton(title='+', color='red')
-    button_dec = PyButton(title='–', increment=-1)
+    button_inc = PyButton('+', color='red')
+    button_dec = PyButton('–')
+
+    @button_inc.on('click')
+    def increment(self, event):
+        self.count += 1
+
+    @button_dec.on('click')
+    def decrement(self, event):
+        self.count -= 1
 
     def content(self):
         return (
@@ -47,24 +42,22 @@ class View(Tag, name='view'):
         )
 
 
-class SelectView(Tag, name='div', content_tag=None):
+class SelectView(Tag, name='div', content_tag='span'):
     selected: str = attr('1')
 
     items = {'0': 'first', '1': 'second', '2': 'third'}
 
-    def mount(self):
-        self.select.onchange = self.onchange
+    select = select.with_items(items, selected='1')
 
-    def onchange(self, value):
-        self.selected = value
+    @select.on
+    def change(self, event):
+        self.selected = event.target.value
 
     def content(self):
         return [
             p(lambda _: f'Key: {self.selected}'),
             p(lambda _: f'Value: {self.items[self.selected]}')
         ]
-
-    select = select.with_items(items, selected='1')
 
 
 class LinkTabs(tabs):

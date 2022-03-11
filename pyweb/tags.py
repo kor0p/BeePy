@@ -5,27 +5,54 @@ from .framework import Tag, attr, state, html_attr, html_state, on
 # [PYWEB IGNORE END]
 
 
-class div(Tag, name='div', content_tag=None):
+class html_tag(Tag, _root=True, content_tag=None):
+    _class = attr()
+
+
+class div(html_tag, name='div', content_tag=None):
     pass
 
 
-class a(div, name='a'):
+class a(html_tag, name='a'):
     href: str = attr()
 
 
-class p(div, name='p'):
+class p(html_tag, name='p'):
     pass
 
 
-class ul(div, name='ul'):
+class ul(html_tag, name='ul'):
     pass
 
 
-class li(div, name='li'):
+class li(html_tag, name='li'):
     pass
 
 
-class option(div, name='option'):
+class span(html_tag, name='span'):
+    pass
+
+
+class _input(html_tag, name='input'):
+    type = attr(
+        'text',
+        enum=(
+            'button', 'checkbox', 'color', 'date', 'datetime-local', 'email', 'file', 'hidden', 'image', 'month',
+            'number', 'password', 'radio', 'range', 'reset', 'search', 'submit', 'tel', 'text', 'time', 'url', 'week',
+        ),
+    )
+    hidden: bool = attr()
+    value = html_attr()
+
+    def clear(self):
+        self.mount_element.value = ''
+
+
+class button(html_tag, name='button'):
+    type = attr('button', enum=('submit', 'reset', 'button'))
+
+
+class option(html_tag, name='option'):
     value = html_attr()
     label: str = html_state()
     defaultSelected: bool = html_state()
@@ -35,13 +62,7 @@ class option(div, name='option'):
         return self.label
 
 
-class select(div, name='select'):
-    onchange: Callable[[Tag, Any], None] = state()
-
-    @on
-    def change(self, event):
-        self.onchange(event.target.value)
-
+class select(html_tag, name='select'):
     @classmethod
     def with_items(cls, items: dict[str, Any], selected=None, **kwargs):
         return cls(*(
@@ -54,3 +75,6 @@ class select(div, name='select'):
 
 
 br = '<br/>'
+
+
+__all__ = ('html_tag', 'div', 'a', 'p', 'ul', 'li', 'span', '_input', 'button', 'option', 'select', 'br')

@@ -1,3 +1,3 @@
 window._DEBUGGER = function _DEBUGGER (error=null) {
-    const _ = 'place breakpoint here';
+    const place_breakpoint_here = 'use variable _locals in console to get locals() from python frame';
 }

@@ -1,10 +1,11 @@
 import re
 import math
-from typing import Any
+from typing import Any, Optional
 
 # [PYWEB IGNORE START]
-from .framework import Tag, attr, state
-from .utils import get_random_name, to_kebab_case
+import js
+from .framework import __CONFIG__, Tag, attr, state
+from .utils import get_random_name, to_kebab_case, safe_eval
 # [PYWEB IGNORE END]
 
 SPACES_4 = '    '
@@ -27,6 +28,8 @@ def dict_of_properties_to_css(properties):
             if isinstance(value, (list, tuple)):  # handle raw css
                 result += ' ' + (_property + ' ').join(x for x in value if x)
             else:
+                if value == '':
+                    value = '""'
                 result += f': {value};'
         yield result
 
@@ -106,18 +109,33 @@ class style(Tag, name='style', content_tag=None):
     }
 
     options: dict = state()
+    real_parent: Optional[Tag]
 
-    def __init__(self, options=None, **styles):
+    def __init__(self, styles=None, options=None, **styles_dict):
+        super().__init__()
+        if styles and not styles_dict:
+            styles_dict = styles
         if options is None:
             options = {}
-        self.styles = styles
+        self.styles = styles_dict
         self._content = ''
-        super().__init__(options=options | {'global': False, 'render_states': True, 'render_children': True})
+        self.real_parent = None
+        self.options = {'global': False, 'render_states': True, 'render_children': True} | options
         if not self.options['global']:
             self._global['styles_count'] += 1
 
+    def __mount__(self, element, index=None):
+        self.real_parent = element._py
+        if not __CONFIG__['debug']:
+            super().__mount__(element, index)
+            return
+
+        parent = js.document.head
+        parent._py = None
+        super().__mount__(parent)
+
     def mount(self):
-        parent = self.parent
+        parent = self.real_parent
 
         if self.options['global']:
             self._content = '\n'.join(list(dict_to_css(self.styles, parent._tag_name_)))
@@ -133,13 +151,16 @@ class style(Tag, name='style', content_tag=None):
         )
 
     def content(self):
-        if self.options['global']:
+        if self.options['global'] or not self._content:
             return self._content
 
-        params: dict[str, Any] = dict(self=self.parent)
+        parent = self.real_parent
+
+        params: dict[str, Any] = dict(self=parent)
         if self.options['render_states']:
-            params.update(self.parent.__states__)
+            params.update(parent.__states__)
         if self.options['render_children']:
-            params['children'] = self.parent.children
-            params.update(self.parent.ref_children)
-        return self._content.format(**params)
+            params['children'] = parent.children
+            params.update(parent.ref_children)
+        # TODO: use native css '--var: {}' instead of re-render the whole content
+        return safe_eval(f'f"""{self._content.strip()}"""', params)

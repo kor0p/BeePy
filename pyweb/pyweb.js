@@ -49,9 +49,16 @@ async function _load () {
         return await (await fetch(filePath)).text()
     }
     PYWEB.handleTextForImport = function handleTextForImport (text) {
-        return text.replace(/# ?\[PYWEB IGNORE START\][\w\W]*# ?\[PYWEB IGNORE END\]/gm, '\n\n')
+        return text.replace(
+            /# ?\[PYWEB IGNORE START\]([\w\W]*)# ?\[PYWEB IGNORE END\]/gm,
+            function (string, group, index) {
+                const countOfLines = (group.match(/\n/g) || []).length
+                return new Array(countOfLines).fill('\n').join('')
+            },
+        )
     }
     PYWEB.loadFile = async function loadFile (filePath) {
+        window.__CURRENT_LOADING_FILE__ = filePath
         return PYWEB.handleTextForImport(await PYWEB.loadRawFile(filePath))
     }
     window.py = function runPython (...args) {
@@ -87,6 +94,7 @@ if (!pyweb.__main__) {
     }
 }
 const DEFAULT_CONFIG = {
+    debug: false,
     path: '..',
     // use wrapper, so pyweb.__main__ could be overridden
     onload: () => pyweb.__main__(),
@@ -112,3 +120,27 @@ window.addEventListener('load', async function () {
 
     await config.onload()
 })
+
+Node.prototype.insertChild = function (child, index) {
+    /**
+     *
+     * # Python version
+     * # TODO: check why it's not working
+     * @js_func()
+     * def _node_insert_child(self: js.Element, child, index=None):
+     *     if index is None or index >= len(self.children):
+     *         try:
+     *             self.appendChild(child)
+     *         except Exception as e:
+     *             _debugger(e)
+     *     else:
+     *         self.insertBefore(child, self.children[index])
+     *
+     * js.Node.prototype.insertChild = _node_insert_child
+     */
+    if (index == null || index >= this.children.length) {
+        this.appendChild(child)
+    } else {
+        this.insertBefore(child, this.children[index])
+    }
+}
