@@ -1,5 +1,5 @@
 # [PYWEB IGNORE START]
-from pyweb import Tag, mount, style, button, p, select, br, attr, state
+from pyweb import Tag, mount, style, button, p, select, br, attr, state, __version__
 from pyweb.tabs import tab, tab_title, tabs
 # [PYWEB IGNORE END]
 
@@ -69,14 +69,14 @@ class LinkTabs(tabs):
     }
 
     tab_text = tab(
-        '''
+        f'''
+        <p>PyWeb (version {__version__})</p>
         <p>
-            A frontend framework for python, using <a href="https://pyodide.org/" target="_blank">pyodide</a>,
-            that uses <a href="https://webassembly.org/">WebAssembly</a>
+            A frontend framework for python, using <a href="https://pyodide.org/" target="_blank">pyodide</a>
+            via <a href="https://webassembly.org/">WebAssembly</a>
         </p>
         <p>Made by <a href="https://t.me/kor0p" target="_blank">© kor0p</a></p>
         <p>Source code of PyWeb: <a href="https://github.com/kor0p/PyWeb" target="_blank">GitHub</a></p>
-        <p>Version 0.1.0 beta</p>
         '''
     )
     tab_buttons = tab(
@@ -91,6 +91,7 @@ class test_tabs(Tag, name='test-tabs'):
     style = style(
         color='white',
         zoom=5,
+        font_size='12px',
     )
 
     tabs = LinkTabs()

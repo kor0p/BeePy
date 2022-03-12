@@ -3,9 +3,9 @@ import math
 from typing import Any, Optional
 
 # [PYWEB IGNORE START]
-import js
 from .framework import __CONFIG__, Tag, attr, state
 from .utils import get_random_name, to_kebab_case, safe_eval
+from .tags import Head
 # [PYWEB IGNORE END]
 
 SPACES_4 = '    '
@@ -105,7 +105,7 @@ def dict_to_css(selectors: dict, parent: str = '', braces=('{', '}')):
 
 class style(Tag, name='style', content_tag=None):
     _global = {
-        'styles_count': 0
+        'styles_count': 1,
     }
 
     options: dict = state()
@@ -121,8 +121,6 @@ class style(Tag, name='style', content_tag=None):
         self._content = ''
         self.real_parent = None
         self.options = {'global': False, 'render_states': True, 'render_children': True} | options
-        if not self.options['global']:
-            self._global['styles_count'] += 1
 
     def __mount__(self, element, index=None):
         self.real_parent = element._py
@@ -130,9 +128,7 @@ class style(Tag, name='style', content_tag=None):
             super().__mount__(element, index)
             return
 
-        parent = js.document.head
-        parent._py = None
-        super().__mount__(parent)
+        super().__mount__(Head.mount_element)
 
     def mount(self):
         parent = self.real_parent
@@ -140,6 +136,8 @@ class style(Tag, name='style', content_tag=None):
         if self.options['global']:
             self._content = '\n'.join(list(dict_to_css(self.styles, parent._tag_name_)))
             return
+        else:
+            self._global['styles_count'] += 1
 
         name = get_random_name(math.ceil(math.log10(self._global['styles_count'])))
         attribute = attr(name)

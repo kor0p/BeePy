@@ -1,4 +1,4 @@
-# PyWeb v0.1.0b
+# PyWeb v0.1.1b
 
 ## A frontend framework for python, using [pyodide](https://pyodide.org/), that uses [WASM](https://webassembly.org/)
 ### Use classes, descriptors and rest python in browser!
@@ -44,7 +44,6 @@ class View(Tag, name='view'):
     title: str = state()
 
     style = style(
-        color='white',
         zoom=7,
         button=dict(backgroundColor='lightblue')
     )
@@ -68,36 +67,37 @@ mount(
 ```
 will render html as below, and will react on buttons click like native JS
 ```html
+<head>
+    <style>
+        view[style-id="6"] {
+            zoom: 7;
+        }
+        view[style-id="6"] button {
+            background-color: lightblue;
+        }
+    </style>
+    <style>
+        button[style-id="B"] {
+            margin: 8px;
+            color: red;
+        }
+    </style>
+    <style>
+        button[style-id="c"] {
+            margin: 8px;
+            color: gray;
+        }
+    </style>
+</head>
 <body>
     <div id="pyweb">
-        <view count="0" style-id="6....">
+        <view count="0" style-id="6">
             <div>PyWeb Test 2<br>Count: 0</div>
-            <style>
-                view[style-id="6...."] {
-                    color: white;
-                    zoom: 7;
-                }
-                view[style-id="6...."] button {
-                    background-color: lightblue;
-                }
-            </style>
-            <button test style-id="B....">
+            <button test style-id="B">
                 <div>+</div>
-                <style>
-                    button[style-id="B...."] {
-                        margin: 8px;
-                        color: red;
-                    }
-                </style>
             </button>
-            <button test style-id="c....">
+            <button test style-id="c">
                 <div>–</div>
-                <style>
-                    button[style-id="c...."] {
-                        margin: 8px;
-                        color: gray;
-                    }
-                </style>
             </button>
         </view>
     </div>

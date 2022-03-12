@@ -15,6 +15,7 @@ from .utils import to_kebab_case, js_func
 # [PYWEB IGNORE END]
 
 
+__version__ = '0.1.1b'
 __CONFIG__ = {
     'debug': True,
     'path': '..',
@@ -602,6 +603,9 @@ class _MetaTag(type):
         if tag_name:
             namespace['_tag_name_'] = to_kebab_case(tag_name)
 
+        if 'mount' in kwargs:
+            namespace['mount_element'] = kwargs['mount']
+
         if 'content_tag' in kwargs:
             content_tag = kwargs['content_tag']
             if isinstance(content_tag, str):
@@ -698,6 +702,9 @@ class _MetaTag(type):
         if '__init__' in namespace:
             cls.__init__ = mcs.__init(cls.__init__)
 
+        if initialized and 'mount' in kwargs:
+            cls.mount_element._py = cls()
+
         return cls
 
     @classmethod
@@ -784,6 +791,9 @@ class _MetaTag(type):
 
     @_lifecycle_method
     def __init(self: Tag, args, kwargs, _original_func, _not_in_super_call):
+        if hasattr(getattr(self, 'mount_element', None), '_py'):
+            return
+
         if _not_in_super_call:
             children_argument: Union[Callable, ContentType] = kwargs.get('children') or args
             if children_argument and (not isinstance(children_argument, Iterable) or isinstance(children_argument, str)):
@@ -812,8 +822,12 @@ class _MetaTag(type):
             self._args = args
             self._kwargs = kwargs
             self._dependents = []
-            self.mount_element = js.document.createElement(self._tag_name_)
-            self.mount_element._py = self
+            if not hasattr(self, 'mount_element'):
+                self.mount_element = js.document.createElement(self._tag_name_)
+            if getattr(self.mount_element, '_py', None):
+                raise ValueError(f'Coping or using as child is not allowed for "{self._tag_name_}"')
+            else:
+                self.mount_element._py = self
             if self.children_tag:
                 self.children_tag = self.children_tag.clone()
                 self.children_element = self.children_tag.mount_element
@@ -864,6 +878,11 @@ class Tag(Renderer, Mounter, metaclass=_MetaTag, _root=True):
             value = kwargs[key]
 
             setattr(self, key, value)
+
+    def __new__(cls, *args, **kwargs):
+        if hasattr(getattr(cls, 'mount_element', None), '_py'):
+            return cls.mount_element._py
+        return super().__new__(cls)
 
     def __repr__(self):
         return f'{type(self).__name__}(<{self._tag_name_}/>)'

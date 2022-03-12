@@ -99,7 +99,7 @@ const DEFAULT_CONFIG = {
     // use wrapper, so pyweb.__main__ could be overridden
     onload: () => pyweb.__main__(),
     // extra modules in base dir to load
-    modules: ['utils.py', 'framework.py', 'style.py', 'tags.py'],
+    modules: ['utils.py', 'framework.py', 'tags.py', 'style.py'],
 }
 
 // could be useful in the future, i.e: get attributes of <script src="pyweb" />

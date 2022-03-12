@@ -1,7 +1,8 @@
-from typing import Callable, Any
+from typing import Any
 
 # [PYWEB IGNORE START]
-from .framework import Tag, attr, state, html_attr, html_state, on
+import js
+from .framework import Tag, attr, html_attr, html_state
 # [PYWEB IGNORE END]
 
 
@@ -71,10 +72,19 @@ class select(html_tag, name='select'):
         ), **kwargs)
 
 
+class StandaloneTag(html_tag, _root=True):
+    def clone(self):
+        raise ValueError(f'Coping or using as child is not allowed for StandaloneTag("{self._tag_name_}")')
+
+
+class Head(StandaloneTag, name='head', mount=js.document.head):
+    pass
+
+
 # TODO: add all HTML tags
 
 
 br = '<br/>'
 
 
-__all__ = ('html_tag', 'div', 'a', 'p', 'ul', 'li', 'span', '_input', 'button', 'option', 'select', 'br')
+__all__ = ('html_tag', 'div', 'a', 'p', 'ul', 'li', 'span', '_input', 'button', 'option', 'select', 'Head', 'br')

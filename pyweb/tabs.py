@@ -66,7 +66,7 @@ class tabs(Tag, name='tabs', content_tag='ul'):
                 padding: 14px 16px;
                 text-decoration: none;
                 transition: 0.3s;
-                font-size: 17px;
+                font-size: 12px;
                 ''',
                 '&:hover': {
                     'background-color': '#222222',
