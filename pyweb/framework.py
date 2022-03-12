@@ -15,7 +15,7 @@ from .utils import to_kebab_case, js_func
 # [PYWEB IGNORE END]
 
 
-__version__ = '0.1.1b'
+__version__ = '0.1.1'
 __CONFIG__ = {
     'debug': True,
     'path': '..',
