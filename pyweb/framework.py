@@ -168,6 +168,8 @@ class attr:
         tag.attrs[name] = self
         if force:
             self.__set_name__(tag, name)
+        if not hasattr(tag, name):
+            setattr(tag, name, self.__get__(tag))
 
     def __delete__(self, instance):
         return self.fdel(instance)
@@ -435,7 +437,10 @@ class ContentWrapper(Renderer, Mounter):
             self.mount_parent.insertChild(self.mount_element, index)
         elif '-' in parent_name or parent_name in self.SHADOW_ROOTS:
             self.is_shadow = True
-            self.mount_element = self.mount_parent.attachShadow(mode='open')
+            if self.mount_parent.shadowRoot:
+                self.mount_parent = self.mount_parent.shadowRoot
+            else:
+                self.mount_element = self.mount_parent.attachShadow(mode='open')
             self.mount_element._py = self
         else:
             self.mount_element = js.document.createDocumentFragment()
@@ -472,7 +477,7 @@ class ContentWrapper(Renderer, Mounter):
         else:  # fragment can't be re-rendered
             current_html = self.mount_parent.innerHTML
             if current_html != result and result:
-                if current_html:
+                if current_html and not self.mount_parent._py._raw_html:
                     js.console.warn(
                         f'This html `{current_html}` will be replaces with this: `{result}`.\n'
                         'Maybe you must use pyweb.Tag instead of pyweb.tags.div',
@@ -603,6 +608,9 @@ class _MetaTag(type):
         if tag_name:
             namespace['_tag_name_'] = to_kebab_case(tag_name)
 
+        if 'raw_html' in kwargs:
+            namespace['_raw_html'] = kwargs['raw_html']
+
         if 'mount' in kwargs:
             namespace['mount_element'] = kwargs['mount']
 
@@ -652,6 +660,9 @@ class _MetaTag(type):
             js.console.error(traceback.format_exc())
             print(e.__cause__, e)
             raise e
+
+        if not hasattr(cls, '_raw_html'):
+            cls._raw_html = False
 
         if initialized and not hasattr(cls, '_content_tag'):
             cls._content_tag = empty_tag('div')()

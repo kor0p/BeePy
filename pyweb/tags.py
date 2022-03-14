@@ -14,6 +14,10 @@ class div(html_tag, name='div', content_tag=None):
     pass
 
 
+class hr(html_tag, name='hr'):
+    pass
+
+
 class a(html_tag, name='a'):
     href: str = attr()
 
