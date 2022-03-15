@@ -1,4 +1,5 @@
 # [PYWEB IGNORE START]
+from .local_storage import *
 from .utils import *
 from .framework import *
 from .style import *

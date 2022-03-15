@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 # [PYWEB IGNORE START]
-from pyweb import Tag, Children, mount, attr, state, on, style, div, p, _input, button, span
+from pyweb import Tag, Children, mount, attr, state, on, style, div, p, _input, button, span, LocalStorage
 # [PYWEB IGNORE END]
-
-_p = p()
 
 
 class TodoList(Tag, name='ul'):
@@ -22,7 +20,7 @@ class TodoList(Tag, name='ul'):
 
     ####
 
-    class Todo(Tag, name='li', content_tag=_p):
+    class Todo(Tag, name='li', content_tag=p()):
         completed: bool = attr()
 
         parent: TodoList
@@ -36,7 +34,7 @@ class TodoList(Tag, name='ul'):
 
         @remove.on('click')
         def delete(self, event):
-            self.parent.todos.remove(self)
+            self.parent.remove_todo(self)
 
     ####
 
@@ -122,20 +120,42 @@ class TodoList(Tag, name='ul'):
         Todo('Create Todo List', completed=True),
     ])
 
+    local_storage = LocalStorage('todos-')
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        if (saved_todos := self.local_storage.get('list')):
+            # TODO: rewrite class Children to handle "self.todos = []" like below
+            # TODO: and add @onchange handler for Children to sync with local storage, for example
+            self.todos.clear()
+            self.todos.extend([
+                self.Todo(todo['text'], completed=todo['completed'])
+                for todo in saved_todos
+            ])
         self.recalculate_completed()
 
     def content(self):
         return f'Completed: {self.count_completed}/{len(self.todos)}'
 
-    def add_todo(self, todo):
-        if not todo:
+    def sync_to_local_storage(self):
+        self.local_storage['list'] = [
+            {'text': todo._content[0], 'completed': todo.completed}
+            for todo in self.todos
+        ]
+
+    def add_todo(self, todo_text):
+        if not todo_text:
             return
 
-        self.todos.append(self.Todo(todo))
+        self.todos.append(self.Todo(todo_text))
+        self.sync_to_local_storage()
+
+    def remove_todo(self, todo):
+        self.todos.remove(todo)
+        self.sync_to_local_storage()
 
     def recalculate_completed(self):
+        self.sync_to_local_storage()
         self.count_completed = len([todo for todo in self.todos if todo.completed])
 
 

@@ -256,7 +256,7 @@ class Trackable:
 class TrackableList(Trackable, list):
     def _notify_add(self, key: Union[SupportsIndex, slice], added: Union[tuple, list]):
         if isinstance(key, slice):
-            for index, value in zip(range(key.start, key.stop, key.step), added):
+            for index, value in zip(range(key.start, key.stop, key.step or 1), added):
                 self._notify_add_one(index, value)
         else:
             index = key.__index__()
@@ -266,7 +266,7 @@ class TrackableList(Trackable, list):
 
     def _notify_remove(self, key: Union[SupportsIndex, slice], to_remove: Union[tuple, list]):
         if isinstance(key, slice):
-            for index, value in zip(range(key.start, key.stop, key.step), to_remove):
+            for index, value in zip(range(key.start, key.stop, key.step or 1), to_remove):
                 self._notify_remove_one(index, value)
         else:
             index = key.__index__()
@@ -359,13 +359,15 @@ class Mounter:
 
 
 class _ChildrenList(Renderer, Mounter, TrackableList):
-    __slots__ = ('parent', 'parent_index')
+    __slots__ = ('parent', 'parent_index', 'mounted')
 
     parent: Optional[Tag]
 
     def __init__(self, iterable):
         super().__init__(iterable)
         self.parent = None
+        self.parent_index = None
+        self.mounted = False
 
     def copy(self) -> _ChildrenList:
         return _ChildrenList(super().copy())
@@ -375,23 +377,29 @@ class _ChildrenList(Renderer, Mounter, TrackableList):
         self.parent_index = index
 
     def _notify_add_one(self, key: int, child: Tag):
-        if self.parent is None:
+        if not self.mounted:
             return
 
         child.__mount__(self.parent.children_element, key + self.parent_index)
         child.__render__()
 
     def _notify_remove_one(self, key: int, child: Tag):
-        if self.parent is None:
+        if not self.mounted:
             return
 
-        self.parent.children_element.removeChild(child.mount_element)
+        try:
+            self.parent.children_element.removeChild(child.mount_element)
+        except Exception as e:
+            if not str(e).startswith('NotFoundError'):
+                raise
 
     def __render__(self):
         for child in self:
             child.__render__()
 
     def __mount__(self, element: js.HTMLElement, index=None):
+        self.mounted = True
+
         if index is not None:
             index += self.parent_index
         for child in self:
