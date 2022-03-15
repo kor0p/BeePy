@@ -46,6 +46,7 @@ class ContextMenu(ul):
     )
 
     default_style = style(styles={
+        'visibility': 'hidden',
         'background-color': '#353535',
         'font-size': '24px',
         'border-radius': '2px',
@@ -58,10 +59,11 @@ class ContextMenu(ul):
         'list-style': 'none',
         'box-shadow': '0 0 20px 0 #222',
         'opacity': 0,
-        'transition': 'opacity 0.2s linear',
+        'transition': 'opacity 0.2s, visibility 0.2s',
 
         '&[visible]': {
             'opacity': 1,
+            'visibility': 'visible',
         }
     })
 

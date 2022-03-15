@@ -34,7 +34,7 @@ class TodoList(Tag, name='ul'):
 
         @remove.on('click')
         def delete(self, event):
-            self.parent.remove_todo(self)
+            self.parent.todos.remove(self)
 
     ####
 
@@ -125,18 +125,16 @@ class TodoList(Tag, name='ul'):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if (saved_todos := self.local_storage.get('list')):
-            # TODO: rewrite class Children to handle "self.todos = []" like below
-            # TODO: and add @onchange handler for Children to sync with local storage, for example
-            self.todos.clear()
-            self.todos.extend([
+            self.todos = [
                 self.Todo(todo['text'], completed=todo['completed'])
                 for todo in saved_todos
-            ])
+            ]
         self.recalculate_completed()
 
     def content(self):
         return f'Completed: {self.count_completed}/{len(self.todos)}'
 
+    @todos.onchange
     def sync_to_local_storage(self):
         self.local_storage['list'] = [
             {'text': todo._content[0], 'completed': todo.completed}
@@ -148,14 +146,8 @@ class TodoList(Tag, name='ul'):
             return
 
         self.todos.append(self.Todo(todo_text))
-        self.sync_to_local_storage()
-
-    def remove_todo(self, todo):
-        self.todos.remove(todo)
-        self.sync_to_local_storage()
 
     def recalculate_completed(self):
-        self.sync_to_local_storage()
         self.count_completed = len([todo for todo in self.todos if todo.completed])
 
 

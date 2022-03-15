@@ -1,4 +1,4 @@
-# PyWeb v0.1.1b
+# PyWeb v0.1.2b
 
 ## A frontend framework for python, using [pyodide](https://pyodide.org/), that uses [WASM](https://webassembly.org/)
 ### Use classes, descriptors and rest python in browser!
