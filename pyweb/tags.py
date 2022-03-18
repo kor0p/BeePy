@@ -1,9 +1,8 @@
 from typing import Any
 
-# [PYWEB IGNORE START]
 import js
+
 from .framework import Tag, attr, html_attr, html_state
-# [PYWEB IGNORE END]
 
 
 class html_tag(Tag, _root=True, content_tag=None):
@@ -50,7 +49,7 @@ class _input(html_tag, name='input'):
     value = html_attr()
 
     def clear(self):
-        self.mount_element.value = ''
+        self.value = ''
 
 
 class button(html_tag, name='button'):

@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-# [PYWEB IGNORE START]
-from pyweb import Tag, Children, mount, attr, state, on, style, div, p, _input, button, span, LocalStorage
-# [PYWEB IGNORE END]
+from pyweb import Tag, Children, mount, attr, state, on
+from pyweb.style import style
+from pyweb.tags import div, p, _input, button, span
+from pyweb.local_storage import LocalStorage
 
 
 class TodoList(Tag, name='ul'):

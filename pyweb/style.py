@@ -2,11 +2,9 @@ import re
 import math
 from typing import Any, Optional
 
-# [PYWEB IGNORE START]
 from .framework import __CONFIG__, Tag, attr, state
 from .utils import get_random_name, to_kebab_case, safe_eval
 from .tags import Head
-# [PYWEB IGNORE END]
 
 SPACES_4 = '    '
 
@@ -170,3 +168,6 @@ class style(Tag, name='style', content_tag=None, raw_html=True):
             params.update(parent.ref_children)
         # TODO: use native css '--var: {}' instead of re-render the whole content
         return safe_eval(f'f"""{self._content.strip()}"""', params)
+
+
+__all__ = ['dict_to_css', 'style']

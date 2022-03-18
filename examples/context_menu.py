@@ -1,8 +1,9 @@
-# [PYWEB IGNORE START]
 import js
-from pyweb import mount, style, p
+
+from pyweb import mount
+from pyweb.style import style
+from pyweb.tags import p
 from pyweb.context_menu import MenuDivider, MenuItem, ContextMenu, ContextMenuHandler
-# [PYWEB IGNORE END]
 
 
 class Menu(ContextMenu):

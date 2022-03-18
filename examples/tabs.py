@@ -1,7 +1,7 @@
-# [PYWEB IGNORE START]
-from pyweb import Tag, mount, style, button, p, select, br, attr, state, __version__
+from pyweb import Tag, mount, state, __version__
+from pyweb.style import style
+from pyweb.tags import button, p, select, br, attr
 from pyweb.tabs import tab, tab_title, tabs
-# [PYWEB IGNORE END]
 
 
 class View(Tag, name='view'):

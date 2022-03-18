@@ -10,9 +10,7 @@ import inspect
 import js
 import pyodide
 
-# [PYWEB IGNORE START]
 from .utils import to_kebab_case, js_func
-# [PYWEB IGNORE END]
 
 
 __version__ = '0.1.2b'
@@ -317,10 +315,10 @@ class TrackableList(Trackable, list):
         super().remove(__value)
 
     def reverse(self):
-        raise AttributeError("Not implemented yet!")
+        raise AttributeError('Not implemented yet!')
 
     def sort(self, *, key=..., reverse=...):
-        raise AttributeError("Not implemented yet!")
+        raise AttributeError('Not implemented yet!')
 
     def __delitem__(self, key):
         self._notify_remove(key, self[key])
@@ -1226,3 +1224,10 @@ def mount(element: Tag, root_element: str):
     parent._py = None
     element.__mount__(parent)
     element.__render__()
+
+
+__all__ = [
+    '__version__', '__CONFIG__', 'delay', '_debugger', 'AttrType', 'ContentType', 'log', 'AttrValue', 'attr', 'state',
+    'html_attr', 'html_state', 'Trackable', 'TrackableList', 'Renderer', 'Mounter', 'ContentWrapper', 'ChildRef',
+    'Children', '_MetaTag', 'Tag', 'on', 'empty_tag', 'mount',
+]

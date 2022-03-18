@@ -3,9 +3,7 @@ from __future__ import annotations
 import json
 from collections.abc import Mapping
 
-# [PYWEB IGNORE START]
 import js
-# [PYWEB IGNORE END]
 
 
 class LocalStorage(Mapping):
@@ -44,4 +42,6 @@ class _GlobalLocalStorage(LocalStorage):
 
 
 GlobalLocalStorage = _GlobalLocalStorage()
-del _GlobalLocalStorage
+
+
+__all__ = ['LocalStorage', 'GlobalLocalStorage']

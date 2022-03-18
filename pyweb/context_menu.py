@@ -1,11 +1,9 @@
 from __future__ import annotations
 
-# [PYWEB IGNORE START]
 import js
 from .framework import attr, state, on
 from .style import style
 from .tags import div, hr, ul, li
-# [PYWEB IGNORE END]
 
 
 class MenuDivider(hr):
@@ -102,3 +100,6 @@ class ContextMenuHandler(div):
     def contextmenu(self, event):
         event.preventDefault()
         self.menu.set_pos(event.pageX, event.pageY)
+
+
+__all__ = ['MenuDivider', 'MenuItem', 'ContextMenu', 'ContextMenuHandler']

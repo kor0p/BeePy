@@ -44,22 +44,12 @@ document.head.appendChild(script)
 async function _load () {
     window.pyodide = await window.loadPyodide({ indexURL })
 
-    window.PYWEB = {}
-    PYWEB.loadRawFile = async function loadRawFile (filePath) {
+    pyweb.loadFile = async function loadFile (filePath) {
+        pyweb.__CURRENT_LOADING_FILE__ = filePath
         return await (await fetch(filePath)).text()
     }
-    PYWEB.handleTextForImport = function handleTextForImport (text) {
-        return text.replace(
-            /# ?\[PYWEB IGNORE START\]([\w\W]*)# ?\[PYWEB IGNORE END\]/gm,
-            function (string, group, index) {
-                const countOfLines = (group.match(/\n/g) || []).length
-                return new Array(countOfLines).fill('\n').join('')
-            },
-        )
-    }
-    PYWEB.loadFile = async function loadFile (filePath) {
-        window.__CURRENT_LOADING_FILE__ = filePath
-        return PYWEB.handleTextForImport(await PYWEB.loadRawFile(filePath))
+    pyweb._loadInternalFile = async function loadInternalFile (file) {
+        pyodide.FS.writeFile(`pyweb/${file}`, await pyweb.loadFile(`${config.path}/pyweb/${file}`))
     }
     window.py = function runPython (...args) {
         try {
@@ -81,10 +71,10 @@ async function _load () {
         }
     }
     window.pyf = async function runPythonFile (filePath) {
-        return window.py(await PYWEB.loadFile(filePath))
+        return window.py(await pyweb.loadFile(filePath))
     }
     window.apyf = async function runPythonAsyncFile (filePath) {
-        return await window.apy(await PYWEB.loadFile(filePath))
+        return await window.apy(await pyweb.loadFile(filePath))
     }
 }
 
@@ -99,7 +89,7 @@ const DEFAULT_CONFIG = {
     // use wrapper, so pyweb.__main__ could be overridden
     onload: () => pyweb.__main__(),
     // extra modules in base dir to load
-    modules: ['local_storage.py', 'utils.py', 'framework.py', 'tags.py', 'style.py'],
+    modules: [],
 }
 
 // could be useful in the future, i.e: get attributes of <script src="pyweb" />
@@ -111,12 +101,33 @@ pyweb.__CONFIG__ = config
 window.addEventListener('load', async function () {
     await _load()
     await pyodide.loadPackage('micropip')
-    py('import sys; print(sys.version)')
+    py(`
+import sys
+print(sys.version)
+del sys
+`)
+
+
+    // load relative modules from pyweb/__init__.py
+    pyodide.FS.mkdir('pyweb')
+    const _init = await pyweb.loadFile(`${config.path}/pyweb/__init__.py`)
+    for (const line of _init.split('\n').reverse()) {
+        if (line.substring(0, 13) === 'from . import') {
+            config.modules.unshift(`${line.substring(14)}.py`)
+        }
+    }
+    config.modules.unshift('__init__.py')
 
     // TODO: create wheel and load via pip
     for (const file of config.modules) {
-        await apyf(`${config.path}/pyweb/${file}`)
+        await pyweb._loadInternalFile(file)
     }
+
+    py(`
+import pyweb
+print('PyWeb version:', pyweb.__version__)
+del pyweb
+`)
 
     await config.onload()
 })
