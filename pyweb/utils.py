@@ -2,6 +2,9 @@ import re
 import string
 import random
 import builtins
+from functools import wraps
+
+import js
 import pyodide
 
 _w = string.ascii_letters + string.digits + '_'
@@ -37,6 +40,30 @@ def js_func(once=False):
         create_proxy = pyodide.create_proxy
 
     return create_proxy
+
+
+def js_await(to_await):
+    """
+    JS await can resolve both: coroutines and raw value
+    """
+    js.pyweb._to_await = to_await
+    return js.eval('''
+(async () => {
+    const r = await window.pyweb._to_await
+    delete window.pyweb._to_await
+    return r
+})()
+''')
+
+
+def to_sync(function):
+    """
+    Using JS await from python, we can synchronously get result of coroutine
+    """
+    @wraps(function)
+    def wrapper(*args, **kwargs):
+        return js_await(function(*args, **kwargs))
+    return wrapper
 
 
 _all_globals = builtins.__dict__

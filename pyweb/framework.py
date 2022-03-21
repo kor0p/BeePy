@@ -10,7 +10,7 @@ import inspect
 import js
 import pyodide
 
-from .utils import to_kebab_case, js_func
+from .utils import to_kebab_case, js_func, js_await, to_sync
 
 
 __version__ = '0.1.2b'
@@ -28,6 +28,11 @@ if pyodide.IN_BROWSER:
 
 async def delay(ms):
     return await js.delay(ms)
+
+
+@to_sync
+async def sleep(s):
+    return await js.delay(s * 1000)
 
 
 def _debugger(error=None):
@@ -1151,7 +1156,7 @@ class on:
         else:
             fn = MethodType(self.callback, tag)
 
-        data = fn(*args, **kwargs)
+        data = js_await(fn(*args, **kwargs))
 
         event, *_ = args
 
