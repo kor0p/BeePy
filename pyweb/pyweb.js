@@ -83,14 +83,7 @@ document.head.appendChild(script)
 
 pyweb.loadFile = async function loadFile (filePath) {
     pyweb.__CURRENT_LOADING_FILE__ = filePath
-    return await (
-        await fetch(filePath, {
-            'mode': 'no-cors',
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Headers': '*',
-            'Access-Control-Allow-Origin': '*',
-        })
-    ).text()
+    return await (await fetch(filePath)).text()
 }
 pyweb._loadInternalFile = async function loadInternalFile (file) {
     pyodide.FS.writeFile(`pyweb/${file}`, await pyweb.loadFile(`${config.path}/pyweb/${file}`))
