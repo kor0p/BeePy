@@ -3,6 +3,11 @@
   to = "/examples/index.html"
   status = 200
 
+[[redirects]]
+  from = "/__init__.py"
+  to = "/examples/__init__.py"
+  status = 200
+
 [[headers]]
   for = "/*"
     [headers.values]
