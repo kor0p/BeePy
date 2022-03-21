@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-# [PYWEB IGNORE START]
-from .framework import Tag, attr, state, on
-from .style import style
-from .tags import div
 
 import js
 import pyodide
-# [PYWEB IGNORE END]
+
+from .framework import Tag, attr, state, on
+from .style import style
+from .tags import div
 
 
 class tab(div, name='tab'):
@@ -49,6 +48,10 @@ class tabs(Tag, name='tabs', content_tag='ul'):
     }
 
     style = style(**{
+        'a': {
+            'color': 'lightskyblue',
+            'text-decoration': 'none',
+        },
         'ul': {
             '': '''
             list-style-type: none;
@@ -149,3 +152,6 @@ class tabs(Tag, name='tabs', content_tag='ul'):
 
     def render(self):
         self._update_url()
+
+
+__all__ = ['tab', 'tab_title', 'tabs']

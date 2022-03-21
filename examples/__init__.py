@@ -1,6 +1,6 @@
-# [PYWEB IGNORE START]
-from pyweb import Tag, mount, state, attr, on, style, br
-# [PYWEB IGNORE END]
+from pyweb import Tag, mount, state, attr, on
+from pyweb.style import style
+from pyweb.tags import br
 
 
 class PyButton(Tag, name='button'):

@@ -2,11 +2,9 @@ import re
 import math
 from typing import Any, Optional
 
-# [PYWEB IGNORE START]
 from .framework import __CONFIG__, Tag, attr, state
 from .utils import get_random_name, to_kebab_case, safe_eval
 from .tags import Head
-# [PYWEB IGNORE END]
 
 SPACES_4 = '    '
 
@@ -103,7 +101,7 @@ def dict_to_css(selectors: dict, parent: str = '', braces=('{', '}')):
     yield from dict_of_parents_to_css(children, parent, braces)
 
 
-class style(Tag, name='style', content_tag=None):
+class style(Tag, name='style', content_tag=None, raw_html=True):
     _global = {
         'styles_count': 1,
     }
@@ -120,7 +118,11 @@ class style(Tag, name='style', content_tag=None):
         self.styles = styles_dict
         self._content = ''
         self.real_parent = None
-        self.options = {'global': False, 'render_states': True, 'render_children': True} | options
+        self.options = {
+            'global': False,
+            'render_states': True,
+            'render_children': True,
+        } | options
 
     def __mount__(self, element, index=None):
         self.real_parent = element._py
@@ -139,10 +141,14 @@ class style(Tag, name='style', content_tag=None):
         else:
             self._global['styles_count'] += 1
 
-        name = get_random_name(math.ceil(math.log10(self._global['styles_count'])))
-        attribute = attr(name)
-        attribute.__set_to_tag__('style_id', parent, force=True)
-        attribute.__set_type__(str)
+        if hasattr(parent, 'style_id'):  # support multiple style children
+            name = parent.style_id
+            self._global['styles_count'] -= 1
+        else:
+            name = get_random_name(math.ceil(math.log10(self._global['styles_count'])))
+            attribute = attr(name)
+            attribute.__set_to_tag__('style_id', parent, force=True)
+            attribute.__set_type__(str)
 
         self._content = '\n'.join(
             list(dict_to_css(self.styles, f'{parent._tag_name_}[style-id="{name}"]', braces=('{{', '}}')))
@@ -162,3 +168,6 @@ class style(Tag, name='style', content_tag=None):
             params.update(parent.ref_children)
         # TODO: use native css '--var: {}' instead of re-render the whole content
         return safe_eval(f'f"""{self._content.strip()}"""', params)
+
+
+__all__ = ['dict_to_css', 'style']

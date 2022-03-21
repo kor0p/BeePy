@@ -10,12 +10,10 @@ import inspect
 import js
 import pyodide
 
-# [PYWEB IGNORE START]
-from .utils import to_kebab_case, js_func
-# [PYWEB IGNORE END]
+from .utils import to_kebab_case, js_func, js_await, to_sync
 
 
-__version__ = '0.1.1'
+__version__ = '0.1.3'
 __CONFIG__ = {
     'debug': True,
     'path': '..',
@@ -32,8 +30,13 @@ async def delay(ms):
     return await js.delay(ms)
 
 
+@to_sync
+async def sleep(s):
+    return await js.delay(s * 1000)
+
+
 def _debugger(error=None):
-    js.console.warn('\n'.join(traceback.format_stack()[0 if error else 5:]))
+    log.warn('\n'.join(traceback.format_stack()[0 if error else 5:]))
     js._locals = pyodide.to_js(inspect.currentframe().f_back.f_locals, dict_converter=js.Object.fromEntries)
     js._DEBUGGER(error)
 
@@ -50,6 +53,9 @@ _current: dict[str, Any] = {
     'rerender': _current_rerender,
     '_lifecycle_method': _current__lifecycle_method,
 }
+
+
+log = js.console
 
 
 class AttrValue:
@@ -126,7 +132,7 @@ class attr:
     def __set__(self, instance, value):
         if self.const and getattr(instance, self.private_name, None) is not None:
             raise AttributeError
-        print('[__SET__]', instance, self.name, value)
+        log.debug('[__SET__]', instance, self.name, value)
         self.fset(instance, value)
         if self.onchange_trigger:
             self.onchange_trigger(instance, value)
@@ -160,7 +166,7 @@ class attr:
         try:
             issubclass(_type, type)
         except TypeError:
-            js.console.error(f'Bad type for attribute: {_type!r}, {type(_type)}')
+            log.error(f'Bad type for attribute: {_type!r}, {type(_type)}')
             return
         self.type = _type
 
@@ -168,6 +174,8 @@ class attr:
         tag.attrs[name] = self
         if force:
             self.__set_name__(tag, name)
+        if not hasattr(tag, name):
+            setattr(tag, name, self.__get__(tag))
 
     def __delete__(self, instance):
         return self.fdel(instance)
@@ -186,6 +194,7 @@ class attr:
 
     def onchange(self, handler):
         self.onchange_trigger = handler
+        return handler
 
     def __get_view_value__(self, instance):
         value = self.__get__(instance)
@@ -234,9 +243,8 @@ class html_state(html_attr):
 
 
 class Trackable:
-    @classmethod
-    def __mogrify(cls, element):
-        return element
+    def onchange(self):
+        pass
 
     def _notify_add_one(self, key: int, added):
         raise NotImplementedError
@@ -254,23 +262,31 @@ class Trackable:
 class TrackableList(Trackable, list):
     def _notify_add(self, key: Union[SupportsIndex, slice], added: Union[tuple, list]):
         if isinstance(key, slice):
-            for index, value in zip(range(key.start, key.stop, key.step), added):
+            for index, value in zip(range(key.start or 0, key.stop or len(self), key.step or 1), added):
+                if index < 0:
+                    index += len(self)
                 self._notify_add_one(index, value)
         else:
             index = key.__index__()
             if index < 0:
                 index += len(self)
             self._notify_add_one(index, added[0])
+        self.onchange()
 
     def _notify_remove(self, key: Union[SupportsIndex, slice], to_remove: Union[tuple, list]):
         if isinstance(key, slice):
-            for index, value in zip(range(key.start, key.stop, key.step), to_remove):
+            for index, value in reversed(list(
+                zip(range(key.start or 0, key.stop or len(self), key.step or 1), to_remove)
+            )):
+                if index < 0:
+                    index += len(self)
                 self._notify_remove_one(index, value)
         else:
             index = key.__index__()
             if index < 0:
                 index += len(self)
             self._notify_remove_one(index, to_remove[0])
+        self.onchange()
 
     def append(self, __object):
         super().append(__object)
@@ -304,10 +320,10 @@ class TrackableList(Trackable, list):
         super().remove(__value)
 
     def reverse(self):
-        raise AttributeError("Not implemented yet!")
+        raise AttributeError('Not implemented yet!')
 
     def sort(self, *, key=..., reverse=...):
-        raise AttributeError("Not implemented yet!")
+        raise AttributeError('Not implemented yet!')
 
     def __delitem__(self, key):
         self._notify_remove(key, self[key])
@@ -357,39 +373,56 @@ class Mounter:
 
 
 class _ChildrenList(Renderer, Mounter, TrackableList):
-    __slots__ = ('parent', 'parent_index')
+    __slots__ = ('parent', 'parent_index', 'ref', 'mounted')
 
     parent: Optional[Tag]
+    parent_index: Optional[int]
+    ref: Optional[Children]
+    mounted: bool
 
     def __init__(self, iterable):
         super().__init__(iterable)
         self.parent = None
+        self.parent_index = None
+        self.ref = None
+        self.mounted = False
 
     def copy(self) -> _ChildrenList:
         return _ChildrenList(super().copy())
 
-    def __set_parent__(self, parent: Tag, index):
+    def __set_parent__(self, parent: Tag, index: int, ref: Children):
         self.parent = parent
         self.parent_index = index
+        self.ref = ref
+
+    def onchange(self):
+        if self.ref and self.ref.onchange_trigger:
+            self.ref.onchange_trigger(self.parent)
 
     def _notify_add_one(self, key: int, child: Tag):
-        if self.parent is None:
+        if not self.mounted:
             return
 
         child.__mount__(self.parent.children_element, key + self.parent_index)
         child.__render__()
 
     def _notify_remove_one(self, key: int, child: Tag):
-        if self.parent is None:
+        if not self.mounted:
             return
 
-        self.parent.children_element.removeChild(child.mount_element)
+        try:
+            self.parent.children_element.removeChild(child.mount_element)
+        except Exception as e:
+            if not str(e).startswith('NotFoundError'):
+                raise
 
     def __render__(self):
         for child in self:
             child.__render__()
 
     def __mount__(self, element: js.HTMLElement, index=None):
+        self.mounted = True
+
         if index is not None:
             index += self.parent_index
         for child in self:
@@ -435,7 +468,10 @@ class ContentWrapper(Renderer, Mounter):
             self.mount_parent.insertChild(self.mount_element, index)
         elif '-' in parent_name or parent_name in self.SHADOW_ROOTS:
             self.is_shadow = True
-            self.mount_element = self.mount_parent.attachShadow(mode='open')
+            if self.mount_parent.shadowRoot:
+                self.mount_parent = self.mount_parent.shadowRoot
+            else:
+                self.mount_element = self.mount_parent.attachShadow(mode='open')
             self.mount_element._py = self
         else:
             self.mount_element = js.document.createDocumentFragment()
@@ -444,9 +480,9 @@ class ContentWrapper(Renderer, Mounter):
     def __render__(self):
         _current['render'].append(self)
         _current['rerender'].append(self)
-        print('[__RENDER__]', _current)
+        log.debug('[__RENDER__]', _current)
 
-        print('[DEPENDENT]', _current['render'])
+        log.debug('[DEPENDENT]', _current['render'])
         if current_renderers := _current['render']:
             for renderer in current_renderers:
                 if self.parent and renderer not in self.parent._dependents:
@@ -456,7 +492,7 @@ class ContentWrapper(Renderer, Mounter):
             for child in self.children:
                 child.__render__()
 
-            print('[END __RENDER__]', _current)
+            log.debug('[END __RENDER__]', _current)
             if _current['render'][-1] is self:
                 _current['render'].pop()
             return
@@ -472,14 +508,14 @@ class ContentWrapper(Renderer, Mounter):
         else:  # fragment can't be re-rendered
             current_html = self.mount_parent.innerHTML
             if current_html != result and result:
-                if current_html:
-                    js.console.warn(
+                if current_html and not self.mount_parent._py._raw_html:
+                    log.warn(
                         f'This html `{current_html}` will be replaces with this: `{result}`.\n'
                         'Maybe you must use pyweb.Tag instead of pyweb.tags.div',
                     )
                 self.mount_parent.innerHTML = result
 
-        print('[END __RENDER__]', _current)
+        log.debug('[END __RENDER__]', _current)
         if _current['render'][-1] is self:
             _current['render'].pop()
 
@@ -533,24 +569,37 @@ class ChildRef(Renderer, Mounter):
 
 
 class Children(ChildRef):
-    __slots__ = ()
+    __slots__ = ('onchange_trigger',)
 
     child: _ChildrenList
+    onchange_trigger: Optional[Callable]
 
     def __init__(self, child: list = ()):
         super().__init__(None)
         self.child = _ChildrenList(child)
+        self.onchange_trigger = None
 
     def _update_child(self, parent: Tag, index: int):
         copy = self.__get__(parent).copy()
-        copy.__set_parent__(parent, index)
+        copy.__set_parent__(parent, index, self)
         setattr(parent, self.name, copy)
 
     def __get__(self, instance: Optional[Tag], owner=None) -> Union[ChildRef, _ChildrenList]:
         return super().__get__(instance, owner)
 
+    def __set__(self, instance, value):
+        if isinstance(value, _ChildrenList):
+            super().__set__(instance, value)
+        else:
+            current_value = self.__get__(instance)
+            current_value[:] = value
+
     def __mount__(self, tag: Tag, index=None):
         self.__get__(tag).__mount__(tag.children_element, index)
+
+    def onchange(self, handler):
+        self.onchange_trigger = handler
+        return handler
 
 
 def _lifecycle_method(fn):
@@ -589,7 +638,7 @@ class _MetaTag(type):
 
     def __new__(mcs, _name, bases, namespace, **kwargs):
         namespace = namespace.copy()
-        print('[__NAMESPACE__]', namespace)
+        log.debug('[__NAMESPACE__]', namespace)
 
         initialized = _TAG_INITIALIZED  # if class Tag is already defined
 
@@ -602,6 +651,9 @@ class _MetaTag(type):
 
         if tag_name:
             namespace['_tag_name_'] = to_kebab_case(tag_name)
+
+        if 'raw_html' in kwargs:
+            namespace['_raw_html'] = kwargs['raw_html']
 
         if 'mount' in kwargs:
             namespace['mount_element'] = kwargs['mount']
@@ -622,7 +674,7 @@ class _MetaTag(type):
                 raise TypeError('children_tag argument must be either str or Tag')
             namespace['children_tag'] = children_tag
 
-        namespace['methods'] = defaultdict(list)
+        namespace['listeners'] = defaultdict(list)
 
         super_children_index = -1
         super_children = namespace.get('children', None)
@@ -649,9 +701,12 @@ class _MetaTag(type):
         try:
             cls: Union[Type[Tag], type] = super().__new__(mcs, _name, bases, namespace)
         except Exception as e:
-            js.console.error(traceback.format_exc())
-            print(e.__cause__, e)
+            log.error(traceback.format_exc())
+            log.debug(e.__cause__, e)
             raise e
+
+        if not hasattr(cls, '_raw_html'):
+            cls._raw_html = False
 
         if initialized and not hasattr(cls, '_content_tag'):
             cls._content_tag = empty_tag('div')()
@@ -675,11 +730,11 @@ class _MetaTag(type):
         cls._children = cls._static_children.copy()
 
         if initialized:
-            cls._methods = cls._methods.copy()
-            for _key, _value in cls.methods.items():
-                cls._methods[_key].extend(_value)
+            cls._listeners = cls._listeners.copy()
+            for _key, _value in cls.listeners.items():
+                cls._listeners[_key].extend(_value)
         else:
-            cls._methods = defaultdict(list)
+            cls._listeners = defaultdict(list)
 
         if initialized:
             cls.attrs = cls.attrs.copy()
@@ -722,7 +777,7 @@ class _MetaTag(type):
 
     @_lifecycle_method
     def __mount(self: Tag, args, kwargs, _original_func, _not_in_super_call):
-        print('[__MOUNT__]', self, args, kwargs, _original_func, _not_in_super_call, args[0]._py)
+        log.debug('[__MOUNT__]', self, args, kwargs, _original_func, _not_in_super_call, args[0]._py)
 
         if _not_in_super_call:
             self.pre_mount()
@@ -738,7 +793,7 @@ class _MetaTag(type):
                 elif isinstance(child, Mounter):
                     child.__mount__(self.children_element)
                 elif not isinstance(child, str):
-                    js.console.warn(f'Cannot mount: {child}')
+                    log.warn(f'Cannot mount: {child}')
             if self.children_tag:
                 self.mount_element.insertChild(self.children_element)
 
@@ -764,9 +819,9 @@ class _MetaTag(type):
             for name, attribute in self.__states__.items():
                 if callable(attribute) and not isinstance(attribute, MethodType):
                     setattr(self, name, MethodType(attribute, self.parent))
-            for event, methods in self._methods.items():
-                for method in methods:
-                    method._add_listener(self.mount_element, event, self)
+            for event, listeners in self._listeners.items():
+                for listener in listeners:
+                    listener._add_listener(self.mount_element, event, self)
             self.mount()
 
         return result
@@ -835,12 +890,12 @@ class _MetaTag(type):
             else:
                 self.children_element = self.mount_element
             self.children = self.children.copy()
-            self.methods = self.methods.copy()
-            for event, methods in self.methods.items():
-                self.methods[event] = self.methods[event].copy()
-            self._methods = self._methods.copy()
-            for event, methods in self._methods.items():
-                self._methods[event] = self._methods[event].copy()
+            self.listeners = self.listeners.copy()
+            for event, listeners in self.listeners.items():
+                self.listeners[event] = listeners.copy()
+            self._listeners = self._listeners.copy()
+            for event, listeners in self._listeners.items():
+                self._listeners[event] = listeners.copy()
 
         _original_func(self, *args, **kwargs)
 
@@ -857,8 +912,8 @@ class Tag(Renderer, Mounter, metaclass=_MetaTag, _root=True):
 
     _tag_name_: str
     attrs: dict[str, attr]
-    methods: defaultdict[str, list[on, ...]]
-    _methods: defaultdict[str, list[on, ...]]
+    listeners: defaultdict[str, list[on, ...]]
+    _listeners: defaultdict[str, list[on, ...]]
     mount_element: js.HTMLElement
     mount_parent: js.HTMLElement
     parent: Optional[Tag]
@@ -1043,12 +1098,9 @@ class Tag(Renderer, Mounter, metaclass=_MetaTag, _root=True):
     def clone(self) -> Tag:
         clone = type(self)(*self._args, **self._kwargs)
         clone.children = self.children
-        clone._methods = self._methods.copy()
-        for event, methods in clone._methods.items():
-            clone._methods[event] = methods.copy()
-            for method in methods:
-                if method.get_parent:  # need to re-assign reference methods on clone
-                    setattr(clone, method.method_name, method.__get__(clone))
+        clone._listeners = self._listeners.copy()
+        for event, listeners in clone._listeners.items():
+            clone._listeners[event] = listeners.copy()
         return clone
 
     def on(self, method=None):
@@ -1057,7 +1109,7 @@ class Tag(Renderer, Mounter, metaclass=_MetaTag, _root=True):
             event_name = event_listener.name or callback.__name__
             setattr(self, event_name, event_listener.__get__(self))
             event_listener.__set_name__(self, event_name)
-            self._methods[event_listener.name] = self._methods[event_listener.name].copy() + [event_listener]
+            self._listeners[event_listener.name] = self._listeners[event_listener.name].copy() + [event_listener]
         if not isinstance(method, str):
             return wrapper(method)
         return wrapper
@@ -1067,17 +1119,15 @@ _TAG_INITIALIZED = True
 
 
 class on:
-    __slots__ = ('_proxies', 'method_name', 'name', 'callback', 'get_parent')
+    __slots__ = ('_proxies', 'name', 'callback', 'get_parent')
 
     _proxies: list[pyodide.JsProxy]
-    method_name: Optional[str]
     name: Optional[str]
     callback: Callable[[Tag, ...], Any]
     get_parent: bool
 
     def __init__(self, method):
         self._proxies = []
-        self.method_name = None
         self.get_parent = False
 
         if isinstance(method, str):
@@ -1093,10 +1143,10 @@ class on:
         return self
 
     def __get__(self, instance, owner=None):
-        print('[ON]', self, instance, owner)
+        log.debug('[ON]', self, instance, owner)
         if instance is None:
             return self
-        return partial(self._call, instance)
+        return self.callback
 
     def _call(self, tag, *args, **kwargs):
         if self.get_parent:
@@ -1106,7 +1156,7 @@ class on:
         else:
             fn = MethodType(self.callback, tag)
 
-        data = fn(*args, **kwargs)
+        data = js_await(fn(*args, **kwargs))
 
         event, *_ = args
 
@@ -1115,28 +1165,28 @@ class on:
             if dependent in _current['rerender']:
                 continue
             # TODO: move to other place
-            print('[_CALL]', 1, fn, dependent)
+            log.debug('[_CALL]', 1, fn, dependent)
             dependent.__render__()
         _current['rerender'] = []
 
         if hasattr(event.currentTarget, '_py'):
-            print('[_CALL]', 2, event.currentTarget._py)
+            log.debug('[_CALL]', 2, event.currentTarget._py)
             event.currentTarget._py.__render__()
         else:
-            print('[_CALL]', 3, fn)
+            log.debug('[_CALL]', 3, fn)
             tag.__render__()
 
         return data
 
     def _add_listener(self, element: js.HTMLElement, event_name, tag):
-        orig_method = getattr(tag, self.method_name)
+        orig_method = partial(self._call, tag)
 
         @js_func()
         def method(event):
             try:
                 return orig_method(event)
             except Exception as error:
-                print(self, element, event_name, tag)  # make available args for debugging
+                log.debug(self, element, event_name, tag)  # make available args for debugging
                 _debugger(error)
 
         method._locals = locals().copy()
@@ -1160,11 +1210,8 @@ class on:
         if self.name is None:
             self.name = name
 
-        self.method_name = name
-
-        # owner.methods[self.name] = owner.methods[self.name].copy() + [self]
-        owner.methods[self.name].append(self)
-        print('[__SET_NAME__]', self, owner)
+        owner.listeners[self.name].append(self)
+        log.debug('[__SET_NAME__]', self, owner)
 
     def __repr__(self):
         return f'on_{self.name}({self.callback})'
@@ -1182,3 +1229,10 @@ def mount(element: Tag, root_element: str):
     parent._py = None
     element.__mount__(parent)
     element.__render__()
+
+
+__all__ = [
+    '__version__', '__CONFIG__', 'delay', '_debugger', 'AttrType', 'ContentType', 'log', 'AttrValue', 'attr', 'state',
+    'html_attr', 'html_state', 'Trackable', 'TrackableList', 'Renderer', 'Mounter', 'ContentWrapper', 'ChildRef',
+    'Children', '_MetaTag', 'Tag', 'on', 'empty_tag', 'mount',
+]

@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-# [PYWEB IGNORE START]
-from pyweb import Tag, Children, mount, attr, state, on, style, div, p, _input, button, span
-# [PYWEB IGNORE END]
-
-_p = p()
+from pyweb import Tag, Children, mount, attr, state, on
+from pyweb.style import style
+from pyweb.tags import div, p, _input, button, span
+from pyweb.local_storage import LocalStorage
 
 
 class TodoList(Tag, name='ul'):
@@ -22,7 +21,7 @@ class TodoList(Tag, name='ul'):
 
     ####
 
-    class Todo(Tag, name='li', content_tag=_p):
+    class Todo(Tag, name='li', content_tag=p()):
         completed: bool = attr()
 
         parent: TodoList
@@ -122,18 +121,32 @@ class TodoList(Tag, name='ul'):
         Todo('Create Todo List', completed=True),
     ])
 
+    local_storage = LocalStorage('todos-')
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        if (saved_todos := self.local_storage.get('list')):
+            self.todos = [
+                self.Todo(todo['text'], completed=todo['completed'])
+                for todo in saved_todos
+            ]
         self.recalculate_completed()
 
     def content(self):
         return f'Completed: {self.count_completed}/{len(self.todos)}'
 
-    def add_todo(self, todo):
-        if not todo:
+    @todos.onchange
+    def sync_to_local_storage(self):
+        self.local_storage['list'] = [
+            {'text': todo._content[0], 'completed': todo.completed}
+            for todo in self.todos
+        ]
+
+    def add_todo(self, todo_text):
+        if not todo_text:
             return
 
-        self.todos.append(self.Todo(todo))
+        self.todos.append(self.Todo(todo_text))
 
     def recalculate_completed(self):
         self.count_completed = len([todo for todo in self.todos if todo.completed])
