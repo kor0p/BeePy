@@ -13,7 +13,7 @@ import pyodide
 from .utils import to_kebab_case, js_func, js_await, to_sync
 
 
-__version__ = '0.1.2b'
+__version__ = '0.1.3b'
 __CONFIG__ = {
     'debug': True,
     'path': '..',

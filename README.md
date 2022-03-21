@@ -1,19 +1,21 @@
-# PyWeb v0.1.2b
+# PyWeb v0.1.3b
 
 ## A frontend framework for python, using [pyodide](https://pyodide.org/), that uses [WASM](https://webassembly.org/)
 ### Use classes, descriptors and rest python in browser!
 
-## examples
-> ### Netlify static pages:
-> - ### [First try](https://pyweb.netlify.app/examples/)
-> - ### [Tabs](https://pyweb.netlify.app/examples/tabs/)
+## Netlify static examples:
+- ### [First try](https://pyweb.netlify.app/examples/)
+- ### [Tabs](https://pyweb.netlify.app/examples/tabs/)
+- ### [Todo List](https://pyweb.netlify.app/examples/todos/)
+- ### [Context Menu](https://pyweb.netlify.app/examples/context-menu/)
+- ### [Dynamic URL](https://pyweb.netlify.app/examples/dynamic-url/)
 
 Code:
 ```python
-# examples/1.py
-# [PYWEB IGNORE START]
-from pyweb import Tag, mount, state, attr, on, style, br
-# [PYWEB IGNORE END]
+# examples/__init__.py
+from pyweb import Tag, mount, state, attr, on
+from pyweb.style import style
+from pyweb.tags import br
 
 
 class PyButton(Tag, name='button'):

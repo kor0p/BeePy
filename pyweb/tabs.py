@@ -48,6 +48,10 @@ class tabs(Tag, name='tabs', content_tag='ul'):
     }
 
     style = style(**{
+        'a': {
+            'color': 'lightskyblue',
+            'text-decoration': 'none',
+        },
         'ul': {
             '': '''
             list-style-type: none;

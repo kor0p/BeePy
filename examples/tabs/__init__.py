@@ -75,6 +75,12 @@ class LinkTabs(tabs):
             A frontend framework for python, using <a href="https://pyodide.org/" target="_blank">pyodide</a>
             via <a href="https://webassembly.org/">WebAssembly</a>
         </p>
+        <p>More examples:</p>
+        <p><a href="https://pyweb.netlify.app/examples/" target="_blank">First try</a></p>
+        <p><a href="https://pyweb.netlify.app/examples/tabs/" target="_blank">Tabs (this one)</a></p>
+        <p><a href="https://pyweb.netlify.app/examples/todos/" target="_blank">Todo List</a></p>
+        <p><a href="https://pyweb.netlify.app/examples/context-menu/" target="_blank">Context Menu</a></p>
+        <p><a href="https://pyweb.netlify.app/examples/dynamic-url/" target="_blank">Dynamic URL</a></p>
         <p>Made by <a href="https://t.me/kor0p" target="_blank">© kor0p</a></p>
         <p>Source code of PyWeb: <a href="https://github.com/kor0p/PyWeb" target="_blank">GitHub</a></p>
         '''
@@ -90,7 +96,7 @@ class LinkTabs(tabs):
 class test_tabs(Tag, name='test-tabs'):
     style = style(
         color='white',
-        zoom=5,
+        zoom=4,
         font_size='12px',
     )
 
