@@ -70,19 +70,23 @@ class LinkTabs(tabs):
 
     tab_text = tab(
         f'''
-        <p>PyWeb (version {__version__})</p>
         <p>
+            PyWeb (version {__version__})<br/>
             A frontend framework for python, using <a href="https://pyodide.org/" target="_blank">pyodide</a>
             via <a href="https://webassembly.org/">WebAssembly</a>
         </p>
-        <p>More examples:</p>
-        <p><a href="https://pyweb.netlify.app/examples/" target="_blank">First try</a></p>
-        <p><a href="https://pyweb.netlify.app/examples/tabs/" target="_blank">Tabs (this one)</a></p>
-        <p><a href="https://pyweb.netlify.app/examples/todos/" target="_blank">Todo List</a></p>
-        <p><a href="https://pyweb.netlify.app/examples/context-menu/" target="_blank">Context Menu</a></p>
-        <p><a href="https://pyweb.netlify.app/examples/dynamic-url/" target="_blank">Dynamic URL</a></p>
-        <p>Made by <a href="https://t.me/kor0p" target="_blank">© kor0p</a></p>
-        <p>Source code of PyWeb: <a href="https://github.com/kor0p/PyWeb" target="_blank">GitHub</a></p>
+        <p>
+            More examples:<br/>
+            <a href="https://pyweb.netlify.app/examples/" target="_blank">First try</a><br/>
+            <a href="https://pyweb.netlify.app/examples/tabs/" target="_blank">Tabs (this one)</a><br/>
+            <a href="https://pyweb.netlify.app/examples/todos/" target="_blank">Todo List</a><br/>
+            <a href="https://pyweb.netlify.app/examples/context-menu/" target="_blank">Context Menu</a><br/>
+            <a href="https://pyweb.netlify.app/examples/dynamic-url/" target="_blank">Dynamic URL</a><br/>
+        </p>
+        <p>
+            Made by <a href="https://t.me/kor0p" target="_blank">© kor0p</a><br/>
+            Source code of PyWeb: <a href="https://github.com/kor0p/PyWeb" target="_blank">GitHub</a>
+        </p>
         '''
     )
     tab_buttons = tab(
