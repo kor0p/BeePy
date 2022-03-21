@@ -1,10 +1,43 @@
-import { mergeDeep, delay } from './utils.js'
-import './debugger.js'
+window._DEBUGGER = function _DEBUGGER (error=null) {
+    const place_breakpoint_here = 'use variable _locals in console to get locals() from python frame';
+}
+
+// utils
+function isObject (obj) {
+  return obj && typeof obj === 'object'
+}
+
+function mergeDeep(...objects) {
+  return objects.reduce((acc, obj) => {
+    Object.entries(obj).forEach(([key, objValue]) => {
+      const accValue = acc[key]
+
+      if (Array.isArray(accValue) && Array.isArray(objValue)) {
+        acc[key] = accValue.concat(...objValue)
+      } else if (isObject(accValue) && isObject(objValue)) {
+        acc[key] = mergeDeep(accValue, objValue)
+      } else {
+        acc[key] = objValue
+      }
+    })
+
+    return acc
+  }, {})
+}
+
+async function delay(ms) {
+  return new Promise(r => setTimeout(r, ms))
+}
 
 window.delay = delay
+
+
+// console tools
+
 function get_py_tag(i) {
     return () => window[`$${i}`]._py
 }
+
 Object.defineProperties(
     window,
     Object.fromEntries(new Array(10).fill(null).map(
@@ -17,6 +50,8 @@ Object.defineProperties(
  * evaluates $0._py
  * available for py0-py9
  */
+
+// pyweb config
 
 if (!document.title) {
     document.title = 'PyWeb'
@@ -35,47 +70,48 @@ if (!window.pyweb || !window.pyweb.config) {
     }
 }
 
+// loading pyodide
+
 const indexURL = 'https://cdn.jsdelivr.net/pyodide/v0.19.1/full/'
 const script = document.createElement('script')
 script.type = 'module'
 script.src = indexURL + 'pyodide.js'
 document.head.appendChild(script)
 
-async function _load () {
-    window.pyodide = await window.loadPyodide({ indexURL })
 
-    pyweb.loadFile = async function loadFile (filePath) {
-        pyweb.__CURRENT_LOADING_FILE__ = filePath
-        return await (await fetch(filePath)).text()
+// defining tools for running python
+
+pyweb.loadFile = async function loadFile (filePath) {
+    pyweb.__CURRENT_LOADING_FILE__ = filePath
+    return await (await fetch(filePath)).text()
+}
+pyweb._loadInternalFile = async function loadInternalFile (file) {
+    pyodide.FS.writeFile(`pyweb/${file}`, await pyweb.loadFile(`${config.path}/pyweb/${file}`))
+}
+window.py = function runPython (...args) {
+    try {
+        return pyodide.runPython(...args)
+    } catch (e) {
+        console.debug(e)
+        window._DEBUGGER(e)
+        throw e
     }
-    pyweb._loadInternalFile = async function loadInternalFile (file) {
-        pyodide.FS.writeFile(`pyweb/${file}`, await pyweb.loadFile(`${config.path}/pyweb/${file}`))
+}
+window.apy = async function runPythonAsync (code, ...args) {
+    await pyodide.loadPackagesFromImports(code)
+    try {
+        return await pyodide.runPythonAsync(code, ...args)
+    } catch (e) {
+        console.debug(e)
+        window._DEBUGGER(e)
+        throw e
     }
-    window.py = function runPython (...args) {
-        try {
-            return pyodide.runPython(...args)
-        } catch (e) {
-            console.debug(e)
-            window._DEBUGGER(e)
-            throw e
-        }
-    }
-    window.apy = async function runPythonAsync (code, ...args) {
-        await pyodide.loadPackagesFromImports(code)
-        try {
-            return await pyodide.runPythonAsync(code, ...args)
-        } catch (e) {
-            console.debug(e)
-            window._DEBUGGER(e)
-            throw e
-        }
-    }
-    window.pyf = async function runPythonFile (filePath) {
-        return window.py(await pyweb.loadFile(filePath))
-    }
-    window.apyf = async function runPythonAsyncFile (filePath) {
-        return await window.apy(await pyweb.loadFile(filePath))
-    }
+}
+window.pyf = async function runPythonFile (filePath) {
+    return window.py(await pyweb.loadFile(filePath))
+}
+window.apyf = async function runPythonAsyncFile (filePath) {
+    return await window.apy(await pyweb.loadFile(filePath))
 }
 
 if (!pyweb.__main__) {
@@ -83,6 +119,7 @@ if (!pyweb.__main__) {
         console.warn('You can override pyweb.__main__ to run code after pyweb finish loading')
     }
 }
+
 const DEFAULT_CONFIG = {
     debug: false,
     path: '..',
@@ -99,7 +136,7 @@ const config = mergeDeep(DEFAULT_CONFIG, pyweb.config)
 pyweb.__CONFIG__ = config
 
 window.addEventListener('load', async function () {
-    await _load()
+    window.pyodide = await window.loadPyodide({ indexURL })
     await pyodide.loadPackage('micropip')
     py(`
 import sys
@@ -146,10 +183,7 @@ Node.prototype.insertChild = function (child, index) {
      * @js_func()
      * def _node_insert_child(self: js.Element, child, index=None):
      *     if index is None or index >= len(self.children):
-     *         try:
-     *             self.appendChild(child)
-     *         except Exception as e:
-     *             _debugger(e)
+     *         self.appendChild(child)
      *     else:
      *         self.insertBefore(child, self.children[index])
      *
