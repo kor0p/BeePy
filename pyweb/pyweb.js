@@ -129,6 +129,12 @@ print('PyWeb version:', pyweb.__version__)
 del pyweb
 `)
 
+    try {
+        await apyf('./__init__.py')
+    } catch (e) {
+        console.info('You can add __init__.py near index.html to auto-load your code')
+    }
+
     await config.onload()
 })
 

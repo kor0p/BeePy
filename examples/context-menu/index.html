@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang='en'>
+    <head>
+        <meta charset='UTF-8'>
+        <title>Context Menu example</title>
+        <style>
+            html {
+                background: #333333;
+                color: white;
+            }
+        </style>
+        <script>
+            window.pyweb = {
+                config: {
+                    path: '../..',
+                    debug: true,
+                    modules: ['context_menu.py'],
+                },
+            }
+        </script>
+        <script src='../pyweb/pyweb.js' type='module'></script>
+    </head>
+    <body>
+        <div id='pyweb'></div>
+    </body>
+</html>
