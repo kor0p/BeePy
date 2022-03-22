@@ -1,7 +1,8 @@
 import js
-from pyweb import Tag, attr, on, mount, delay
+from pyweb import Tag, attr, on, mount
 from pyweb.tags import p
 from pyweb.style import style
+from pyweb.utils import delay
 
 
 def push_hash(hash):

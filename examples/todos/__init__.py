@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from pyweb import Tag, Children, mount, attr, state, on
+from pyweb import Tag, mount, attr, state, on
 from pyweb.style import style
 from pyweb.tags import div, p, _input, button, span
+from pyweb.children import Children
 from pyweb.local_storage import LocalStorage
 
 

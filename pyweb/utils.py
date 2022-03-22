@@ -2,10 +2,39 @@ import re
 import string
 import random
 import builtins
+import inspect
+import traceback
 from functools import wraps
+from typing import Any
 
 import js
 import pyodide
+
+
+log = js.console
+NONE_TYPE = type(None)
+__CONFIG__ = {
+    'debug': True,
+    'path': '..',
+    'modules': [],
+}
+
+
+_current_render: list['Renderer', ...] = []
+_current_rerender: list['Renderer', ...] = []
+_current__lifecycle_method: dict[str, dict[int, 'Tag']] = {}
+_current: dict[str, Any] = {
+    'render': _current_render,
+    'rerender': _current_rerender,
+    '_lifecycle_method': _current__lifecycle_method,
+}
+
+
+def _debugger(error=None):
+    log.warn('\n'.join(traceback.format_stack()[0 if error else 5:]))
+    js._locals = pyodide.to_js(inspect.currentframe().f_back.f_locals, dict_converter=js.Object.fromEntries)
+    js._DEBUGGER(error)
+
 
 _w = string.ascii_letters + string.digits + '_'
 
@@ -66,6 +95,15 @@ def to_sync(function):
     return wrapper
 
 
+async def delay(ms):
+    return await js.delay(ms)
+
+
+@to_sync
+async def sleep(s):
+    return await js.delay(s * 1000)
+
+
 _all_globals = builtins.__dict__
 _globals = {}
 _allowed_globals = (
@@ -88,4 +126,7 @@ def safe_eval(code, _locals=None):
     return eval(code, _globals, _locals)
 
 
-__all__ = ['get_random_name', 'to_kebab_case', 'js_func', 'safe_eval']
+__all__ = [
+    'log', 'NONE_TYPE', '__CONFIG__', '_current', '_debugger', 'get_random_name', 'to_kebab_case', 'js_func', 'js_await', 'to_sync',
+    'delay', 'sleep', 'safe_eval',
+]
