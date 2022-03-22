@@ -122,7 +122,6 @@ if (!pyweb.__main__) {
 
 const DEFAULT_CONFIG = {
     debug: false,
-    path: '..',
     // use wrapper, so pyweb.__main__ could be overridden
     onload: () => pyweb.__main__(),
     // extra modules in base dir to load
@@ -131,6 +130,10 @@ const DEFAULT_CONFIG = {
 
 // could be useful in the future, i.e: get attributes of <script src="pyweb" />
 pyweb.script = document.currentScript
+
+if (!pyweb.config.path && pyweb.script.src.indexOf('pyweb.js')) {
+    pyweb.config.path = pyweb.script.src.substring(0, pyweb.script.src.indexOf('pyweb.js'))
+}
 
 const config = mergeDeep(DEFAULT_CONFIG, pyweb.config)
 pyweb.__CONFIG__ = config

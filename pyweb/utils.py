@@ -15,7 +15,6 @@ log = js.console
 NONE_TYPE = type(None)
 __CONFIG__ = {
     'debug': True,
-    'path': '..',
     'modules': [],
 }
 
