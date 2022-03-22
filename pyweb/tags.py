@@ -2,7 +2,7 @@ from typing import Any
 
 import js
 
-from .framework import Tag, attr, html_attr, html_state
+from .framework import Tag, attr, html_attr
 
 
 class html_tag(Tag, _root=True, content_tag=None):
@@ -58,12 +58,9 @@ class button(html_tag, name='button'):
 
 class option(html_tag, name='option'):
     value = html_attr()
-    label: str = html_state()
-    defaultSelected: bool = html_state()
-    selected: bool = html_state()
-
-    def content(self) -> str:
-        return self.label
+    label: str = html_attr()
+    defaultSelected: bool = html_attr()
+    selected: bool = html_attr()
 
 
 class select(html_tag, name='select'):
@@ -81,6 +78,10 @@ class StandaloneTag(html_tag, _root=True):
 
 
 class Head(StandaloneTag, name='head', mount=js.document.head):
+    pass
+
+
+class Body(StandaloneTag, name='body', mount=js.document.body):
     pass
 
 

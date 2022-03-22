@@ -3,7 +3,7 @@ from __future__ import annotations
 import js
 from .framework import attr, state, on
 from .style import style
-from .tags import div, hr, ul, li
+from .tags import div, hr, ul, li, Body
 
 
 class MenuDivider(hr):
@@ -78,9 +78,12 @@ class ContextMenu(ul):
         self.pos_y = y
         self.visible = True
 
+    def __mount__(self, element, index=None):
+        super().__mount__(Body.mount_element)
+
 
 class ContextMenuHandler(div):
-    menu = ContextMenu()
+    menu: ContextMenu
 
     default_style = style(
         position='absolute',

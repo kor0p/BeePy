@@ -4,7 +4,7 @@ import traceback
 from collections import defaultdict
 from typing import Union, Callable, Any, Type, Iterable, Optional, SupportsIndex, get_type_hints
 from types import MethodType
-from functools import wraps, partial
+from functools import wraps
 import inspect
 
 import js
@@ -190,7 +190,7 @@ class attr:
         return self
 
     def __repr__(self):
-        return f'{self.name}({self.value!r})'
+        return f'{self.name}(default={self.value!r})'
 
     def onchange(self, handler):
         self.onchange_trigger = handler
@@ -221,6 +221,8 @@ class state(attr):
 class html_attr(attr):
     __slots__ = ()
 
+    _view = False
+
     def __get__(self, instance, owner=None):
         if instance is None:
             return self
@@ -229,17 +231,11 @@ class html_attr(attr):
 
     def __set__(self, instance, value):
         if isinstance(instance, Tag):
-            # TODO: attributes is set like setAttribute, but why?
+            # attributes is set like setAttribute, if attribute is native, even if it's hidden
             setattr(instance.mount_element, self.name, value)
 
     def __del__(self, instance):
         delattr(instance.mount_element, self.name)
-
-
-class html_state(html_attr):
-    __slots__ = ()
-
-    _view = False
 
 
 class Trackable:
@@ -346,18 +342,13 @@ class TrackableList(Trackable, list):
 class Renderer:
     __slots__ = ()
 
-    def _render(self, string: ContentType):
+    def _render(self, string: Union[str, Iterable[str, ...]]):
         if isinstance(string, str):
             return string
 
-        if callable(string):  # TODO: check this
-            string = string()
-        if isinstance(string, Tag):
-            string = string._render(string.content)
         if isinstance(string, Iterable):
-            string = ''.join(self._render(child) for child in string)
+            return ''.join(self._render(child) for child in string)
 
-        # TODO: add html escaping
         return str(string)
 
     def __render__(self, *a, **kw):
@@ -499,7 +490,7 @@ class ContentWrapper(Renderer, Mounter):
 
         result: Union[ContentType, Tag] = self.content()
 
-        result = self._render(result)
+        result = self._render(result).strip()
         if not isinstance(result, str):
             raise TypeError(f'Function {self.content} cannot return {result}!')
 
@@ -520,7 +511,7 @@ class ContentWrapper(Renderer, Mounter):
             _current['render'].pop()
 
     def __repr__(self):
-        return f'<[{self.parent} -> {self.content.__name__}]>'
+        return f'<{self.parent}.{self.content.__name__}()>'
 
 
 class ChildRef(Renderer, Mounter):
@@ -536,7 +527,7 @@ class ChildRef(Renderer, Mounter):
         self.child = child
 
     def __repr__(self):
-        return f'{type(self).__name__}({self.child})'
+        return f'{type(self).__name__}(Tag.{self.name} = {self.child})'
 
     def __get__(self, instance: Optional[Tag], owner=None) -> Union[ChildRef, Tag]:
         if instance is None:
@@ -696,6 +687,8 @@ class _MetaTag(type):
                 if attribute_name in ('_content_tag', 'children_tag',):
                     continue
                 if isinstance(child, Tag):
+                    # TODO: check existing attributes, that will be overwritten
+                    # TODO: do this only if child is used in children = [] definition
                     namespace[attribute_name] = child.as_child_ref()
 
         try:
@@ -801,7 +794,7 @@ class _MetaTag(type):
 
             if isinstance(content, Tag):
                 content = (content,)
-            elif isinstance(content, Iterable) and content:
+            elif isinstance(content, Iterable) and not isinstance(content, str) and content:
                 content = list(content)
                 for _child in content[:]:
                     if not isinstance(_child, Tag):
@@ -821,7 +814,7 @@ class _MetaTag(type):
                     setattr(self, name, MethodType(attribute, self.parent))
             for event, listeners in self._listeners.items():
                 for listener in listeners:
-                    listener._add_listener(self.mount_element, event, self)
+                    listener._add_listener(event, self)
             self.mount()
 
         return result
@@ -900,7 +893,7 @@ class _MetaTag(type):
         _original_func(self, *args, **kwargs)
 
         if _not_in_super_call:
-            pass  # TODO: for future
+            pass  # for future
 
 
 class Tag(Renderer, Mounter, metaclass=_MetaTag, _root=True):
@@ -1148,7 +1141,7 @@ class on:
             return self
         return self.callback
 
-    def _call(self, tag, *args, **kwargs):
+    def _call(self, tag, event):
         if self.get_parent:
             tag = tag.parent
         if isinstance(self.callback, MethodType):
@@ -1156,9 +1149,7 @@ class on:
         else:
             fn = MethodType(self.callback, tag)
 
-        data = js_await(fn(*args, **kwargs))
-
-        event, *_ = args
+        data = js_await(fn(event))
 
         _current['rerender'] = []
         for dependent in tag._dependents:
@@ -1178,21 +1169,17 @@ class on:
 
         return data
 
-    def _add_listener(self, element: js.HTMLElement, event_name, tag):
-        orig_method = partial(self._call, tag)
-
+    def _add_listener(self, event_name: str, tag: Tag):
         @js_func()
         def method(event):
             try:
-                return orig_method(event)
+                return self._call(tag, event)
             except Exception as error:
-                log.debug(self, element, event_name, tag)  # make available args for debugging
+                log.debug(event_name)  # make available for debugging
                 _debugger(error)
 
-        method._locals = locals().copy()
-
         self._proxies.append(method)
-        element.addEventListener(event_name, method)
+        tag.mount_element.addEventListener(event_name, method)
 
     def __set__(self, instance, value):
         raise AttributeError(f'Cannot set on_{self.name} event handler')
@@ -1233,6 +1220,6 @@ def mount(element: Tag, root_element: str):
 
 __all__ = [
     '__version__', '__CONFIG__', 'delay', '_debugger', 'AttrType', 'ContentType', 'log', 'AttrValue', 'attr', 'state',
-    'html_attr', 'html_state', 'Trackable', 'TrackableList', 'Renderer', 'Mounter', 'ContentWrapper', 'ChildRef',
-    'Children', '_MetaTag', 'Tag', 'on', 'empty_tag', 'mount',
+    'html_attr', 'Trackable', 'TrackableList', 'Renderer', 'Mounter', 'ContentWrapper', 'ChildRef', 'Children',
+    '_MetaTag', 'Tag', 'on', 'empty_tag', 'mount',
 ]
