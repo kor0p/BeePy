@@ -81,8 +81,14 @@ class Head(StandaloneTag, name='head', mount=js.document.head):
     pass
 
 
+Head = Head()
+
+
 class Body(StandaloneTag, name='body', mount=js.document.body):
     pass
+
+
+Body = Body()
 
 
 # TODO: add all HTML tags
@@ -91,4 +97,4 @@ class Body(StandaloneTag, name='body', mount=js.document.body):
 br = '<br/>'
 
 
-__all__ = ('html_tag', 'div', 'a', 'p', 'ul', 'li', 'span', '_input', 'button', 'option', 'select', 'Head', 'br')
+__all__ = ['html_tag', 'div', 'a', 'p', 'ul', 'li', 'span', '_input', 'button', 'option', 'select', 'Head', 'br']

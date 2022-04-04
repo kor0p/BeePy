@@ -67,7 +67,7 @@ class on:
 
         return data
 
-    def _add_listener(self, event_name: str, tag: Tag):
+    def _make_listener(self, event_name: str, tag: Tag):
         @js_func()
         def method(event):
             try:
@@ -77,7 +77,12 @@ class on:
                 _debugger(error)
 
         self._proxies.append(method)
-        tag.mount_element.addEventListener(event_name, method)
+        method.__on__ = self
+
+        return method
+
+    def _unlink_listener(self, proxy: pyodide.JsProxy):
+        self._proxies.remove(proxy)
 
     def __set__(self, instance, value):
         raise AttributeError(f'Cannot set on_{self.name} event handler')
@@ -95,7 +100,7 @@ class on:
         if self.name is None:
             self.name = name
 
-        owner.listeners[self.name].append(self)
+        owner.static_listeners[self.name].append(self)
         log.debug('[__SET_NAME__]', self, owner)
 
     def __repr__(self):

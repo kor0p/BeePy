@@ -65,6 +65,12 @@ class ContextMenu(ul):
         }
     })
 
+    def show(self):
+        self.visible = True
+
+    def hide(self):
+        self.visible = False
+
     def set_pos(self, x=0, y=0):
         el = self.mount_element
 
@@ -76,10 +82,10 @@ class ContextMenu(ul):
 
         self.pos_x = x
         self.pos_y = y
-        self.visible = True
+        self.show()
 
-    def __mount__(self, element, index=None):
-        super().__mount__(Body.mount_element)
+    def __mount__(self, element, parent, index=None):
+        super().__mount__(Body.mount_element, Body)
 
 
 class ContextMenuHandler(div):
@@ -97,12 +103,15 @@ class ContextMenuHandler(div):
 
     @on
     def click(self, event):
-        self.menu.visible = False
+        self.menu.hide()
 
     @on
     def contextmenu(self, event):
         event.preventDefault()
-        self.menu.set_pos(event.pageX, event.pageY)
+        if self.menu.visible:
+            self.menu.hide()
+        else:
+            self.menu.set_pos(event.pageX, event.pageY)
 
 
 __all__ = ['MenuDivider', 'MenuItem', 'ContextMenu', 'ContextMenuHandler']

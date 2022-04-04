@@ -12,6 +12,11 @@ class TodoList(Tag, name='ul'):
         input = _input()
         button = button('+', type='submit')
 
+        children = [
+            input,
+            button,
+        ]
+
         parent: TodoList
 
         @on
@@ -28,6 +33,10 @@ class TodoList(Tag, name='ul'):
         parent: TodoList
 
         remove = span('×')
+
+        children = [
+            remove,
+        ]
 
         @on('click')
         def toggle(self, event):
@@ -55,7 +64,7 @@ class TodoList(Tag, name='ul'):
                 'border-radius': '.5rem',
                 'padding': '.5rem',
                 'height': '1.5rem',
-                'flex': '0 1 calc(80% - 0.5rem)',
+                'flex': '0 1 calc(90% - 0.5rem)',
                 'margin-right': '.5rem',
             },
             'button': {
@@ -122,12 +131,16 @@ class TodoList(Tag, name='ul'):
         Todo('Create Todo List', completed=True),
     ])
 
+    children = [
+        add,
+        todos,
+    ]
+
     local_storage = LocalStorage('todos-')
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def mount(self):
         if (saved_todos := self.local_storage.get('list')):
-            self.todos = [
+            self.todos[:] = [
                 self.Todo(todo['text'], completed=todo['completed'])
                 for todo in saved_todos
             ]
@@ -150,6 +163,7 @@ class TodoList(Tag, name='ul'):
         self.todos.append(self.Todo(todo_text))
 
     def recalculate_completed(self):
+        self.sync_to_local_storage()
         self.count_completed = len([todo for todo in self.todos if todo.completed])
 
 

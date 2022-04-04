@@ -6,8 +6,6 @@ from .framework import __CONFIG__, Tag, attr, state
 from .utils import get_random_name, to_kebab_case, safe_eval
 from .tags import Head
 
-SPACES_4 = '    '
-
 
 def dict_of_properties_to_css(properties):
     for prop, value in properties.items():
@@ -22,7 +20,7 @@ def dict_of_properties_to_css(properties):
 
             # if '&' in _property:
             #     _property = re.sub('&', parent, _property)
-            result += SPACES_4 + _property
+            result += '    ' + _property
             if isinstance(value, (list, tuple)):  # handle raw css
                 result += ' ' + (_property + ' ').join(x for x in value if x)
             else:
@@ -84,6 +82,9 @@ def dict_to_css(selectors: dict, parent: str = '', braces=('{', '}')):
 
 
     """
+
+    # TODO: implement all scss or create wheel of libsass, add micropip.import and refactor styles
+
     children = {}
     properties = {}
 
@@ -101,13 +102,21 @@ def dict_to_css(selectors: dict, parent: str = '', braces=('{', '}')):
     yield from dict_of_parents_to_css(children, parent, braces)
 
 
-class style(Tag, name='style', content_tag=None, raw_html=True):
+class style(Tag, name='style', content_tag=None, raw_html=True, force_ref=True):
+    __slots__ = ('styles', 'real_parent')
+    __extra_attrs__ = ('style_id',)
+
     _global = {
         'styles_count': 1,
     }
 
     options: dict = state()
     real_parent: Optional[Tag]
+
+    @classmethod
+    def from_css(cls, file):
+        # TODO: implement import from css/scss/pycss
+        raise AttributeError
 
     def __init__(self, styles=None, options=None, **styles_dict):
         super().__init__()
@@ -124,34 +133,33 @@ class style(Tag, name='style', content_tag=None, raw_html=True):
             'render_children': True,
         } | options
 
-    def __mount__(self, element, index=None):
-        self.real_parent = element._py
+    def __mount__(self, element, parent, index=None):
+        self.real_parent = parent
         if not __CONFIG__['debug']:
-            super().__mount__(element, index)
+            super().__mount__(element, parent, index)
             return
 
-        super().__mount__(Head.mount_element)
+        super().__mount__(Head.mount_element, Head)
 
     def mount(self):
         parent = self.real_parent
 
-        if self.options['global']:
+        if self.options['global']:  # TODO: add example
             self._content = '\n'.join(list(dict_to_css(self.styles, parent._tag_name_)))
             return
         else:
             self._global['styles_count'] += 1
 
         if hasattr(parent, 'style_id'):  # support multiple style children
-            name = parent.style_id
+            style_id = parent.style_id
             self._global['styles_count'] -= 1
         else:
-            name = get_random_name(math.ceil(math.log10(self._global['styles_count'])))
-            attribute = attr(name)
-            attribute.__set_to_tag__('style_id', parent, force=True)
-            attribute.__set_type__(str)
+            style_id = get_random_name(math.ceil(math.log10(self._global['styles_count'])))
+            attr(style_id)._link_ctx('style_id', parent)._set_type(str)
 
+        # TODO: is [style-id=] slow? If so, maybe use classes?
         self._content = '\n'.join(
-            list(dict_to_css(self.styles, f'{parent._tag_name_}[style-id="{name}"]', braces=('{{', '}}')))
+            list(dict_to_css(self.styles, f'{parent._tag_name_}[style-id="{style_id}"]', braces=('{{', '}}')))
         )
 
     def content(self):

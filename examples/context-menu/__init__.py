@@ -7,13 +7,19 @@ from pyweb.context_menu import MenuDivider, MenuItem, ContextMenu, ContextMenuHa
 
 
 class Menu(ContextMenu):
-    share_to = MenuItem('Share To...')
-    cut = MenuItem('Cut')
-    copy = MenuItem('Copy')
-    paste = MenuItem('Paste')
-    _ = MenuDivider()
-    refresh = MenuItem('Refresh')
-    exit = MenuItem('Exit')
+    children = [
+        MenuItem('Share To...'),
+        MenuItem('Cut'),
+        MenuItem('Copy'),
+        MenuItem('Paste'),
+        MenuDivider(),
+        MenuItem('Refresh'),
+        MenuItem('Exit')
+    ]
+
+    # get as references
+    share_to = children[0]
+    refresh = children[5]
 
     @share_to.on('click')
     def open_share(self, event):
@@ -25,11 +31,15 @@ class Menu(ContextMenu):
 
 
 class TestContext(ContextMenuHandler, name='test-context', content_tag=p()):
-    menu = Menu()
-
     style = style(
         font_size='48px',
     )
+
+    menu = Menu()
+
+    children = [
+        menu,
+    ]
 
     _content = 'Right click somewhere on the page...'
 

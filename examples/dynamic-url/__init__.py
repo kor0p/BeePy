@@ -59,5 +59,5 @@ class DynamicURL(Tag, name='div'):
 
 mount(
     DynamicURL(),
-    "#pyweb",
+    '#pyweb',
 )

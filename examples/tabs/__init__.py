@@ -26,6 +26,11 @@ class View(Tag, name='view'):
     button_inc = PyButton('+', color='red')
     button_dec = PyButton('–')
 
+    children = [
+        button_inc,
+        button_dec,
+    ]
+
     @button_inc.on('click')
     def increment(self, event):
         self.count += 1
@@ -48,6 +53,10 @@ class SelectView(Tag, name='div', content_tag='span'):
     items = {'0': 'first', '1': 'second', '2': 'third'}
 
     select = select.with_items(items, selected='1')
+
+    children = [
+        select,
+    ]
 
     @select.on
     def change(self, event):
@@ -96,6 +105,12 @@ class LinkTabs(tabs):
         SelectView(),
     )
 
+    children = [
+        tab_text,
+        tab_buttons,
+        tab_selector,
+    ]
+
 
 class test_tabs(Tag, name='test-tabs'):
     style = style(
@@ -104,13 +119,12 @@ class test_tabs(Tag, name='test-tabs'):
         font_size='12px',
     )
 
-    tabs = LinkTabs()
-
-
-test = test_tabs()
+    children = [
+        LinkTabs(),
+    ]
 
 
 mount(
-    test,
+    test_tabs(),
     '#pyweb',
 )

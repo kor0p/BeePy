@@ -35,15 +35,14 @@ class View(Tag, name='view'):
         button=dict(backgroundColor='lightblue')
     )
 
-    button_inc = PyButton(title='+', color='red')
-    button_dec = PyButton(title='–', increment=-1)
+    children = [
+        PyButton(title='+', color='red'),
+        PyButton(title='–', increment=-1),
+    ]
 
     def content(self):
-        return (
-            self.title,
-            br,
-            'Count: ', self.count
-        )
+        # TODO: maybe parse \n as <br>?
+        return f'{self.title}{br}Count: {self.count}'
 
 
 mount(

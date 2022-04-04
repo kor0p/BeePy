@@ -198,3 +198,9 @@ Node.prototype.insertChild = function (child, index) {
         this.insertBefore(child, this.children[index])
     }
 }
+
+Node.prototype.safeRemoveChild = function (child) {
+    if (this.contains(child)) {
+        return this.removeChild(child)
+    }
+}

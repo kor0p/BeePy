@@ -18,6 +18,9 @@ __CONFIG__ = {
     'modules': [],
 }
 
+if pyodide.IN_BROWSER:
+    __CONFIG__ = js.pyweb.__CONFIG__.to_py()
+
 
 _current_render: list['Renderer', ...] = []
 _current_rerender: list['Renderer', ...] = []
@@ -30,7 +33,7 @@ _current: dict[str, Any] = {
 
 
 def _debugger(error=None):
-    log.warn('\n'.join(traceback.format_stack()[0 if error else 5:]))
+    log.warn('\n'.join(traceback.format_stack()))
     js._locals = pyodide.to_js(inspect.currentframe().f_back.f_locals, dict_converter=js.Object.fromEntries)
     js._DEBUGGER(error)
 
@@ -59,6 +62,21 @@ def to_kebab_case(name: str):
         lambda m: '-' + m.group(1).lower(),
         re.sub('[_ ]', '-', name)
     ).strip('-')
+
+
+def nested_dict_to_tuple(dictionary: dict):
+    return tuple(
+        (key, nested_dict_to_tuple(item) if isinstance(item, dict) else item)
+        for key, item in dictionary.items()
+    )
+
+
+class const_attribute(property):
+    def __set__(self, instance, value):
+        if self.__get__(instance) is None:
+            super().__set__(instance, value)
+        else:
+            raise AttributeError
 
 
 def js_func(once=False):
@@ -113,9 +131,9 @@ _allowed_globals = (
     'float', 'frozenset', 'int', 'list', 'map', 'object', 'range', 'reversed', 'set', 'slice', 'str', 'tuple', 'type',
     'zip',
 )
-for key, value in _all_globals.items():
-    if key in _allowed_globals:
-        _globals[key] = value
+for _key, _value in _all_globals.items():
+    if _key in _allowed_globals:
+        _globals[_key] = _value
 
 
 def safe_eval(code, _locals=None):
@@ -126,6 +144,6 @@ def safe_eval(code, _locals=None):
 
 
 __all__ = [
-    'log', 'NONE_TYPE', '__CONFIG__', '_current', '_debugger', 'get_random_name', 'to_kebab_case', 'js_func', 'js_await', 'to_sync',
-    'delay', 'sleep', 'safe_eval',
+    'log', 'NONE_TYPE', '__CONFIG__', '_current', '_debugger', 'get_random_name', 'to_kebab_case',
+    'nested_dict_to_tuple', 'const_attribute', 'js_func', 'js_await', 'to_sync', 'delay', 'sleep', 'safe_eval',
 ]

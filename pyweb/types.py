@@ -2,23 +2,25 @@ from __future__ import annotations
 
 import js
 
+from abc import ABC, abstractmethod
 from typing import Optional, Union, Iterable, ForwardRef
 
 from .trackable import TrackableList
 
 
 Tag = ForwardRef('Tag')
-Children = ForwardRef('Children')
+ChildrenRef = ForwardRef('ChildrenRef')
 
 
 class AttrValue:
     """
     Extend this class to be able to use it as value in pyweb.attr and children
     """
+    __slots__ = ()
 
+    @abstractmethod
     def __view_value__(self):
         """ This method will be called on render, must return serializable value """
-        raise NotImplementedError
 
 
 class Renderer:
@@ -33,25 +35,35 @@ class Renderer:
 
         return str(string)
 
+    @abstractmethod
     def __render__(self, *a, **kw):
         # leave here any arguments to haven't problems when override this method
-        raise NotImplementedError
+        pass
 
 
 class Mounter:
     # TODO: add mount_element, mount_parent, etc?
     __slots__ = ()
 
-    def __mount__(self, element: Union[Mounter, js.HTMLElement], index: Optional[int] = None):
-        raise NotImplementedError
+    @abstractmethod
+    def __mount__(self, element: js.HTMLElement, parent: Mounter, index: Optional[int] = None):
+        pass
+
+    @abstractmethod
+    def __unmount__(self, element: js.HTMLElement, parent: Mounter):
+        pass
 
 
-class _ChildrenList(Renderer, Mounter, TrackableList):
+class WebBase(Renderer, Mounter, ABC):
+    __slots__ = ()
+
+
+class Children(WebBase, TrackableList):
     __slots__ = ('parent', 'parent_index', 'ref', 'mounted')
 
     parent: Optional[Tag]
     parent_index: Optional[int]
-    ref: Optional[Children]
+    ref: Optional[ChildrenRef]
     mounted: bool
 
     def __init__(self, iterable):
@@ -61,53 +73,59 @@ class _ChildrenList(Renderer, Mounter, TrackableList):
         self.ref = None
         self.mounted = False
 
-    def copy(self) -> _ChildrenList:
-        return _ChildrenList(super().copy())
+    def as_child(self):
+        if self.ref:
+            raise TypeError(f'{self} already is child')
+        ref = ChildrenRef(self)
+        self.__set_parent__(None, None, ref)
+        return ref
 
-    def __set_parent__(self, parent: Tag, index: int, ref: Children):
+    def __set_parent__(self, parent: Optional[Tag], index: Optional[int], ref: ChildrenRef):
         self.parent = parent
         self.parent_index = index
         self.ref = ref
 
-    def onchange(self):
-        if self.ref and self.ref.onchange_trigger:
-            self.ref.onchange_trigger(self.parent)
+    def onchange_notify(self):
+        if self.onchange_trigger is not None:
+            self.onchange_trigger(self.parent)
 
     def _notify_add_one(self, key: int, child: Tag):
         if not self.mounted:
             return
 
-        child.__mount__(self.parent.children_element, key + self.parent_index)
+        child.__mount__(self.parent.children_element, self.parent, key + self.parent_index)
         child.__render__()
 
     def _notify_remove_one(self, key: int, child: Tag):
         if not self.mounted:
             return
 
-        try:
-            self.parent.children_element.removeChild(child.mount_element)
-        except Exception as e:
-            if not str(e).startswith('NotFoundError'):
-                raise
+        child.__unmount__(self.parent.children_element, self.parent)
 
     def __render__(self):
         for child in self:
             child.__render__()
 
-    def __mount__(self, element: js.HTMLElement, index=None):
+    def __mount__(self, element, parent: Tag, index=None):
         self.mounted = True
 
         if index is not None:
             index += self.parent_index
         for child in self:
-            child.__mount__(element, index)
+            child.__mount__(element, parent, index)
+
+    def __unmount__(self, element, parent):
+        self.mounted = False
+
+        for child in self:
+            child.__unmount__(element, parent)
 
 
-AttrType = Union[None, str, int, bool, Iterable['AttrType'], dict[str, 'AttrType'], Tag]
+AttrType = Union[None, str, int, bool, Iterable['AttrType'], dict[str, 'AttrType'], AttrValue]
 ContentType = Union[str, Iterable, Renderer]
 
 
-from .children import Children
+from .children import ChildrenRef
 from .framework import Tag
 
-__all__ = ['AttrType', 'ContentType', 'AttrValue', 'Renderer', 'Mounter', '_ChildrenList']
+__all__ = ['AttrType', 'ContentType', 'AttrValue', 'Renderer', 'Mounter', 'Children']
