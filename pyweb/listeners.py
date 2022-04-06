@@ -3,26 +3,50 @@ from __future__ import annotations
 from typing import Optional, Any, Callable
 from types import MethodType
 
+import js
 import pyodide
 
 from .types import Tag
 from .utils import log, js_func, js_await, _current, _debugger
 
 
+_key_codes = {
+    'esc': (27,),
+    'tab': (9,),
+    'enter': (13,),
+    'space': (32,),
+    'up': (38,),
+    'left': (37,),
+    'right': (39,),
+    'down': (40,),
+    'delete': (8, 46),
+}
+
+
 class on:
-    __slots__ = ('_proxies', 'name', 'callback', 'get_parent')
+    __slots__ = ('_proxies', 'name', 'callback', 'get_parent', 'modifiers', 'checks')
 
     _proxies: list[pyodide.JsProxy]
     name: Optional[str]
     callback: Callable[[Tag, ...], Any]
     get_parent: bool
+    modifiers: list[str, ...]
+    checks: list[Callable[[js.Event], bool], ...]
 
     def __init__(self, method):
         self._proxies = []
         self.get_parent = False
+        self.modifiers = []
+        self.checks = []
 
         if isinstance(method, str):
-            self.name = method
+            if '.' in method:
+                self.name, *self.modifiers = method.split('.')
+                for modifier in self.modifiers:
+                    # TODO: check for visibility?
+                    self.checks.append(lambda e: e.keyCode in _key_codes[modifier])
+            else:
+                self.name = method
             return
 
         self.name = None
@@ -40,6 +64,10 @@ class on:
         return self.callback
 
     def _call(self, tag, event):
+        for check in self.checks:
+            if not check(event):
+                return
+
         if self.get_parent:
             tag = tag.parent
         if isinstance(self.callback, MethodType):
@@ -79,6 +107,8 @@ class on:
         self._proxies.append(method)
         method.__on__ = self
 
+        is_global = event_name in ('keyup', 'keypress', 'keydown')  # TODO: check this
+        (js.document if is_global else tag.mount_element).addEventListener(event_name, method)
         return method
 
     def _unlink_listener(self, proxy: pyodide.JsProxy):
@@ -96,11 +126,12 @@ class on:
         for proxy in self._proxies:
             proxy.destroy()
 
-    def __set_name__(self, owner, name):
+    def __set_name__(self, owner, name, *, set_static_listeners=True):
         if self.name is None:
             self.name = name
 
-        owner.static_listeners[self.name].append(self)
+        if set_static_listeners:
+            owner.static_listeners[self.name].append(self)
         log.debug('[__SET_NAME__]', self, owner)
 
     def __repr__(self):

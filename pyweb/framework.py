@@ -238,9 +238,9 @@ class _MetaTag(_MetaContext):
                 setattr(self, name, MethodType(attribute, self.parent))
         for event, listeners in self.listeners.items():
             for listener in listeners:
-                proxy = listener._make_listener(event, self)
-                self.mount_element.addEventListener(event, proxy)
-                self._event_listeners[event].append(proxy)
+                self._event_listeners[event].append(
+                    listener._make_listener(event, self)
+                )
         self.mount()
 
         return result
@@ -556,7 +556,7 @@ class Tag(WebBase, Context, metaclass=_MetaTag, _root=True):
         def wrapper(callback):
             event_listener = on(method)(callback, get_parent=True)
             event_name = event_listener.name or callback.__name__
-            event_listener.__set_name__(self, event_name)
+            event_listener.__set_name__(self, event_name, set_static_listeners=False)
             self.listeners[event_listener.name] = self.listeners[event_listener.name].copy() + [event_listener]
             return event_listener.__get__(self)
         if not isinstance(method, str):
