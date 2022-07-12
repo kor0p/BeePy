@@ -1,0 +1,26 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang='en'>
+    <head>
+        <meta charset='UTF-8'>
+        <title>Admin panel example</title>
+        <script>window.IS_DEV = {{ IS_DEV|lower }}</script>
+        <script>
+            window.pyweb = {
+                config: {
+                    debug: window.IS_DEV,
+                    modules: ['tabs.py', 'table.py'],
+                },
+            }
+        </script>
+        <script src='https://pyweb.netlify.app/pyweb.js'></script>
+        <script>
+            pyweb.__main__ = async () => {
+                await apyf('{% static "templates/test_admin/__init__.py" %}')
+            }
+        </script>
+    </head>
+    <body>
+        <div id='pyweb'></div>
+    </body>
+</html>
