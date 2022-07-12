@@ -6,11 +6,11 @@ from pyweb.tags import br
 class PyButton(Tag, name='button'):
     parent: 'View'
 
-    test: bool = attr(True)
+    test = attr(True)
 
-    title: str = state()
-    increment: int = state(1)
-    color: str = state('gray')
+    title = state('')
+    increment = state(1)
+    color = state('gray')
 
     style = style(
         margin='8px',
@@ -26,9 +26,9 @@ class PyButton(Tag, name='button'):
 
 
 class View(Tag, name='view'):
-    count: int = attr(0)
+    count = attr(0)
 
-    title: str = state()
+    title = state('')
 
     style = style(
         zoom=7,

@@ -7,12 +7,22 @@ import pyodide
 from .framework import Tag, attr, state, on
 from .style import style
 from .tags import div
+from .utils import log
 
 
 class tab(div, name='tab'):
-    tab_id: str = state()
-    visible: bool = attr()
+    tab_id = state(type=str)
+    visible = attr(False)
     title: tab_title = state()
+
+    default_style = style(styles={
+        'padding': '6px 12px',
+        'animation': 'fadeEffect 1s',
+        'display': 'none',
+        '&[visible]': {
+            'display': 'block',
+        }
+    })
 
     @attr()
     def id(self) -> str:
@@ -24,14 +34,14 @@ class tab(div, name='tab'):
         super().__set_ref__(ref)
         self.tab_id = ref.name
 
-    @visible.onchange
+    @visible.on('change')
     def onchange(self, value):
-        print(value)
+        log.debug(f'{self} visible: {value}')
 
 
 class tab_title(Tag, name='li', content_tag=None):
-    _tab: tab = state()
-    selected: bool = attr(False)
+    _tab: tab = state(type=tab)
+    selected = attr(False)
 
     @on
     def click(self, event):
@@ -39,15 +49,16 @@ class tab_title(Tag, name='li', content_tag=None):
 
 
 class tabs(Tag, name='tabs', content_tag='ul'):
-    selected_id: str = attr()
-    selected: tab = state()
+    dark_theme = attr(False)
+    selected_id = attr(type=str)
+    selected: tab = state(type=tab)
 
     name: str = 'Unknown'
     tabs_titles: dict = {
         # id: tab_title(text),
     }
 
-    style = style(**{
+    default_style = style(styles={
         'a': {
             'color': 'lightskyblue',
             'text-decoration': 'none',
@@ -58,7 +69,7 @@ class tabs(Tag, name='tabs', content_tag='ul'):
             margin: 0;
             padding: 0;
             overflow: hidden;
-            background-color: #1e1e1e;
+            background-color: #e1e1e1;
             ''',
             'li': {
                 '': '''
@@ -72,6 +83,17 @@ class tabs(Tag, name='tabs', content_tag='ul'):
                 font-size: 12px;
                 ''',
                 '&:hover': {
+                    'background-color': '#cdcdcd',
+                },
+                '&[selected]': {
+                    'background-color': '#b1b1b1',
+                },
+            },
+        },
+        '&[dark-theme] ul': {
+            'background-color': '#1e1e1e',
+            'li': {
+                '&:hover': {
                     'background-color': '#222222',
                 },
                 '&[selected]': {
@@ -79,18 +101,11 @@ class tabs(Tag, name='tabs', content_tag='ul'):
                 },
             },
         },
-        'tab': {
-            'padding': '6px 12px',
-            'animation': 'fadeEffect 1s',
-            'display': 'none',
-            '&[visible]': {
-                'display': 'block',
-            }
-        },
     })
 
     @property
     def tabs_list(self) -> dict[str, tab]:
+        # TODO: make tabs_list one-time calculated attribute
         return {name: _tab for name, _tab in self.ref_children.items() if isinstance(_tab, tab)}
 
     def content(self):

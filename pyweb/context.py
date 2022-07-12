@@ -1,14 +1,13 @@
 from __future__ import annotations
 
-import inspect
 from abc import ABCMeta
-from typing import Union, Type, TypeVar, get_type_hints
+from typing import Union, Type, TypeVar
 
 import pyweb
 
 from .attrs import attr
 from .types import AttrType
-from .utils import log, _debugger, get_random_name, nested_dict_to_tuple, const_attribute
+from .utils import log, log10_ceil, get_random_name, const_attribute
 
 
 Self = TypeVar('Self', bound='Context')
@@ -17,14 +16,16 @@ _CONTEXT_INITIALIZED = False
 
 
 class _MetaContext(ABCMeta):
-    _contexts = []
+    _context_classes = []
     __clean_class_attribute_names = ()
+    _contexts: list[Context, ...]
 
     def __new__(mcs, _name: str, bases: tuple, namespace: dict, **kwargs):
         initialized = _CONTEXT_INITIALIZED  # if class Context is already defined
 
         namespace = namespace.copy()
         namespace.setdefault('__slots__', ())
+        static_attrs = {}
 
         if initialized and hasattr(pyweb, 'children'):
             extra_attrs = []
@@ -33,6 +34,8 @@ class _MetaContext(ABCMeta):
                     cls_extra_attrs := getattr(child.child, '__extra_attrs__', None)
                 ):
                     extra_attrs.extend(cls_extra_attrs)
+                if isinstance(child, attr):
+                    static_attrs[attribute_name] = child
 
             namespace['__slots__'] = (*extra_attrs, *namespace['__slots__'])
 
@@ -41,36 +44,36 @@ class _MetaContext(ABCMeta):
         is_root = kwargs.get('_root')
         if is_root:
             ctx_name = ''
-            namespace['__ROOT__'] = True
         else:
             ctx_name = kwargs.get('name')
+        namespace['__ROOT__'] = is_root
 
         if ctx_name:
             namespace['_context_name_'] = ctx_name
 
-        try:
-            cls: Union[Type[Context], type] = super().__new__(mcs, _name, bases, namespace)
-        except Exception as e:
-            _debugger(e)
-            raise e
+        cls: Union[Type[Context], type] = super().__new__(mcs, _name, bases, namespace)
 
         if initialized:
-            cls.static_attrs = cls.static_attrs.copy()
+            cls.static_attrs = cls.static_attrs.copy() | static_attrs
         else:
             cls.static_attrs = {}
 
-        mcs._contexts.append(cls)
+        cls._contexts = []
+
+        mcs._context_classes.append(cls)
 
         return cls
 
     @classmethod
     def _resolve_annotations(mcs):
-        for cls in mcs._contexts:
-            for name, _type in get_type_hints(cls).items():
-                if not (attribute := getattr(cls, name, None)) or not isinstance(attribute, attr):
-                    continue
-
-                attribute._set_type(_type)
+        # TODO: fix too many calls of get_type_hints
+        # for cls in mcs._context_classes:
+        #     for name, _type in get_type_hints(cls).items():
+        #         if not (attribute := getattr(cls, name, None)) or not isinstance(attribute, attr):
+        #             continue
+        #
+        #         attribute._set_type(_type)
+        """ not working, use attr(type=str) notation """
 
     @classmethod
     def _pre_top_mount(mcs):
@@ -86,6 +89,8 @@ class _MetaContext(ABCMeta):
 class Context(metaclass=_MetaContext, _root=True):
     __slots__ = ('_id_', '_args', '_kwargs', 'attrs')
 
+    __ROOT__ = False
+
     _id_: str
     _args: tuple[AttrType, ...]
     _kwargs: dict[str, AttrType]
@@ -99,17 +104,18 @@ class Context(metaclass=_MetaContext, _root=True):
         self.attrs = self.static_attrs.copy()
 
         # define some attributes here, not in __init__, because they are used for __hash__ method
-        self._id_ = get_random_name(20)
+        self._id_ = get_random_name(log10_ceil(len(self._contexts) * len(self.__class__._context_classes)))
         self.args_kwargs = args, kwargs
 
         if _CONTEXT_INITIALIZED:
-            for name, attribute in inspect.getmembers(cls):
-                if isinstance(attribute, attr):
+            for name, attribute in self.static_attrs.items():
+                if hasattr(attribute, '_link_ctx'):
                     attribute._link_ctx(name, self, force=False)
 
         return self
 
     def __init__(self, *args, **kwargs: AttrType):
+        self.__class__._contexts.append(self)
         for key, _attr in self.attrs.items():
             if key not in kwargs:
                 if _attr.required:
@@ -147,10 +153,7 @@ class Context(metaclass=_MetaContext, _root=True):
 
     def __hash__(self):
         # TODO: make force immutable this attributes
-        args, kwargs = self.args_kwargs
-        return hash(
-            (self._context_name_, self._id_, args, nested_dict_to_tuple(kwargs))
-        )
+        return hash((self._context_name_, self._id_))
 
     def __notify__(self, attr_name: str, attribute: attr, value: AttrType):
         pass

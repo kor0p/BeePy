@@ -1,43 +1,64 @@
 from __future__ import annotations as _
 
-from typing import Optional, Any, Callable, Union, Type, get_type_hints, ForwardRef
+from typing import Optional, Callable, Union, Iterable, Type, get_type_hints, ForwardRef, TypeVar
+from collections import defaultdict
 
 from .types import AttrType, AttrValue
 from .utils import log, NONE_TYPE, to_kebab_case
 
 
 Context = ForwardRef('Context')
+T = TypeVar('T')
 
 
 class attr:
     __slots__ = (
-        'name', 'const', 'value', 'required', 'type', 'fget', 'fset', 'fdel', 'onchange_trigger', 'enum', '_cache',
+        'name', 'initial_value', 'type',
+        'const', 'required', 'notify',
+        'fget', 'fset', 'fdel',
+        'handlers',
+        'enum',
+        '_cache',
     )
 
     _view = True
 
     name: Optional[str]
-    value: Any
+    initial_value: T
     type: Optional[Union[type, Type[Context]]]
-    fget: Callable
-    fset: Callable
-    fdel: Callable
+    const: bool
+    required: bool
+    notify: bool
+    fget: Callable[[Context], T]
+    fset: Callable[[Context, T], None]
+    fdel: Callable[[Context], None]
+    handlers: dict[str, list[Callable[[Context, T], None], ...]]
+    enum: Iterable
 
     _cache: dict[Context, AttrType]
 
     def __init__(
-        self, value=None, *,
-        const=False, required=False,
+        self, initial_value=None, /, *,
+        const=False, required=False, notify=False,
         fget=None, fset=None, fdel=None,
-        onchange_trigger=None,
         enum=None,
+        **kwargs,
     ):
+        _type = kwargs.get('type')
+
         self.name = None
         self.const = const
-        assert not const or value is None, f'Const {type(self).__name__} cannot have initial value'
-        self.value = value
+        assert not const or initial_value is None, f'Const {type(self).__name__} cannot have initial value'
+        self.initial_value = initial_value
         self.required = required or const  # const attr must be also required
-        self.type = NONE_TYPE
+        self.notify = notify
+
+        if initial_value is None and _type is None:
+            self.type = NONE_TYPE
+        else:
+            if _type is None:
+                _type = type(initial_value)
+            self._set_type(_type)
 
         # TODO: think on: is this needed?
         # behaviour like @property
@@ -47,7 +68,7 @@ class attr:
         if fget:
             self(fget)
 
-        self.onchange_trigger = onchange_trigger
+        self.handlers = defaultdict(list)
         self.enum = enum
 
         self._cache = {}
@@ -58,7 +79,7 @@ class attr:
         return (self.fget or self._fget)(instance)
 
     def _fget(self, instance):
-        return self._cache.get(instance, self.value)
+        return self._cache.get(instance, self.initial_value)
 
     def __call__(self, fget):
         self.fget = fget
@@ -75,8 +96,12 @@ class attr:
 
         log.debug('[__SET__]', instance, self.name, value)
         (self.fset or self._fset)(instance, value)
-        if self.onchange_trigger:
-            self.onchange_trigger(instance, value)
+
+        for trigger in self.handlers['change']:
+            trigger(instance, value)
+
+        if self.notify:
+            instance.__notify__(self.name, self, value)
 
     def _fset(self, instance, value):
         if self.fget is not None:
@@ -99,14 +124,18 @@ class attr:
         else:
             self.name = name
 
-    def _set_type(self, _type):
-        if hasattr(_type, '__origin__'):
+    def _set_type(self, _type, raise_error=False):
+        if hasattr(_type, '__origin__'):  # TODO: add support of strict check of type on change/etc
             _type = _type.__origin__
         try:
             issubclass(_type, type)
-        except TypeError:
-            log.error(f'Bad type for attribute: {_type!r}, {type(_type)}')
-            return
+        except TypeError as e:
+            error = f'Bad type for attribute: {_type!r}, {type(_type)}'
+            if raise_error:
+                raise TypeError(error) from e
+            else:
+                return log.error(error)
+
         self.type = _type
 
     def _link_ctx(self, name: str, ctx: Context, force: bool = True):
@@ -134,14 +163,22 @@ class attr:
         return self
 
     def __repr__(self):
-        return f'{self.name}(default={self.value!r})'
+        return f'{self.name}(default={self.initial_value!r})'
 
-    def onchange(self, handler):
-        self.onchange_trigger = handler
-        return handler
+    def on(self, trigger):
+        def wrapper(handler):
+            if handler in self.handlers[trigger]:
+                raise AttributeError(f'This @on(\'{trigger}\') handler is already set')
+            self.handlers[trigger].append(handler)
+            return handler
 
-    def _get_view_value(self, instance):
-        value = self.__get__(instance)
+        return wrapper
+
+    def _get_view_value(self, instance=None, value=None):
+        if instance is not None:
+            if value is not None:
+                raise ValueError('You cannot provide both instance and value arguments')
+            value = self.__get__(instance)
 
         if issubclass(self.type, bool):
             if value:
@@ -162,6 +199,23 @@ class state(attr):
     _view = False
 
 
+class static_state(state):
+    __slots__ = ()
+
+    _static = True  # unused for now
+
+    def on(self, trigger):
+        _super = super()
+
+        def wrapper(handler):
+            if not hasattr(handler, '_attrs_static_'):
+                handler._attrs_static_ = defaultdict(list)
+            handler._attrs_static_[trigger].append(self)
+            return _super.on(trigger)(handler)
+
+        return wrapper
+
+
 class html_attr(attr):
     __slots__ = ()
 
@@ -179,11 +233,13 @@ class html_attr(attr):
         if instance is None:
             return self
 
+        # TODO: is it possible to create listener on change value?
         return getattr(instance.mount_element, self.name, None)
 
     def __set__(self, instance, value):
         if hasattr(instance, 'mount_element'):
-            # attributes is set like setAttribute, if attribute is native, even if it's hidden
+            value = self._get_view_value(value=value)
+            # attributes are set like setAttribute, if attribute is native, even if it's hidden
             setattr(instance.mount_element, self.name, value)
 
     def __del__(self, instance):

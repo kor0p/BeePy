@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Optional, Any, Callable
 from types import MethodType
+from functools import partial
 
 import js
 import pyodide
@@ -23,6 +24,20 @@ _key_codes = {
 }
 
 
+def key_code_check(key_name, event):
+    return event.keyCode in _key_codes[key_name]
+
+
+def prevent_default(event):
+    event.preventDefault()
+    return True
+
+
+_checks = {
+    'prevent': prevent_default,
+}
+
+
 class on:
     __slots__ = ('_proxies', 'name', 'callback', 'get_parent', 'modifiers', 'checks')
 
@@ -41,12 +56,17 @@ class on:
 
         if isinstance(method, str):
             if '.' in method:
-                self.name, *self.modifiers = method.split('.')
+                method, *self.modifiers = method.split('.')
                 for modifier in self.modifiers:
-                    # TODO: check for visibility?
-                    self.checks.append(lambda e: e.keyCode in _key_codes[modifier])
-            else:
-                self.name = method
+                    if modifier in _key_codes:
+                        # TODO: check for visibility?
+                        self.checks.append(partial(key_code_check, modifier))
+                    elif modifier in _checks:
+                        self.checks.append(_checks[modifier])
+                    else:
+                        raise ValueError(f'Unknown event modifier ".{modifier}"!')
+
+            self.name = method
             return
 
         self.name = None
@@ -103,11 +123,13 @@ class on:
             except Exception as error:
                 log.debug(event_name)  # make available for debugging
                 _debugger(error)
+        method: pyodide.JsProxy
 
         self._proxies.append(method)
         method.__on__ = self
+        method.__qualname__ = self.callback.__qualname__
 
-        is_global = event_name in ('keyup', 'keypress', 'keydown')  # TODO: check this
+        is_global = event_name in ('keyup', 'keypress', 'keydown')  # TODO: check this || what about set global by attr?
         (js.document if is_global else tag.mount_element).addEventListener(event_name, method)
         return method
 
@@ -131,6 +153,8 @@ class on:
             self.name = name
 
         if set_static_listeners:
+            owner.static_listeners = owner.static_listeners.copy()
+            owner.static_listeners[self.name] = owner.static_listeners[self.name].copy()
             owner.static_listeners[self.name].append(self)
         log.debug('[__SET_NAME__]', self, owner)
 
@@ -138,4 +162,4 @@ class on:
         return f'on_{self.name}({self.callback})'
 
 
-__all__ = ['on']
+__all__ = ['on', '_key_codes', '_checks']

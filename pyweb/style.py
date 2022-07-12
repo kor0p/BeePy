@@ -1,9 +1,8 @@
 import re
-import math
-from typing import Any, Optional
+from typing import Any, Optional, Type
 
 from .framework import __CONFIG__, Tag, attr, state
-from .utils import get_random_name, to_kebab_case, safe_eval
+from .utils import log10_ceil, get_random_name, to_kebab_case, safe_eval
 from .tags import Head
 
 
@@ -110,7 +109,7 @@ class style(Tag, name='style', content_tag=None, raw_html=True, force_ref=True):
         'styles_count': 1,
     }
 
-    options: dict = state()
+    options = state(type=dict)
     real_parent: Optional[Tag]
 
     @classmethod
@@ -135,11 +134,10 @@ class style(Tag, name='style', content_tag=None, raw_html=True, force_ref=True):
 
     def __mount__(self, element, parent, index=None):
         self.real_parent = parent
-        if not __CONFIG__['debug']:
+        if __CONFIG__['style_head']:
+            super().__mount__(Head.mount_element, Head)
+        else:
             super().__mount__(element, parent, index)
-            return
-
-        super().__mount__(Head.mount_element, Head)
 
     def mount(self):
         parent = self.real_parent
@@ -154,8 +152,8 @@ class style(Tag, name='style', content_tag=None, raw_html=True, force_ref=True):
             style_id = parent.style_id
             self._global['styles_count'] -= 1
         else:
-            style_id = get_random_name(math.ceil(math.log10(self._global['styles_count'])))
-            attr(style_id)._link_ctx('style_id', parent)._set_type(str)
+            style_id = get_random_name(log10_ceil(self._global['styles_count']))
+            attr(style_id, type=str)._link_ctx('style_id', parent)
 
         # TODO: is [style-id=] slow? If so, maybe use classes?
         self._content = '\n'.join(
@@ -168,7 +166,7 @@ class style(Tag, name='style', content_tag=None, raw_html=True, force_ref=True):
 
         parent = self.real_parent
 
-        params: dict[str, Any] = dict(self=parent)
+        params: dict[str, Any] = dict(self=parent, ref=self.get_reference)
         if self.options['render_states']:
             params.update(parent.__states__)
         if self.options['render_children']:
@@ -177,5 +175,15 @@ class style(Tag, name='style', content_tag=None, raw_html=True, force_ref=True):
         # TODO: use native css '--var: {}' instead of re-render the whole content
         return safe_eval(f'f"""{self._content.strip()}"""', params)
 
+    def get_reference(self, tag: Tag):
+        return f'[style-id="{tag.style_id}"]'
 
-__all__ = ['dict_to_css', 'style']
+
+def with_style(_style: Optional[style] = None):
+    def wrapper(tag_cls: Type[Tag]):
+        return type(tag_cls.__name__, (tag_cls,), {"style": _style or style()})
+
+    return wrapper
+
+
+__all__ = ['dict_to_css', 'style', 'with_style']

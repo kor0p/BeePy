@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Union, Callable, Type, TypeVar, Iterable, Optional
+from typing import Union, Callable, Type, Any, Iterable, Optional
 from types import MethodType
-from functools import wraps
+from functools import wraps, partial
 
 import js
 import pyodide
@@ -13,7 +13,7 @@ from .children import ContentWrapper, ChildRef, TagRef, Children
 from .listeners import on
 from .types import Renderer, Mounter, WebBase, AttrType, ContentType
 from .utils import (
-    log, NONE_TYPE, __CONFIG__, _current, _debugger, get_random_name, to_kebab_case, nested_dict_to_tuple,
+    log, NONE_TYPE, __CONFIG__, _current, _debugger, get_random_name, to_kebab_case,
 )
 from .context import _MetaContext, Context
 
@@ -56,10 +56,10 @@ _TAG_INITIALIZED = False
 
 
 class _MetaTag(_MetaContext):
-    _tags = []
+    _tag_classes: list[Type[Tag], ...] = []
     __clean_class_attribute_names = ('_content_tag', 'static_children_tag')
 
-    def __new__(mcs, _name, bases, namespace, **kwargs):
+    def __new__(mcs, _name: str, bases: tuple, namespace: dict, **kwargs):
         # TODO: create decorator for functions like this:
         # @tag
         # def test_tag(self: Tag, counter: int = 0):
@@ -77,21 +77,17 @@ class _MetaTag(_MetaContext):
             namespace['_static_content'] = namespace.pop('_content')
         log.debug('[__NAMESPACE__]', namespace)
 
-        try:
-            # used for checking inheritance: attributes, methods, etc
-            base_cls: Union[Type[Tag], type] = type.__new__(mcs, _name, bases, {})
-        except Exception as e:
-            _debugger(e)
-            raise e
+        # used for checking inheritance: attributes, methods, etc
+        base_cls: Union[Type[Tag], type] = type.__new__(mcs, _name, bases, {})
 
         initialized = _TAG_INITIALIZED  # if class Tag is already defined
 
         is_root = kwargs.get('_root')
         if is_root:
             tag_name = ''
-            namespace['__ROOT__'] = True
         else:
             tag_name = kwargs.get('name')
+        namespace['__ROOT__'] = is_root
 
         if tag_name:
             namespace['_tag_name_'] = to_kebab_case(tag_name)
@@ -123,6 +119,7 @@ class _MetaTag(_MetaContext):
 
         ref_children = []
         to_remove_children = []
+        static_onchange_handlers = []
 
         super_children_index = -1
         children_arg = namespace.get('children', [])
@@ -141,24 +138,30 @@ class _MetaTag(_MetaContext):
 
         if initialized:
             for attribute_name, child in tuple(mcs._clean_namespace(namespace)):
-                if not isinstance(child, (Tag, Children, ChildRef)):
-                    continue
+                if callable(child) and hasattr(child, '_attrs_static_'):
+                    _states_with_static_handler = defaultdict(list)
+                    for trigger, _states in child._attrs_static_.items():
+                        for _state in _states:
+                            _states_with_static_handler[trigger].append(_state)
+                            _state.handlers[trigger].remove(child)
+                    static_onchange_handlers.append((child, _states_with_static_handler))
 
-                if child in children_arg:
-                    ref_children.append(child)
-                    # TODO: make possible inherit without replacement?
-                    if (old_child := getattr(base_cls, attribute_name, None)) and isinstance(old_child, ChildRef):
-                        to_remove_children.append(old_child)
-                    if isinstance(child, (Tag, Children)):
-                        children_arg[children_arg.index(child)] = namespace[attribute_name] = child.as_child()
-
-                if isinstance(child, Tag) and child._force_ref:
-                    namespace[attribute_name] = child.as_child()
-                    children_arg.append(namespace[attribute_name])
+                if isinstance(child, (Tag, Children, ChildRef)):
+                    if child in children_arg:
+                        ref_children.append(child)
+                        # TODO: make possible inherit without replacement?
+                        if (old_child := getattr(base_cls, attribute_name, None)) and isinstance(old_child, ChildRef):
+                            to_remove_children.append(old_child)
+                        if isinstance(child, (Tag, Children)):
+                            children_arg[children_arg.index(child)] = namespace[attribute_name] = child.as_child()
+    
+                    if isinstance(child, Tag) and child._force_ref:  # TODO: add support '_force_ref' for Children too
+                        namespace[attribute_name] = child.as_child()
+                        children_arg.append(namespace[attribute_name])
 
             for child in children_arg:
                 if isinstance(child, Tag) and child not in ref_children:
-                    namespace['__' + get_random_name(10)] = child.as_child()
+                    children_arg[children_arg.index(child)] = namespace[f'_{get_random_name(5)}_'] = child.as_child()
 
         cls: Union[Type[Tag], type] = super().__new__(mcs, _name, bases, namespace, **kwargs)
 
@@ -193,7 +196,14 @@ class _MetaTag(_MetaContext):
         else:
             cls.static_listeners = defaultdict(list)
 
-        mcs._tags.append(cls)
+        if initialized:
+            cls._static_onchange_handlers = cls._static_onchange_handlers.copy() + static_onchange_handlers
+        else:
+            cls._static_onchange_handlers = []
+
+        cls._tags = []
+
+        mcs._tag_classes.append(cls)
 
         if '__mount__' in namespace:
             cls.__mount__ = mcs.__mount(cls.__mount__)
@@ -210,6 +220,11 @@ class _MetaTag(_MetaContext):
         if initialized and 'mount' in kwargs:
             cls.mount_element._py = cls()
 
+        if cls.__ROOT__:
+            cls.__root_declared__()
+        else:
+            cls.__class_declared__()
+
         return cls
 
     @_lifecycle_method()
@@ -217,7 +232,6 @@ class _MetaTag(_MetaContext):
         log.debug('[__MOUNT__]', self, args, kwargs, _original_func, *args)
 
         self._mount_attrs()
-        self.pre_mount()
 
         result = _original_func(self, *args, **kwargs)
 
@@ -236,11 +250,19 @@ class _MetaTag(_MetaContext):
         for name, attribute in self.__states__.items():
             if callable(attribute) and not isinstance(attribute, MethodType):
                 setattr(self, name, MethodType(attribute, self.parent))
+
         for event, listeners in self.listeners.items():
             for listener in listeners:
                 self._event_listeners[event].append(
                     listener._make_listener(event, self)
                 )
+
+        for onchange_handler, _states_with_static_handler in self._static_onchange_handlers:
+            for trigger, _states in _states_with_static_handler.items():
+                for _state in _states:
+                    # TODO: can we save order of triggers' call?
+                    _state.handlers[trigger].append(MethodType(onchange_handler, self))
+
         self.mount()
 
         return result
@@ -256,6 +278,7 @@ class _MetaTag(_MetaContext):
 
     @_lifecycle_method(hash_function=id)
     def __init(self: Tag, args, kwargs, _original_func):
+        self.__class__._tags.append(self)
         if hasattr(getattr(self, 'mount_element', None), '_py'):
             return
 
@@ -280,10 +303,11 @@ class _MetaTag(_MetaContext):
                 for child_arg in children_argument:
                     if not isinstance(child_arg, str):
                         is_child_arg_string = False
-                    if not isinstance(child_arg, Callable):
+                    if (isinstance(child_arg, type) and issubclass(child_arg, Tag)) or not callable(child_arg):
                         is_child_arg_function = False
                     if not isinstance(child_arg, Tag):
                         is_child_arg_tag = False
+
             if is_child_arg_string and children_argument:
                 self._content = children_argument
             elif is_child_arg_function and children_argument and len(children_argument) == 1:
@@ -292,6 +316,7 @@ class _MetaTag(_MetaContext):
                 self._children = self._children.copy() + [child.clone().as_child() for child in children_argument]
             else:
                 self._children = self._children.copy() + [*children_argument]
+
         self._dependents = []
         self._shadow_root = None
 
@@ -316,6 +341,7 @@ class _MetaTag(_MetaContext):
             self.listeners[event] = listeners.copy()
 
         self._event_listeners = defaultdict(list)
+        self.handlers = defaultdict(list)
 
         _original_func(self, *args, **kwargs)
 
@@ -353,6 +379,7 @@ class Tag(WebBase, Context, metaclass=_MetaTag, _root=True):
         'listeners', '_event_listeners',
         'mount_parent', 'parent',
         'mount_element', '_children', 'children_element', 'children_tag',
+        'handlers',
     )
 
     _static_content: ContentType = ''
@@ -364,6 +391,7 @@ class Tag(WebBase, Context, metaclass=_MetaTag, _root=True):
     _force_ref: bool = False
 
     _tag_name_: str
+    _tags: list[Tag, ...]
     static_listeners: defaultdict[str, list[on, ...]]
     listeners: defaultdict[str, list[on, ...]]
     _event_listeners: defaultdict[str, list[pyodide.JsProxy, ...]]
@@ -375,10 +403,26 @@ class Tag(WebBase, Context, metaclass=_MetaTag, _root=True):
     children_element: js.HTMLElement
     static_children_tag: Tag
     children_tag: Tag
+    handlers: defaultdict[str, list[Callable[[Tag, js.Event, str, Any], None], ...]]
+    _static_onchange_handlers: list[tuple[Callable[[Tag, Any], Any], dict[str, list[state, ...]]]]
+
+    @classmethod
+    def __root_declared__(cls):
+        """ This method is called, when root Tag is defined """
+
+    @classmethod
+    def __class_declared__(cls):
+        """ This method is called, when common Tag is defined """
 
     def __init__(self, *args, **kwargs: AttrType):
         super().__init__(*args, **kwargs)
         self._ref = None
+        for name, value in self.ref_children.items():
+            if name not in kwargs:
+                continue
+
+            if isinstance(value, Children):
+                getattr(self, name)[:] = kwargs[name]
 
     def __new__(cls, *args, **kwargs):
         if hasattr(getattr(cls, 'mount_element', None), '_py'):
@@ -393,18 +437,18 @@ class Tag(WebBase, Context, metaclass=_MetaTag, _root=True):
 
     def __hash__(self):
         # TODO: make force immutable this attributes
-        args, kwargs = self.args_kwargs
-        return hash(
-            (self._tag_name_, self._id_, args, nested_dict_to_tuple(kwargs))
-        )
+        return hash((self._tag_name_, self._id_))
 
     @classmethod
     def comment(cls, string) -> str:
         return f'<!-- {string} -->'
 
-    def as_child(self):
+    def as_child(self, exists_ok=False):
         if self._ref:
-            raise TypeError(f'Tag {self._tag_name_} already is child')
+            if exists_ok:
+                return self._ref
+            else:
+                raise TypeError(f'Tag {self._tag_name_} already is child')
         ref = TagRef(self)
         self.__set_ref__(ref)
         return ref
@@ -468,6 +512,7 @@ class Tag(WebBase, Context, metaclass=_MetaTag, _root=True):
     def __mount__(self, element, parent: Tag, index=None):
         self.parent = parent
         self.mount_parent = element
+        self.pre_mount()
         self.mount_parent.insertChild(self.mount_element, index)
 
     def mount(self):
@@ -525,6 +570,10 @@ class Tag(WebBase, Context, metaclass=_MetaTag, _root=True):
                 # TODO: check for 'content' function inheritance
                 child = self.content
 
+            if isinstance(child, attr):
+                _state_name = child.name
+                child = lambda s: getattr(s, _state_name)
+
             if isinstance(child, Tag) and child in self._children:
                 # using Tag as descriptor/just child; this allows save reference from parent to new copy of child
                 child._ref._update_child(self, self._children.index(child))
@@ -550,17 +599,37 @@ class Tag(WebBase, Context, metaclass=_MetaTag, _root=True):
         clone.listeners = self.listeners.copy()
         for event, listeners in clone.listeners.items():
             clone.listeners[event] = listeners.copy()
+        clone.handlers = self.handlers.copy()
+        for event, handlers in clone.handlers.items():
+            clone.handlers[event] = handlers.copy()
         return clone
 
     def on(self, method=None):
+        if isinstance(method, str) and method.startswith(':'):
+            action = method[1:]
+
+            def wrapper(handler, action_name=None):
+                if action_name is None:
+                    action_name = handler.__name__
+
+                self.handlers[action_name].append(handler)
+                return handler
+
+            if action:
+                return partial(wrapper, action_name=action)
+
+            return wrapper
+
         def wrapper(callback):
             event_listener = on(method)(callback, get_parent=True)
             event_name = event_listener.name or callback.__name__
             event_listener.__set_name__(self, event_name, set_static_listeners=False)
-            self.listeners[event_listener.name] = self.listeners[event_listener.name].copy() + [event_listener]
+            self.listeners[event_name] = self.listeners[event_name].copy() + [event_listener]
             return event_listener.__get__(self)
+
         if not isinstance(method, str):
             return wrapper(method)
+
         return wrapper
 
 

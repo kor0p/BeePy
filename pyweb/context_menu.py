@@ -14,7 +14,7 @@ class MenuDivider(hr):
 
 
 class MenuItem(li):
-    id: str = state()
+    id = state(type=str)
 
     default_style = style(styles={
         'padding': '0.5em 1em',
@@ -33,10 +33,10 @@ class MenuItem(li):
 
 
 class ContextMenu(ul):
-    visible: bool = attr(False)
+    visible = attr(False)
 
-    pos_x: int = state(0)
-    pos_y: int = state(0)
+    pos_x = state(0)
+    pos_y = state(0)
 
     dynamic_styles = style(
         left='{pos_x}px',

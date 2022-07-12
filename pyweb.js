@@ -53,6 +53,9 @@ Object.defineProperties(
 
 // pyweb config
 
+// could be useful in the future, i.e: get attributes of <script src="pyweb" />
+pyweb.script = document.currentScript
+
 if (!document.title) {
     document.title = 'PyWeb'
     console.warn(`Document title is not set, use default title: ${document.title}`)
@@ -70,9 +73,35 @@ if (!window.pyweb || !window.pyweb.config) {
     }
 }
 
+const DEFAULT_CONFIG = {
+    pyodide_version: '0.21.0a2',
+    // use wrapper, so pyweb.__main__ could be overridden
+    onload: () => pyweb.__main__(),
+    // extra modules in base dir to load
+    modules: [],
+}
+
+if (!pyweb.config.path && pyweb.script.src.indexOf('pyweb.js')) {
+    pyweb.config.path = pyweb.script.src.substring(0, pyweb.script.src.indexOf('pyweb.js') - 1).replace(/\/+$/, '')
+}
+
+const config = mergeDeep(DEFAULT_CONFIG, pyweb.config)
+pyweb.__CONFIG__ = config
+pyweb._to_await = null
+pyweb._async_to_sync = function _async_to_sync() {
+    return (async () => {
+        try {
+            window.pyweb._to_await = await window.pyweb._to_await
+        } catch (e) {
+            window._DEBUGGER(e)
+            console.error(e)
+        }
+    })()
+}
+
 // loading pyodide
 
-const indexURL = 'https://cdn.jsdelivr.net/pyodide/v0.19.1/full/'
+const indexURL = `https://cdn.jsdelivr.net/pyodide/v${config.pyodide_version}/full/`
 const script = document.createElement('script')
 script.type = 'module'
 script.src = indexURL + 'pyodide.js'
@@ -120,48 +149,37 @@ if (!pyweb.__main__) {
     }
 }
 
-const DEFAULT_CONFIG = {
-    debug: false,
-    // use wrapper, so pyweb.__main__ could be overridden
-    onload: () => pyweb.__main__(),
-    // extra modules in base dir to load
-    modules: [],
-}
-
-// could be useful in the future, i.e: get attributes of <script src="pyweb" />
-pyweb.script = document.currentScript
-
-if (!pyweb.config.path && pyweb.script.src.indexOf('pyweb.js')) {
-    pyweb.config.path = pyweb.script.src.substring(0, pyweb.script.src.indexOf('pyweb.js'))
-}
-
-const config = mergeDeep(DEFAULT_CONFIG, pyweb.config)
-pyweb.__CONFIG__ = config
-
 window.addEventListener('load', async function () {
     window.pyodide = await window.loadPyodide({ indexURL })
+    await Promise.all([system_load(), pyweb_load()])
+})
+
+
+async function system_load() {
     await pyodide.loadPackage('micropip')
     py(`
 import sys
 print(sys.version)
 del sys
 `)
+}
 
-
+async function pyweb_load() {
     // load relative modules from pyweb/__init__.py
     pyodide.FS.mkdir('pyweb')
     const _init = await pyweb.loadFile(`${config.path}/pyweb/__init__.py`)
-    for (const line of _init.split('\n').reverse()) {
+    const pyweb_modules = []
+    for (const line of _init.split('\n')) {
         if (line.substring(0, 13) === 'from . import') {
-            config.modules.unshift(`${line.substring(14)}.py`)
+            pyweb_modules.push(`${line.substring(14)}.py`)
         }
     }
-    config.modules.unshift('__init__.py')
+    config.modules.unshift('__init__.py', ...pyweb_modules)
 
-    // TODO: create wheel and load via pip
-    for (const file of config.modules) {
-        await pyweb._loadInternalFile(file)
-    }
+    // TODO: create wheel and load pyweb modules via pip
+    await Promise.all(config.modules.map(
+        file => pyweb._loadInternalFile(file)
+    ))
 
     py(`
 import pyweb
@@ -170,13 +188,13 @@ del pyweb
 `)
 
     try {
-        await apyf('./__init__.py')
+        await apyf('./__init__.py')  // TODO: load ./__init__.py as internal?
     } catch (e) {
         console.info('You can add __init__.py near index.html to auto-load your code')
     }
 
     await config.onload()
-})
+}
 
 Node.prototype.insertChild = function (child, index) {
     /**

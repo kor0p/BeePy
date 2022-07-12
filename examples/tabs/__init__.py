@@ -6,16 +6,16 @@ from pyweb.tabs import tab, tab_title, tabs
 
 class View(Tag, name='view'):
     class PyButton(button):
-        color: str = state('gray')
+        color = state('gray')
 
         style = style(
             margin='8px',
             color='{color}',
         )
 
-    count: int = attr(0)
+    count = attr(0)
 
-    title: str = state()
+    title = state('')
 
     style = style(
         button=dict(
@@ -48,7 +48,7 @@ class View(Tag, name='view'):
 
 
 class SelectView(Tag, name='div', content_tag='span'):
-    selected: str = attr('1')
+    selected = attr('1')
 
     items = {'0': 'first', '1': 'second', '2': 'third'}
 
@@ -63,6 +63,7 @@ class SelectView(Tag, name='div', content_tag='span'):
         self.selected = event.target.value
 
     def content(self):
+        # TODO: think about better syntax?
         return [
             p(lambda _: f'Key: {self.selected}'),
             p(lambda _: f'Value: {self.items[self.selected]}')
@@ -70,6 +71,8 @@ class SelectView(Tag, name='div', content_tag='span'):
 
 
 class LinkTabs(tabs):
+    # think about setting 'dark_theme' as attribute -> 'dark_theme' already is state ->
+    # -> 'dark_theme' state receives attribute value
     name = 'TEST'
     tabs_titles = {
         'tab_text': tab_title('Page 1'),
@@ -120,7 +123,7 @@ class test_tabs(Tag, name='test-tabs'):
     )
 
     children = [
-        LinkTabs(),
+        LinkTabs(dark_theme=True),
     ]
 
 

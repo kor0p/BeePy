@@ -28,7 +28,7 @@ class TodoList(Tag, name='ul'):
     ####
 
     class Todo(Tag, name='li', content_tag=p()):
-        completed: bool = attr()
+        completed = attr(False)
 
         parent: TodoList
 
@@ -49,7 +49,7 @@ class TodoList(Tag, name='ul'):
 
     ####
 
-    count_completed: int = state(0)
+    count_completed = state(0)
 
     style = style(styles={
         'zoom': 3,

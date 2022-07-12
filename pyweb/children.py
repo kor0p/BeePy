@@ -153,7 +153,11 @@ class ChildRef(WebBase, Generic[C]):
         if instance is None:
             return self
 
-        return self._cache.get(instance, self.child)
+        if (result := self._cache.get(instance)) is not None:
+            return result
+
+        self._cache[instance] = self.child
+        return self.child
 
     def __set__(self, instance: Context, value: C):
         self._cache[instance] = value

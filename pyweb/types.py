@@ -16,7 +16,13 @@ class AttrValue:
     """
     Extend this class to be able to use it as value in pyweb.attr and children
     """
-    __slots__ = ()
+    __slots__ = ('value',)
+
+    def __init__(self, value):
+        self.value = value
+
+    def __str__(self):
+        return f'AttrValue[{self.value}]'
 
     @abstractmethod
     def __view_value__(self):
@@ -59,6 +65,7 @@ class WebBase(Renderer, Mounter, ABC):
 
 
 class Children(WebBase, TrackableList):
+    # TODO: extend Children from Context too?
     __slots__ = ('parent', 'parent_index', 'ref', 'mounted')
 
     parent: Optional[Tag]
@@ -66,16 +73,19 @@ class Children(WebBase, TrackableList):
     ref: Optional[ChildrenRef]
     mounted: bool
 
-    def __init__(self, iterable):
+    def __init__(self, iterable=()):
         super().__init__(iterable)
         self.parent = None
         self.parent_index = None
         self.ref = None
         self.mounted = False
 
-    def as_child(self):
+    def as_child(self, exists_ok=False):
         if self.ref:
-            raise TypeError(f'{self} already is child')
+            if exists_ok:
+                return self.ref
+            else:
+                raise TypeError(f'{self} already is child')
         ref = ChildrenRef(self)
         self.__set_parent__(None, None, ref)
         return ref
@@ -86,25 +96,32 @@ class Children(WebBase, TrackableList):
         self.ref = ref
 
     def onchange_notify(self):
-        if self.onchange_trigger is not None:
-            self.onchange_trigger(self.parent)
-
-    def _notify_add_one(self, key: int, child: Tag):
-        if not self.mounted:
+        if not hasattr(self.parent, 'parent'):
             return
 
+        for trigger in self.onchange_triggers:
+            trigger(self.parent)
+
+    def _notify_add_one(self, key: int, child: Tag):
+        if not self.mounted and not self.parent:
+            return
+
+        with self._disable_onchange:
+            child = child.as_child(exists_ok=True)
+            self[key] = child
+
         child.__mount__(self.parent.children_element, self.parent, key + self.parent_index)
-        child.__render__()
+        child.__render__(self.parent)
 
     def _notify_remove_one(self, key: int, child: Tag):
-        if not self.mounted:
+        if not self.mounted and not self.parent:
             return
 
         child.__unmount__(self.parent.children_element, self.parent)
 
     def __render__(self):
         for child in self:
-            child.__render__()
+            child.__render__(self.parent)
 
     def __mount__(self, element, parent: Tag, index=None):
         self.mounted = True

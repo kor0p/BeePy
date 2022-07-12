@@ -6,8 +6,8 @@ from .tags import div, button, Body
 
 
 class Modal(Tag, name='modal', content_tag='h2', children_tag='modal-content'):
-    visible: bool = attr(False)
-    on_close: Callable[[bool], None] = state()
+    visible = attr(False)
+    on_close = state(type=Callable[[bool], None])  # TODO: make it
 
     default_style = style(styles={
         'position': 'absolute',

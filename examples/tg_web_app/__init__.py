@@ -6,16 +6,16 @@ from pyweb.tabs import tab, tab_title, tabs
 
 class View(Tag, name='view'):
     class PyButton(button):
-        color: str = state('gray')
+        color = state('gray')
 
         style = style(
             margin='8px',
             color='{color}',
         )
 
-    count: int = attr(0)
+    count = attr(0)
 
-    title: str = state()
+    title = state('')
 
     style = style(
         button=dict(
@@ -48,7 +48,7 @@ class View(Tag, name='view'):
 
 
 class SelectView(Tag, name='div', content_tag='span'):
-    selected: str = attr('1')
+    selected = attr('1')
 
     items = {'0': 'first', '1': 'second', '2': 'third'}
 

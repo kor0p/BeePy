@@ -30,7 +30,7 @@ urls = {
 
 
 class Item(Tag, name='item', content_tag=p()):
-    url: str = attr()
+    url = attr(type=str)
 
     @on('click')
     async def go(self, event):
