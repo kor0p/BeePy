@@ -52,11 +52,14 @@ class SelectView(Tag, name='div', content_tag='span'):
 
     items = {'0': 'first', '1': 'second', '2': 'third'}
 
-    select = select.with_items(items, selected='1')
+    select = select.with_items(items)
 
     children = [
         select,
     ]
+
+    def mount(self):
+        self.select.select(self.selected)
 
     @select.on
     def change(self, event):

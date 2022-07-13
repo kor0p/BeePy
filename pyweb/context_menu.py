@@ -57,7 +57,7 @@ class ContextMenu(ul):
         'list-style': 'none',
         'box-shadow': '0 0 20px 0 #222',
         'opacity': 0,
-        'transition': 'opacity 0.2s, visibility 0.2s',
+        'transition': '0.2s',
 
         '&[visible]': {
             'opacity': 1,
@@ -105,13 +105,9 @@ class ContextMenuHandler(div):
     def click(self, event):
         self.menu.hide()
 
-    @on
-    def contextmenu(self, event):
-        event.preventDefault()
-        if self.menu.visible:
-            self.menu.hide()
-        else:
-            self.menu.set_pos(event.pageX, event.pageY)
+    @on('contextmenu.prevent')
+    def show_menu(self, event):
+        self.menu.set_pos(event.pageX, event.pageY)
 
 
 __all__ = ['MenuDivider', 'MenuItem', 'ContextMenu', 'ContextMenuHandler']

@@ -19,9 +19,8 @@ class TodoList(Tag, name='ul'):
 
         parent: TodoList
 
-        @on
-        def submit(self, event):
-            event.preventDefault()
+        @on('submit.prevent')
+        def save_todo(self, event):
             self.parent.add_todo(self.input.value)
             self.input.clear()
 

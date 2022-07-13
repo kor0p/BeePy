@@ -190,6 +190,7 @@ del pyweb
     try {
         await apyf('./__init__.py')  // TODO: load ./__init__.py as internal?
     } catch (e) {
+        console.debug(e)
         console.info('You can add __init__.py near index.html to auto-load your code')
     }
 

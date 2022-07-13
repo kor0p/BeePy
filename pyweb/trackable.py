@@ -136,7 +136,9 @@ class TrackableList(Trackable, list):
         self._notify_post_remove()
 
     def copy(self):
-        return type(self)(super().copy())
+        result = type(self)(super().copy())
+        result.onchange_triggers = self.onchange_triggers.copy()
+        return result
 
     def reverse(self):
         raise AttributeError('Not implemented yet!')

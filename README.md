@@ -1,4 +1,4 @@
-# PyWeb v0.1.3
+# PyWeb v0.2.0
 
 ## A frontend framework for python, using [pyodide](https://pyodide.org/), that uses [WASM](https://webassembly.org/)
 ### Use classes, descriptors and rest python in browser!
@@ -21,11 +21,11 @@ from pyweb.tags import br
 class PyButton(Tag, name='button'):
     parent: 'View'
 
-    test: bool = attr(True)
+    test = attr(True)
 
-    title: str = state()
-    increment: int = state(1)
-    color: str = state('gray')
+    title = state('')
+    increment = state(1)
+    color = state('gray')
 
     style = style(
         margin='8px',
@@ -41,24 +41,22 @@ class PyButton(Tag, name='button'):
 
 
 class View(Tag, name='view'):
-    count: int = attr(0)
+    count = attr(0)
 
-    title: str = state()
+    title = state('')
 
     style = style(
         zoom=7,
         button=dict(backgroundColor='lightblue')
     )
 
-    button_inc = PyButton(title='+', color='red')
-    button_dec = PyButton(title='–', increment=-1)
+    children = [
+        PyButton(title='+', color='red'),
+        PyButton(title='–', increment=-1),
+    ]
 
     def content(self):
-        return (
-            self.title,
-            br,
-            'Count: ', self.count
-        )
+        return f'{self.title}{br}Count: {self.count}'
 
 
 mount(

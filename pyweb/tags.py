@@ -139,11 +139,11 @@ class select(html_tag, name='select'):
         self.value = value
 
     @classmethod
-    def with_items(cls, items: dict[str, Any], selected=None, **kwargs):
+    def with_items(cls, items: dict[str, Any], **kwargs):
         return cls(options=[
-            option(label=label, value=value, defaultSelected=selected == value)
+            option(label=label, value=value)
             for value, label in items.items()
-        ], value=selected, **kwargs)
+        ], **kwargs)
 
 
 class StandaloneTag(html_tag, _root=True):

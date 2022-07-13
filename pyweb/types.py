@@ -106,12 +106,8 @@ class Children(WebBase, TrackableList):
         if not self.mounted and not self.parent:
             return
 
-        with self._disable_onchange:
-            child = child.as_child(exists_ok=True)
-            self[key] = child
-
         child.__mount__(self.parent.children_element, self.parent, key + self.parent_index)
-        child.__render__(self.parent)
+        child.__render__()
 
     def _notify_remove_one(self, key: int, child: Tag):
         if not self.mounted and not self.parent:
@@ -121,7 +117,7 @@ class Children(WebBase, TrackableList):
 
     def __render__(self):
         for child in self:
-            child.__render__(self.parent)
+            child.__render__()
 
     def __mount__(self, element, parent: Tag, index=None):
         self.mounted = True
