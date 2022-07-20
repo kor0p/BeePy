@@ -1,14 +1,15 @@
-# PyWeb v0.2.0
+# PyWeb v0.2.1
 
 ## A frontend framework for python, using [pyodide](https://pyodide.org/), that uses [WASM](https://webassembly.org/)
 ### Use classes, descriptors and rest python in browser!
 
 ## Netlify static examples:
-- ### [First try](https://pyweb.netlify.app/examples/)
-- ### [Tabs](https://pyweb.netlify.app/examples/tabs/)
-- ### [Todo List](https://pyweb.netlify.app/examples/todos/)
-- ### [Context Menu](https://pyweb.netlify.app/examples/context-menu/)
-- ### [Dynamic URL](https://pyweb.netlify.app/examples/dynamic-url/)
+- ### [First try](https://pyweb.netlify.app/examples/buttons)
+- ### [Tabs](https://pyweb.netlify.app/examples/)
+- ### [Todo List](https://pyweb.netlify.app/examples/todos)
+- ### [Modal](https://pyweb.netlify.app/examples/modal)
+- ### [Context Menu](https://pyweb.netlify.app/examples/context-menu)
+- ### [Dynamic URL](https://pyweb.netlify.app/examples/dynamic-url)
 
 Code:
 ```python

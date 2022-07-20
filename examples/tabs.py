@@ -92,9 +92,10 @@ class LinkTabs(tabs):
         </p>
         <p>
             More examples:<br/>
-            <a href="/examples/" target="_blank">First try</a><br/>
-            <a href="/examples/tabs" target="_blank">Tabs (this one)</a><br/>
+            <a href="/examples/buttons" target="_blank">First try</a><br/>
+            <a href="/examples/" target="_blank">Tabs (this one)</a><br/>
             <a href="/examples/todos" target="_blank">Todo List</a><br/>
+            <a href="/examples/modal" target="_blank">Modal</a><br/>
             <a href="/examples/context-menu" target="_blank">Context Menu</a><br/>
             <a href="/examples/dynamic-url" target="_blank">Dynamic URL</a><br/>
         </p>
