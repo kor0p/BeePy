@@ -3,7 +3,7 @@ from typing import Any
 import js
 
 from .framework import Tag
-from .attrs import attr, html_attr
+from .attrs import attr, state, html_attr
 from .children import Children
 
 
@@ -147,12 +147,22 @@ class select(html_tag, name='select'):
 
 
 class StandaloneTag(html_tag, _root=True):
+    def __mount__(self, element, parent: Tag, index=None):
+        # too many copy-paste?
+        self.parent = parent
+        self.mount_parent = element
+        self.pre_mount()
+
     def clone(self):
-        raise ValueError(f'Coping or using as child is not allowed for StandaloneTag("{self._tag_name_}")')
+        return self
 
 
 class Head(StandaloneTag, name='head', mount=js.document.head):
-    pass
+    title = state()
+
+    def render(self):
+        if self.title:
+            js.document.title = self.title
 
 
 Head = Head()

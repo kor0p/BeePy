@@ -12,10 +12,10 @@
 
 Code:
 ```python
-# examples/__init__.py
+# examples/buttons.py
 from pyweb import Tag, mount, state, attr, on
 from pyweb.style import style
-from pyweb.tags import br
+from pyweb.tags import br, Head
 
 
 class PyButton(Tag, name='button'):
@@ -43,7 +43,7 @@ class PyButton(Tag, name='button'):
 class View(Tag, name='view'):
     count = attr(0)
 
-    title = state('')
+    title = state('PyWeb Test 2')
 
     style = style(
         zoom=7,
@@ -58,11 +58,13 @@ class View(Tag, name='view'):
     def content(self):
         return f'{self.title}{br}Count: {self.count}'
 
+    def mount(self):
+        Head.title = 'Test 1'
 
-mount(
-    View(title='PyWeb Test 2'),
-    '#pyweb',
-)
+
+if __name__ == '__pyweb_root__':
+    mount(View(), '#pyweb')
+
 
 ```
 will render html as below, and will react on buttons click like native JS

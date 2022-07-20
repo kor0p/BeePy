@@ -134,7 +134,7 @@ class Children(WebBase, TrackableList):
             child.__unmount__(element, parent)
 
 
-AttrType = Union[None, str, int, bool, Iterable['AttrType'], dict[str, 'AttrType'], AttrValue]
+AttrType = Union[None, str, int, bool, Iterable['AttrType'], dict[str, 'AttrType'], AttrValue, Tag]
 ContentType = Union[str, Iterable, Renderer]
 
 

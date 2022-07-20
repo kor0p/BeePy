@@ -2,7 +2,7 @@ import js
 
 from pyweb import mount
 from pyweb.style import style
-from pyweb.tags import p
+from pyweb.tags import p, Head
 from pyweb.context_menu import MenuDivider, MenuItem, ContextMenu, ContextMenuHandler
 
 
@@ -43,8 +43,9 @@ class TestContext(ContextMenuHandler, name='test-context', content_tag=p()):
 
     _content = 'Right click somewhere on the page...'
 
+    def mount(self):
+        Head.title = 'Context Menu example'
 
-mount(
-    TestContext(),
-    '#pyweb',
-)
+
+if __name__ == '__pyweb_root__':
+    mount(TestContext(), '#pyweb')

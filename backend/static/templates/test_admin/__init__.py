@@ -11,7 +11,7 @@ from pyweb.tags import button, _input, textarea, option, select, h2, label
 from pyweb.tabs import tabs, tab, tab_title
 from pyweb.table import Table, TableHead, TableBody
 from pyweb.types import AttrValue
-from pyweb.utils import __CONFIG__, request, js_await
+from pyweb.utils import __CONFIG__, request, ensure_sync
 
 
 dt_input_format = __CONFIG__['default_datetime_format'] = '%Y-%m-%dT%H:%M:%S.%fZ'
@@ -202,7 +202,7 @@ class UsersTab(tab, name='users'):
         self.table.delete_row(id=row['id'])
 
     def mount(self):
-        js_await(self.load_users())
+        ensure_sync(self.load_users())
 
     async def load_users(self):
         try:
@@ -322,7 +322,7 @@ class GroupsTab(tab, name='groups'):
         self.table.delete_row(id=row['id'])
 
     def mount(self):
-        js_await(self.load_groups())
+        ensure_sync(self.load_groups())
 
     async def load_groups(self):
         try:
@@ -347,8 +347,8 @@ class Admin(tabs, name='app'):
     users = UsersTab()
     groups = GroupsTab()
 
-    js_await(groups.load_groups())
-    js_await(users.load_users())
+    ensure_sync(groups.load_groups())
+    ensure_sync(users.load_users())
 
     children = [
         users,

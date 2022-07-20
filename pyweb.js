@@ -32,16 +32,21 @@ async function delay(ms) {
 window.delay = delay
 
 
+function _lstrip (text) {
+    return text.replace(/^\/+/, '')
+}
+
+
 // console tools
 
-function get_py_tag(i) {
+function getPyTag(i) {
     return () => window[`$${i}`]._py
 }
 
 Object.defineProperties(
     window,
     Object.fromEntries(new Array(10).fill(null).map(
-        (_, i) => [`py${i}`, {get: get_py_tag(i)}]
+        (_, i) => [`py${i}`, {get: getPyTag(i)}]
     ))
 )
 /**
@@ -53,17 +58,14 @@ Object.defineProperties(
 
 // pyweb config
 
-// could be useful in the future, i.e: get attributes of <script src="pyweb" />
-pyweb.script = document.currentScript
-
 if (!document.title) {
     document.title = 'PyWeb'
     console.warn(`Document title is not set, use default title: ${document.title}`)
 }
 if (!window.pyweb || !window.pyweb.config) {
     console.warn(`
-        No pyweb config found! Default config will be used
-        If you have config, you must define it before loading pyweb script
+No pyweb config found! Default config will be used
+If you have config, you must define it before loading pyweb script
     `)
     if (!window.pyweb) {
         window.pyweb = {}
@@ -73,8 +75,11 @@ if (!window.pyweb || !window.pyweb.config) {
     }
 }
 
+// could be useful in the future, i.e: get attributes of <script src="pyweb" />
+pyweb.script = document.currentScript
+
 const DEFAULT_CONFIG = {
-    pyodide_version: '0.21.0a2',
+    pyodide_version: '0.21.0a3',
     // use wrapper, so pyweb.__main__ could be overridden
     onload: () => pyweb.__main__(),
     // extra modules in base dir to load
@@ -87,17 +92,6 @@ if (!pyweb.config.path && pyweb.script.src.indexOf('pyweb.js')) {
 
 const config = mergeDeep(DEFAULT_CONFIG, pyweb.config)
 pyweb.__CONFIG__ = config
-pyweb._to_await = null
-pyweb._async_to_sync = function _async_to_sync() {
-    return (async () => {
-        try {
-            window.pyweb._to_await = await window.pyweb._to_await
-        } catch (e) {
-            window._DEBUGGER(e)
-            console.error(e)
-        }
-    })()
-}
 
 // loading pyodide
 
@@ -110,52 +104,85 @@ document.head.appendChild(script)
 
 // defining tools for running python
 
+const root_folder = '__pyweb_root__'
+
 pyweb.loadFile = async function loadFile (filePath) {
     pyweb.__CURRENT_LOADING_FILE__ = filePath
     return await (await fetch(filePath)).text()
 }
-pyweb._loadInternalFile = async function loadInternalFile (file) {
+
+pyweb.loadFileSync = function loadFileSync (filePath) {
+    /**
+     * Same as pyweb.loadFile, but synchronous
+     * NOTE: Method is available only after Pyodide was fully loaded
+     *       Use pyweb.__main__ callback as start point to be sure
+     */
+    pyweb.__CURRENT_LOADING_FILE__ = filePath
+    return pyodide.pyodide_py.http.open_url(filePath).read()
+}
+
+pyweb._writeInternalFile = async function _writeInternalFile (file) {
     pyodide.FS.writeFile(`pyweb/${file}`, await pyweb.loadFile(`${config.path}/pyweb/${file}`))
 }
-window.py = function runPython (...args) {
+
+pyweb._writeInternalFileSync = function _writeInternalFileSync (file) {
+    pyodide.FS.writeFile(`pyweb/${file}`, pyweb.loadFileSync(`${config.path}/pyweb/${file}`))
+}
+
+pyweb._writeLocalFile = async function _writeLocalFile (file, content) {
+    if (!content) content = await pyweb.loadFile(`./${_lstrip(file)}`)
+    pyodide.FS.writeFile(`${root_folder}/${file}`, content)
+}
+
+pyweb._writeLocalFileSync = function _writeLocalFileSync (file, content) {
+    if (!content) content = pyweb.loadFileSync(`./${_lstrip(file)}`)
+    pyodide.FS.writeFile(`${root_folder}/${file}`, content)
+}
+
+window.py = function runPython (code, options={}) {
     try {
-        return pyodide.runPython(...args)
+        return pyodide.runPython(code, options.globals)
     } catch (e) {
         console.debug(e)
         window._DEBUGGER(e)
         throw e
     }
 }
-window.apy = async function runPythonAsync (code, ...args) {
-    await pyodide.loadPackagesFromImports(code)
+
+window.apy = async function runPythonAsync (code, options={}) {
+    if (!options.skipImports) {
+        await pyodide.loadPackagesFromImports(code)
+    }
     try {
-        return await pyodide.runPythonAsync(code, ...args)
+        return await pyodide.runPythonAsync(code, options.globals)
     } catch (e) {
         console.debug(e)
         window._DEBUGGER(e)
         throw e
     }
 }
+
 window.pyf = async function runPythonFile (filePath) {
     return window.py(await pyweb.loadFile(filePath))
 }
+
 window.apyf = async function runPythonAsyncFile (filePath) {
     return await window.apy(await pyweb.loadFile(filePath))
 }
 
 if (!pyweb.__main__) {
     pyweb.__main__ = () => {
-        console.warn('You can override pyweb.__main__ to run code after pyweb finish loading')
+        console.info('You can override pyweb.__main__ to run code after pyweb finish loading')
     }
 }
 
 window.addEventListener('load', async function () {
     window.pyodide = await window.loadPyodide({ indexURL })
-    await Promise.all([system_load(), pyweb_load()])
+    await Promise.all([systemLoad(), pywebLoad()])
 })
 
 
-async function system_load() {
+async function systemLoad () {
     await pyodide.loadPackage('micropip')
     py(`
 import sys
@@ -164,31 +191,31 @@ del sys
 `)
 }
 
-async function pyweb_load() {
+async function pywebLoad () {
     // load relative modules from pyweb/__init__.py
+    pyodide.FS.mkdir(root_folder)
     pyodide.FS.mkdir('pyweb')
     const _init = await pyweb.loadFile(`${config.path}/pyweb/__init__.py`)
     const pyweb_modules = []
-    for (const line of _init.split('\n')) {
-        if (line.substring(0, 13) === 'from . import') {
-            pyweb_modules.push(`${line.substring(14)}.py`)
-        }
+    for (const match of _init.matchAll(/from . import (?<module>.+)/g)) {
+        pyweb_modules.push(`${match.groups.module}.py`)
     }
     config.modules.unshift('__init__.py', ...pyweb_modules)
 
     // TODO: create wheel and load pyweb modules via pip
-    await Promise.all(config.modules.map(
-        file => pyweb._loadInternalFile(file)
-    ))
+    await Promise.all(config.modules.map(file => pyweb._writeInternalFile(file)))
 
     py(`
-import pyweb
-print('PyWeb version:', pyweb.__version__)
-del pyweb
+import js
+from pyweb import __version__, utils
+js.console.log(f'%cPyWeb version: {__version__}', 'color: black; font-size: 35px')
+utils.merge_configs()
+del js, utils
 `)
 
     try {
-        await apyf('./__init__.py')  // TODO: load ./__init__.py as internal?
+        await pyweb._loadLocalFile('')
+        await apy(`import ${root_folder}`)
     } catch (e) {
         console.debug(e)
         console.info('You can add __init__.py near index.html to auto-load your code')
@@ -197,20 +224,106 @@ del pyweb
     await config.onload()
 }
 
+
+function _parseAndMkDirModule (module) {
+    let path = '',
+        path_dotted = ''
+
+    if (module && module.indexOf('.') !== -1) {
+        let path_parts = module.split('.').reverse()
+        module = path_parts.shift()
+        path_parts = path_parts.reverse()
+        for (let length = 0; length < path_parts.length; length++) {
+            pyodide.FS.mkdir(root_folder + '/' + path_parts.slice(0, length+1).join('/'))
+        }
+        path = path_parts.join('/')
+        path_dotted = path.replace(/\//g, '.')
+    }
+
+    return [path, path_dotted, module, module ? `/${module}/` : '/']
+}
+
+
+function _getModulesFromLocalInit (init_file, path_dotted) {
+    const pyweb_modules = []
+    const local_modules = []
+    for (const match of init_file.matchAll(/from pyweb.(?<module>.+) import (?<imports>.+)/g)) {
+        const file = `${match.groups.module}.py`
+        if (config.modules.includes(file)) continue
+        pyweb_modules.push(file)
+    }
+    for (const match of init_file.matchAll(/from . import (?<module>.+)/g)) {
+        local_modules.push(`${path_dotted}.${match.groups.module}`)
+    }
+    config.modules.push(...pyweb_modules)
+
+    return [pyweb_modules, local_modules]
+}
+
+
+pyweb._loadLocalFile = async function _loadLocalFile (module) {
+    let init_file = ''
+
+    const [path, path_dotted, _module, module_path] = _parseAndMkDirModule(module)
+    module = _module
+    let init_file_path = `${path}${module_path}__init__.py`
+
+    try {
+        init_file = await pyweb.loadFile(`./${_lstrip(init_file_path)}`)
+        if (init_file.substring(0, 1) === '<') {
+            init_file_path = `${path}/${module}.py`
+            init_file = await pyweb.loadFile(`./${_lstrip(init_file_path)}`)
+        }
+    } catch (e) {
+        console.error(e)
+        window._DEBUGGER(e)
+        return
+    }
+
+    const [pyweb_modules, local_modules] = _getModulesFromLocalInit(init_file, path_dotted)
+
+    await Promise.all(pyweb_modules.map(file => pyweb._writeInternalFile(file)))
+    await Promise.all(
+        [pyweb._writeLocalFile(init_file_path, init_file)].concat(
+            local_modules.map(file => pyweb._loadLocalFile(file))
+        )
+    )
+}
+
+
+// TODO: try utils.ensure_sync(js.pyweb._loadLocalFile(module))
+pyweb._loadLocalFileSync = function _loadLocalFileSync (module) {
+    let init_file = ''
+
+    const [path, path_dotted, _module, module_path] = _parseAndMkDirModule(module)
+    module = _module
+    let init_file_path = `${path}${module_path}__init__.py`
+
+    try {
+        init_file = pyweb.loadFileSync(`./${_lstrip(init_file_path)}`)
+        if (init_file.substring(0, 1) === '<') {
+            init_file_path = `${path}/${module}.py`
+            init_file = pyweb.loadFileSync(`./${_lstrip(init_file_path)}`)
+        }
+    } catch (e) {
+        console.error(e)
+        window._DEBUGGER(e)
+        return
+    }
+
+    const [pyweb_modules, local_modules] = _getModulesFromLocalInit(init_file, path_dotted)
+
+    for (const file of pyweb_modules) {
+        pyweb._writeInternalFileSync(file)
+    }
+
+    pyweb._writeLocalFileSync(init_file_path, init_file)
+    for (const file of local_modules) {
+        pyweb._loadLocalFileSync(file)
+    }
+}
+
 Node.prototype.insertChild = function (child, index) {
-    /**
-     *
-     * # Python version
-     * # TODO: check why it's not working
-     * @js_func()
-     * def _node_insert_child(self: js.Element, child, index=None):
-     *     if index is None or index >= len(self.children):
-     *         self.appendChild(child)
-     *     else:
-     *         self.insertBefore(child, self.children[index])
-     *
-     * js.Node.prototype.insertChild = _node_insert_child
-     */
     if (index == null || index >= this.children.length) {
         this.appendChild(child)
     } else {

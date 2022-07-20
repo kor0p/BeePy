@@ -8,7 +8,7 @@ import js
 import pyodide
 
 from .types import Tag
-from .utils import log, js_func, js_await, _current, _debugger
+from .utils import log, js_func, ensure_sync, _current, _debugger
 
 
 _key_codes = {
@@ -95,7 +95,7 @@ class on:
         else:
             fn = MethodType(self.callback, tag)
 
-        data = js_await(fn(event))
+        data = ensure_sync(fn(event))
 
         _current['rerender'] = []
         for dependent in tag._dependents:
@@ -143,7 +143,7 @@ class on:
         pass
 
     def __del__(self):
-        if not pyodide.IN_BROWSER:
+        if not pyodide.ffi.IN_BROWSER:
             return
         for proxy in self._proxies:
             proxy.destroy()

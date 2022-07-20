@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pyweb import Tag, mount, attr, state, on
 from pyweb.style import style
-from pyweb.tags import div, p, _input, button, span
+from pyweb.tags import div, p, _input, button, span, Head
 from pyweb.children import Children
 from pyweb.local_storage import LocalStorage
 
@@ -144,6 +144,7 @@ class TodoList(Tag, name='ul'):
                 for todo in saved_todos
             ]
         self.recalculate_completed()
+        Head.title = 'Todo List'
 
     def content(self):
         return f'Completed: {self.count_completed}/{len(self.todos)}'
@@ -166,7 +167,5 @@ class TodoList(Tag, name='ul'):
         self.count_completed = len([todo for todo in self.todos if todo.completed])
 
 
-mount(
-    TodoList(),
-    '#pyweb',
-)
+if __name__ == '__pyweb_root__':
+    mount(TodoList(), '#pyweb')

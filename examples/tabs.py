@@ -1,6 +1,6 @@
-from pyweb import Tag, mount, state, __version__
+from pyweb import Tag, mount, attr, state, __version__
 from pyweb.style import style
-from pyweb.tags import button, p, select, br, attr
+from pyweb.tags import button, p, select, br, Head
 from pyweb.tabs import tab, tab_title, tabs
 
 
@@ -66,6 +66,7 @@ class SelectView(Tag, name='div', content_tag='span'):
         self.selected = event.target.value
 
     def content(self):
+        # TODO: think about better syntax?
         return [
             p(lambda _: f'Key: {self.selected}'),
             p(lambda _: f'Value: {self.items[self.selected]}')
@@ -73,6 +74,8 @@ class SelectView(Tag, name='div', content_tag='span'):
 
 
 class LinkTabs(tabs):
+    # think about setting 'dark_theme' as attribute -> 'dark_theme' already is state ->
+    # -> 'dark_theme' state receives attribute value
     name = 'TEST'
     tabs_titles = {
         'tab_text': tab_title('Page 1'),
@@ -89,11 +92,11 @@ class LinkTabs(tabs):
         </p>
         <p>
             More examples:<br/>
-            <a href="https://pyweb.netlify.app/examples/" target="_blank">First try</a><br/>
-            <a href="https://pyweb.netlify.app/examples/tabs/" target="_blank">Tabs (this one)</a><br/>
-            <a href="https://pyweb.netlify.app/examples/todos/" target="_blank">Todo List</a><br/>
-            <a href="https://pyweb.netlify.app/examples/context-menu/" target="_blank">Context Menu</a><br/>
-            <a href="https://pyweb.netlify.app/examples/dynamic-url/" target="_blank">Dynamic URL</a><br/>
+            <a href="/examples/" target="_blank">First try</a><br/>
+            <a href="/examples/tabs" target="_blank">Tabs (this one)</a><br/>
+            <a href="/examples/todos" target="_blank">Todo List</a><br/>
+            <a href="/examples/context-menu" target="_blank">Context Menu</a><br/>
+            <a href="/examples/dynamic-url" target="_blank">Dynamic URL</a><br/>
         </p>
         <p>
             Made by <a href="https://t.me/kor0p" target="_blank">© kor0p</a><br/>
@@ -123,11 +126,12 @@ class test_tabs(Tag, name='test-tabs'):
     )
 
     children = [
-        LinkTabs(),
+        LinkTabs(dark_theme=True),
     ]
 
+    def mount(self):
+        Head.title = 'Tabs example'
 
-mount(
-    test_tabs(),
-    '#pyweb',
-)
+
+if __name__ == '__pyweb_root__':
+    mount(test_tabs(), '#pyweb')

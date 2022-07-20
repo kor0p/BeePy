@@ -1,51 +1,44 @@
-from pyweb import Tag, mount, state, attr, on
-from pyweb.style import style
-from pyweb.tags import br
+from pyweb import Tag, mount, __CONFIG__
+from pyweb.tags import Head
+from pyweb.router import WithRouter, Router
 
 
-class PyButton(Tag, name='button'):
-    parent: 'View'
-
-    test = attr(True)
-
-    title = state('')
-    increment = state(1)
-    color = state('gray')
-
-    style = style(
-        margin='8px',
-        color='{color}',
-    )
-
-    @on
-    def click(self, event):
-        self.parent.count += self.increment
+class PageNotFound(Tag, WithRouter, name='error'):
+    _base_content = '''
+<h1>Error 404</h1>
+<p>Page Not Found!</p>
+'''
 
     def content(self):
-        return self.title
+        if not __CONFIG__['debug']:
+            return self._base_content
+
+        return self._base_content + (
+            f'<p>Available routes: {list(self.router.routes.keys())}</p>'
+        )
 
 
-class View(Tag, name='view'):
-    count = attr(0)
+class AppRouter(Router):
+    routes = {
+        '/$': 'tabs.test_tabs',
+        'context-menu/?$': 'context_menu.TestContext',
+        'dynamic-url/?$': 'dynamic_url.DynamicURL',
+        'modal/?$': 'modal.Test',
+        'buttons/?$': 'buttons.View',
+        'todos/?$': 'todos.TodoList',
+    }
 
-    title = state('')
+    fallback_tag_cls = PageNotFound
 
-    style = style(
-        zoom=7,
-        button=dict(backgroundColor='lightblue')
-    )
+
+class App(Tag, name='app'):
+    head = Head
+    router = AppRouter()
 
     children = [
-        PyButton(title='+', color='red'),
-        PyButton(title='–', increment=-1),
+        head,
+        router,
     ]
 
-    def content(self):
-        # TODO: maybe parse \n as <br>?
-        return f'{self.title}{br}Count: {self.count}'
 
-
-mount(
-    View(title='PyWeb Test 2'),
-    '#pyweb',
-)
+mount(App(), '#pyweb')

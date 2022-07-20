@@ -3,14 +3,17 @@ import dataclasses
 import json
 import math
 import re
+import sys
 import string
 import random
 import builtins
 import inspect
 import traceback
+import asyncio
 from functools import wraps
 from typing import Any
 from datetime import datetime
+from importlib import import_module
 
 import js
 import pyodide
@@ -35,10 +38,14 @@ __CONFIG__ = {
     'modules': [],
 }
 
-if pyodide.IN_BROWSER:
-    # make it again, after load user's code, that can modify it
+
+def merge_configs():
     __CONFIG__.update(js.pyweb.__CONFIG__.to_py())
     js.pyweb.__CONFIG__ = pyodide.to_js(__CONFIG__, dict_converter=js.Object.fromEntries)
+
+
+if pyodide.ffi.IN_BROWSER:
+    merge_configs()
 
 
 _current_render: list['Renderer', ...] = []
@@ -123,7 +130,7 @@ async def request(url, method='GET', body=None, headers=None, **opts):
     return response
 
 
-if not pyodide.IN_BROWSER:
+if not pyodide.ffi.IN_BROWSER:
     import requests
 
     async def request(url, method='GET', body=None, headers=None, **opts):
@@ -159,40 +166,23 @@ def js_func(once=False):
     return create_proxy
 
 
-def js_await(to_await):
-    """
-    JS await can resolve both: coroutines and raw value
-    """
-    js.pyweb._to_await = to_await
-    result = js.pyweb._async_to_sync()
-    js.pyweb._to_await = None
-    return result
+def ensure_sync(to_await):
+    if asyncio.iscoroutine(to_await):
+        return asyncio.get_event_loop().run_until_complete(to_await)
+    return to_await
 
 
-if not pyodide.IN_BROWSER:
-    import asyncio
-
-    def js_await(to_await):
-        if asyncio.iscoroutine(to_await):
-            return asyncio.get_event_loop().run_until_complete(to_await)
-        return to_await
-
-
-def to_sync(function):
-    """
-    Using JS await from python, we can synchronously get result of coroutine
-    """
+def force_sync(function):
     @wraps(function)
     def wrapper(*args, **kwargs):
-        return js_await(function(*args, **kwargs))
+        return ensure_sync(function(*args, **kwargs))
     return wrapper
 
 
-async def delay(ms):
-    return await js.delay(ms)
+delay = js.delay
 
 
-@to_sync
+@ensure_sync
 async def sleep(s):
     return await js.delay(s * 1000)
 
@@ -215,6 +205,40 @@ class Locker:
 
     def __str__(self):
         return f'Locker<{self.name}>({self.locked})'
+
+
+def cached_import(module_path, class_name=None, package=None):
+    if module_path.startswith('.') and package is None:
+        package = '__pyweb_root__'
+
+    modules = sys.modules
+    if module_path not in modules or (
+        # Module is not fully initialized.
+        getattr(modules[module_path], '__spec__', None) is not None
+        and getattr(modules[module_path].__spec__, '_initializing', False) is True
+    ):
+        if pyodide.ffi.IN_BROWSER:
+            js.pyweb._loadLocalFileSync(module_path.lstrip('.'))
+        import_module(module_path, package)
+
+    if module_path.startswith('.') and package == '__pyweb_root__':
+        module_path = f'{package}{module_path}'
+
+    if class_name:
+        return getattr(modules[module_path], class_name)
+    else:
+        return modules[module_path]
+
+
+def import_cls(import_string):
+    module_path, class_name = import_string.rsplit('.', 1)
+    return cached_import(f'.{module_path}', class_name)
+
+
+def lazy_import_cls(cls):
+    if isinstance(cls, str):
+        return import_cls(cls)
+    return cls
 
 
 _all_globals = builtins.__dict__
@@ -241,5 +265,6 @@ def safe_eval(code, _locals=None):
 
 __all__ = [
     'log', 'NONE_TYPE', '__CONFIG__', '_current', '_debugger', 'get_random_name', 'to_kebab_case',
-    'const_attribute', 'js_func', 'js_await', 'to_sync', 'delay', 'sleep', 'safe_eval',
+    'const_attribute', 'js_func', 'ensure_sync', 'force_sync', 'delay', 'sleep', 'safe_eval',
+    'cached_import', 'import_cls', 'lazy_import_cls',
 ]

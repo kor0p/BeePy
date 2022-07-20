@@ -18,10 +18,10 @@ from .utils import (
 from .context import _MetaContext, Context
 
 
-__version__ = '0.2.0'
+__CONFIG__['version'] = __version__ = '0.2.1'
 
 
-if pyodide.IN_BROWSER:
+if pyodide.ffi.IN_BROWSER:
     js.Element.__str__ = lambda self: f'<{self.tagName.lower()}/>'
 
 
@@ -361,7 +361,7 @@ class _MetaTag(_MetaContext):
 
         result = _original_func(self, *args, **kwargs)
 
-        if pyodide.IN_BROWSER:
+        if pyodide.ffi.IN_BROWSER:
             for event, proxies in self._event_listeners.items():
                 for proxy in proxies:
                     proxy.__on__._unlink_listener(proxy)
@@ -571,8 +571,10 @@ class Tag(WebBase, Context, metaclass=_MetaTag, _root=True):
                 child = self.content
 
             if isinstance(child, attr):
-                _state_name = child.name
-                child = lambda s: getattr(s, _state_name)
+                _attr_name = child.name
+
+                def child(s):
+                    return getattr(s, _attr_name)
 
             if isinstance(child, Tag) and child in self._children:
                 # using Tag as descriptor/just child; this allows save reference from parent to new copy of child
@@ -641,7 +643,6 @@ def empty_tag(name):
 
 
 def mount(element: Tag, root_element: str):
-    # TODO: pyweb.createRoot?
     _MetaTag._pre_top_mount()
     root = js.document.querySelector(root_element)
     if root is None:
