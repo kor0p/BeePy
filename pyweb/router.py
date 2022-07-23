@@ -15,7 +15,7 @@ class WithRouter:
     router: Router = state()
 
 
-class Router(Tag, name='div'):
+class Router(Tag, name='router'):
     routes: dict[str, Union[str, Type[Tag]]] = {
         # r'/$': Tag,
         # r'/app/(?P<id>.*)$': 'app.App',  # lazy import!

@@ -156,6 +156,9 @@ class StandaloneTag(html_tag, _root=True):
     def clone(self):
         return self
 
+    def as_child(self, exists_ok=False):
+        return super().as_child(True)
+
 
 class Head(StandaloneTag, name='head', mount=js.document.head):
     title = state()

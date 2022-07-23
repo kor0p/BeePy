@@ -218,7 +218,7 @@ def cached_import(module_path, class_name=None, package=None):
         and getattr(modules[module_path].__spec__, '_initializing', False) is True
     ):
         if pyodide.ffi.IN_BROWSER:
-            js.pyweb._loadLocalFileSync(module_path.lstrip('.'))
+            ensure_sync(js.pyweb._loadLocalFile(module_path.lstrip('.')))
         import_module(module_path, package)
 
     if module_path.startswith('.') and package == '__pyweb_root__':
