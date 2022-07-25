@@ -31,4 +31,4 @@ class Test(ModalHandler):
 
 
 if __name__ == '__pyweb_root__':
-    mount(Test(), '#pyweb')
+    mount(Test(), '#root')

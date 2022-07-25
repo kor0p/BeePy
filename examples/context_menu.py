@@ -48,4 +48,4 @@ class TestContext(ContextMenuHandler, name='test-context', content_tag=p()):
 
 
 if __name__ == '__pyweb_root__':
-    mount(TestContext(), '#pyweb')
+    mount(TestContext(), '#root')

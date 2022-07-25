@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import Union, Callable, Type, Any, Iterable, Optional
 from types import MethodType
-from functools import wraps, partial
+from functools import wraps, partial, cache
 
 import js
 import pyodide
@@ -12,16 +12,14 @@ from .attrs import attr, state, html_attr
 from .children import ContentWrapper, ChildRef, TagRef, Children
 from .listeners import on
 from .types import Renderer, Mounter, WebBase, AttrType, ContentType
-from .utils import (
-    log, NONE_TYPE, __CONFIG__, _current, _debugger, get_random_name, to_kebab_case,
-)
+from .utils import log, NONE_TYPE, __CONFIG__, _current, _debugger, get_random_name, to_kebab_case, IN_BROWSER
 from .context import _MetaContext, Context
 
 
 __CONFIG__['version'] = __version__ = '0.2.1'
 
 
-if pyodide.ffi.IN_BROWSER:
+if IN_BROWSER:
     js.Element.__str__ = lambda self: f'<{self.tagName.lower()}/>'
 
 
@@ -75,9 +73,9 @@ class _MetaTag(_MetaContext):
         namespace.setdefault('__slots__', ())
         if '_content' in namespace:
             namespace['_static_content'] = namespace.pop('_content')
-        log.debug('[__NAMESPACE__]', namespace)
 
-        # used for checking inheritance: attributes, methods, etc
+        # used for checking inheritance: attributes, methods, etc.
+        # for example: extending classes Tag and WithRouter must produce correct state 'router'
         base_cls: Union[Type[Tag], type] = type.__new__(mcs, _name, bases, {})
 
         initialized = _TAG_INITIALIZED  # if class Tag is already defined
@@ -145,6 +143,7 @@ class _MetaTag(_MetaContext):
                             _states_with_static_handler[trigger].append(_state)
                             _state.handlers[trigger].remove(child)
                     static_onchange_handlers.append((child, _states_with_static_handler))
+                    continue
 
                 if isinstance(child, (Tag, Children, ChildRef)):
                     if child in children_arg:
@@ -168,16 +167,15 @@ class _MetaTag(_MetaContext):
         if not hasattr(cls, '_raw_html'):
             cls._raw_html = False
 
-        if initialized and not hasattr(cls, '_content_tag'):
-            cls._content_tag = empty_tag('div')()
+        if initialized:
+            cls._static_children = cls._static_children.copy()
+            if not hasattr(cls, '_content_tag'):
+                cls._content_tag = empty_tag('div')()
+        else:
+            cls._static_children = []
 
         if not hasattr(cls, 'static_children_tag'):
             cls.static_children_tag = None
-
-        if initialized:
-            cls._static_children = cls._static_children.copy()
-        else:
-            cls._static_children = []
 
         for child in to_remove_children:
             cls._static_children.remove(child)
@@ -193,12 +191,9 @@ class _MetaTag(_MetaContext):
             cls.static_listeners = cls.static_listeners.copy()
             for key, value in cls.static_listeners.items():
                 cls.static_listeners[key] = value.copy()
-        else:
-            cls.static_listeners = defaultdict(list)
-
-        if initialized:
             cls._static_onchange_handlers = cls._static_onchange_handlers.copy() + static_onchange_handlers
         else:
+            cls.static_listeners = defaultdict(list)
             cls._static_onchange_handlers = []
 
         cls._tags = []
@@ -361,7 +356,7 @@ class _MetaTag(_MetaContext):
 
         result = _original_func(self, *args, **kwargs)
 
-        if pyodide.ffi.IN_BROWSER:
+        if IN_BROWSER:
             for event, proxies in self._event_listeners.items():
                 for proxy in proxies:
                     proxy.__on__._unlink_listener(proxy)
@@ -416,13 +411,15 @@ class Tag(WebBase, Context, metaclass=_MetaTag, _root=True):
 
     def __init__(self, *args, **kwargs: AttrType):
         super().__init__(*args, **kwargs)
+        data = self._attrs_defaults | kwargs
+
         self._ref = None
         for name, value in self.ref_children.items():
-            if name not in kwargs:
+            if name not in data:
                 continue
 
             if isinstance(value, Children):
-                getattr(self, name)[:] = kwargs[name]
+                getattr(self, name)[:] = data[name]
 
     def __new__(cls, *args, **kwargs):
         if hasattr(getattr(cls, 'mount_element', None), '_py'):
@@ -438,6 +435,9 @@ class Tag(WebBase, Context, metaclass=_MetaTag, _root=True):
     def __hash__(self):
         # TODO: make force immutable this attributes
         return hash((self._tag_name_, self._id_))
+
+    def __getitem__(self, key):
+        return getattr(self, key)
 
     @classmethod
     def comment(cls, string) -> str:
@@ -638,6 +638,7 @@ class Tag(WebBase, Context, metaclass=_MetaTag, _root=True):
 _TAG_INITIALIZED = True
 
 
+@cache
 def empty_tag(name):
     return _MetaTag(name, (Tag, ), {}, name=name, content_tag=None)
 

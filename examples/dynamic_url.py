@@ -61,4 +61,4 @@ class DynamicURL(Tag, name='div'):
 
 
 if __name__ == '__pyweb_root__':
-    mount(DynamicURL(), '#pyweb')
+    mount(DynamicURL(), '#root')

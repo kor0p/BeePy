@@ -8,7 +8,7 @@ import js
 import pyodide
 
 from .types import Tag
-from .utils import log, js_func, ensure_sync, _current, _debugger
+from .utils import log, js_func, ensure_sync, _current, _debugger, IN_BROWSER
 
 
 _key_codes = {
@@ -143,7 +143,7 @@ class on:
         pass
 
     def __del__(self):
-        if not pyodide.ffi.IN_BROWSER:
+        if not IN_BROWSER:
             return
         for proxy in self._proxies:
             proxy.destroy()

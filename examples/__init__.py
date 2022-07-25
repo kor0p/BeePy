@@ -41,4 +41,4 @@ class App(Tag, name='app'):
     ]
 
 
-mount(App(), '#pyweb')
+mount(App(), '#root')

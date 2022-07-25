@@ -168,4 +168,4 @@ class TodoList(Tag, name='ul'):
 
 
 if __name__ == '__pyweb_root__':
-    mount(TodoList(), '#pyweb')
+    mount(TodoList(), '#root')

@@ -112,12 +112,31 @@ pyweb.loadFile = async function loadFile (filePath) {
     return await (await fetch(filePath)).text()
 }
 
+pyweb.loadFileSync = function loadFileSync (filePath) {
+    /**
+     * Same as pyweb.loadFile, but synchronous
+     * NOTE: Method is available only after Pyodide was fully loaded
+     *       Use pyweb.__main__ callback as start point to be sure
+     */
+    pyweb.__CURRENT_LOADING_FILE__ = filePath
+    return pyodide.pyodide_py.http.open_url(filePath).read()
+}
+
 pyweb._writeInternalFile = async function _writeInternalFile (file) {
     pyodide.FS.writeFile(`pyweb/${file}`, await pyweb.loadFile(`${config.path}/pyweb/${file}`))
 }
 
+pyweb._writeInternalFileSync = function _writeInternalFileSync (file) {
+    pyodide.FS.writeFile(`pyweb/${file}`, pyweb.loadFileSync(`${config.path}/pyweb/${file}`))
+}
+
 pyweb._writeLocalFile = async function _writeLocalFile (file, content) {
     if (!content) content = await pyweb.loadFile(`./${_lstrip(file)}`)
+    pyodide.FS.writeFile(`${root_folder}/${file}`, content)
+}
+
+pyweb._writeLocalFileSync = function _writeLocalFileSync (file, content) {
+    if (!content) content = pyweb.loadFileSync(`./${_lstrip(file)}`)
     pyodide.FS.writeFile(`${root_folder}/${file}`, content)
 }
 
@@ -272,6 +291,39 @@ pyweb._loadLocalFile = async function _loadLocalFile (module) {
             local_modules.map(file => pyweb._loadLocalFile(file))
         )
     )
+}
+
+
+// utils.ensure_sync(js.pyweb._loadLocalFile(module)) doesn't work correctly
+pyweb._loadLocalFileSync = function _loadLocalFileSync (module) {
+    let init_file = ''
+
+    const [path, path_dotted, _module, module_path] = _parseAndMkDirModule(module)
+    module = _module
+    let init_file_path = `${path}${module_path}__init__.py`
+
+    try {
+        init_file = pyweb.loadFileSync(`./${_lstrip(init_file_path)}`)
+        if (init_file.substring(0, 1) === '<') {
+            init_file_path = `${path}/${module}.py`
+            init_file = pyweb.loadFileSync(`./${_lstrip(init_file_path)}`)
+        }
+    } catch (e) {
+        console.error(e)
+        window._DEBUGGER(e)
+        return
+    }
+
+    const [pyweb_modules, local_modules] = _getModulesFromLocalInit(init_file, path_dotted)
+
+    for (const file of pyweb_modules) {
+        pyweb._writeInternalFileSync(file)
+    }
+
+    pyweb._writeLocalFileSync(init_file_path, init_file)
+    for (const file of local_modules) {
+        pyweb._loadLocalFileSync(file)
+    }
 }
 
 Node.prototype.insertChild = function (child, index) {

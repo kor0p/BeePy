@@ -10,6 +10,10 @@ from .types import AttrType
 from .utils import log, log10_ceil, get_random_name, const_attribute
 
 
+__obj = object()
+_base_obj_dir = tuple(dir(__obj)) + ('__abstractmethods__',)
+
+
 Self = TypeVar('Self', bound='Context')
 
 _CONTEXT_INITIALIZED = False
@@ -23,19 +27,35 @@ class _MetaContext(ABCMeta):
     def __new__(mcs, _name: str, bases: tuple, namespace: dict, **kwargs):
         initialized = _CONTEXT_INITIALIZED  # if class Context is already defined
 
+        # used for checking inheritance: attributes, methods, etc.
+        # for example: extending classes Tag and WithRouter must produce correct state 'router'
+        base_cls: Union[Type[Context], type] = type.__new__(mcs, _name, bases, {})
+
         namespace = namespace.copy()
         namespace.setdefault('__slots__', ())
         static_attrs = {}
+        attrs_defaults = {}
 
         if initialized and hasattr(pyweb, 'children'):
+            _children = pyweb.children
+
             extra_attrs = []
             for attribute_name, child in mcs._clean_namespace(namespace):
-                if isinstance(child, pyweb.children.ChildRef) and (
+                if isinstance(child, _children.ChildRef) and (
                     cls_extra_attrs := getattr(child.child, '__extra_attrs__', None)
                 ):
                     extra_attrs.extend(cls_extra_attrs)
+
                 if isinstance(child, attr):
                     static_attrs[attribute_name] = child
+
+            for attribute_name, child in mcs._clean_cls_iter(base_cls):
+                new_attr = namespace.get(attribute_name)
+                if new_attr and (
+                    (isinstance(child, attr) and not isinstance(new_attr, attr)) or
+                    (isinstance(child, _children.ChildrenRef) and not isinstance(new_attr, _children.ChildrenRef))
+                ):
+                    attrs_defaults[attribute_name] = namespace.pop(attribute_name)
 
             namespace['__slots__'] = (*extra_attrs, *namespace['__slots__'])
 
@@ -54,9 +74,11 @@ class _MetaContext(ABCMeta):
         cls: Union[Type[Context], type] = super().__new__(mcs, _name, bases, namespace)
 
         if initialized:
-            cls.static_attrs = cls.static_attrs.copy() | static_attrs
+            cls._static_attrs = cls._static_attrs.copy() | static_attrs
+            cls._attrs_defaults = cls._attrs_defaults.copy() | attrs_defaults
         else:
-            cls.static_attrs = {}
+            cls._static_attrs = {}
+            cls._attrs_defaults = {}
 
         cls._contexts = []
 
@@ -81,9 +103,17 @@ class _MetaContext(ABCMeta):
 
     @classmethod
     def _clean_namespace(mcs, namespace):
+        base_obj_dir = _base_obj_dir + mcs.__clean_class_attribute_names
         for key, value in namespace.items():
-            if key not in mcs.__clean_class_attribute_names:
+            if key not in base_obj_dir:
                 yield key, value
+
+    @classmethod
+    def _clean_cls_iter(mcs, cls):
+        base_obj_dir = _base_obj_dir + mcs.__clean_class_attribute_names
+        for key in dir(cls):
+            if key not in base_obj_dir:
+                yield key, getattr(cls, key)
 
 
 class Context(metaclass=_MetaContext, _root=True):
@@ -95,20 +125,21 @@ class Context(metaclass=_MetaContext, _root=True):
     _args: tuple[AttrType, ...]
     _kwargs: dict[str, AttrType]
 
-    static_attrs: dict[str, attr]
+    _static_attrs: dict[str, attr]
+    _attrs_defaults: dict[str, AttrType]
     attrs: dict[str, attr]
     _context_name_: str
 
     def __new__(cls, *args, **kwargs):
         self = super().__new__(cls)
-        self.attrs = self.static_attrs.copy()
+        self.attrs = self._static_attrs.copy()
 
         # define some attributes here, not in __init__, because they are used for __hash__ method
         self._id_ = get_random_name(log10_ceil(len(self._contexts) * len(self.__class__._context_classes)))
         self.args_kwargs = args, kwargs
 
         if _CONTEXT_INITIALIZED:
-            for name, attribute in self.static_attrs.items():
+            for name, attribute in self.attrs.items():
                 if hasattr(attribute, '_link_ctx'):
                     attribute._link_ctx(name, self, force=False)
 
@@ -116,15 +147,15 @@ class Context(metaclass=_MetaContext, _root=True):
 
     def __init__(self, *args, **kwargs: AttrType):
         self.__class__._contexts.append(self)
+        data = self._attrs_defaults | kwargs
+
         for key, _attr in self.attrs.items():
-            if key not in kwargs:
+            if key not in data:
                 if _attr.required:
                     raise TypeError(f'Attribute {_attr.name!r} is required')
                 continue
 
-            value = kwargs[key]
-
-            setattr(self, key, value)
+            setattr(self, key, data[key])
 
     @property
     def __attrs__(self) -> dict[str, AttrType]:

@@ -74,8 +74,7 @@ class SelectView(Tag, name='div', content_tag='span'):
 
 
 class LinkTabs(tabs):
-    # think about setting 'dark_theme' as attribute -> 'dark_theme' already is state ->
-    # -> 'dark_theme' state receives attribute value
+    dark_theme = True
     name = 'TEST'
     tabs_titles = {
         'tab_text': tab_title('Page 1'),
@@ -127,7 +126,7 @@ class test_tabs(Tag, name='test-tabs'):
     )
 
     children = [
-        LinkTabs(dark_theme=True),
+        LinkTabs(),
     ]
 
     def mount(self):
@@ -135,4 +134,4 @@ class test_tabs(Tag, name='test-tabs'):
 
 
 if __name__ == '__pyweb_root__':
-    mount(test_tabs(), '#pyweb')
+    mount(test_tabs(), '#root')

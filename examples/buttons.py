@@ -49,4 +49,4 @@ class View(Tag, name='view'):
 
 
 if __name__ == '__pyweb_root__':
-    mount(View(), '#pyweb')
+    mount(View(), '#root')

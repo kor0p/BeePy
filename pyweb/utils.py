@@ -19,6 +19,12 @@ import js
 import pyodide
 
 
+try:
+    from pyodide.ffi import IN_BROWSER
+except ImportError:
+    from pyodide import IN_BROWSER
+
+
 class UpgradedJSONEncoder(json.JSONEncoder):
     def default(self, o):
         if dataclasses.is_dataclass(o):
@@ -44,7 +50,7 @@ def merge_configs():
     js.pyweb.__CONFIG__ = pyodide.to_js(__CONFIG__, dict_converter=js.Object.fromEntries)
 
 
-if pyodide.ffi.IN_BROWSER:
+if IN_BROWSER:
     merge_configs()
 
 
@@ -130,7 +136,7 @@ async def request(url, method='GET', body=None, headers=None, **opts):
     return response
 
 
-if not pyodide.ffi.IN_BROWSER:
+if not IN_BROWSER:
     import requests
 
     async def request(url, method='GET', body=None, headers=None, **opts):
@@ -167,7 +173,7 @@ def js_func(once=False):
 
 
 def ensure_sync(to_await):
-    if asyncio.iscoroutine(to_await):
+    if hasattr(to_await, '__await__'):
         return asyncio.get_event_loop().run_until_complete(to_await)
     return to_await
 
@@ -182,9 +188,24 @@ def force_sync(function):
 delay = js.delay
 
 
-@ensure_sync
+@force_sync
 async def sleep(s):
     return await js.delay(s * 1000)
+
+
+class Interval:
+    __slots__ = ('_id',)
+
+    def __init__(self, function, args=None, kwargs=None, period=0):
+        @js_func()
+        @wraps(function)
+        def _callback():
+            return function(*(args or ()), **(kwargs or {}))
+
+        self._id = js.setInterval(_callback, period * 1000)
+
+    def clear(self):
+        return js.clearInterval(self._id)
 
 
 class Locker:
@@ -217,8 +238,8 @@ def cached_import(module_path, class_name=None, package=None):
         getattr(modules[module_path], '__spec__', None) is not None
         and getattr(modules[module_path].__spec__, '_initializing', False) is True
     ):
-        if pyodide.ffi.IN_BROWSER:
-            ensure_sync(js.pyweb._loadLocalFile(module_path.lstrip('.')))
+        if IN_BROWSER:
+            js.pyweb._loadLocalFileSync(module_path.lstrip('.'))
         import_module(module_path, package)
 
     if module_path.startswith('.') and package == '__pyweb_root__':

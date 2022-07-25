@@ -358,5 +358,5 @@ class Admin(tabs, name='app'):
 
 mount(
     Admin(),
-    '#pyweb',
+    '#root',
 )
