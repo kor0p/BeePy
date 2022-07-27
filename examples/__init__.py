@@ -26,6 +26,7 @@ class AppRouter(Router):
         'modal/?$': 'modal.Test',
         'buttons/?$': 'buttons.View',
         'todos/?$': 'todos.TodoList',
+        'timer/?$': 'count_down_timer.App',
     }
 
     fallback_tag_cls = PageNotFound
