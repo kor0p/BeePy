@@ -3,16 +3,19 @@ from __future__ import annotations
 import re
 from re import Match
 from typing import Union, Type
+from dataclasses import dataclass
 
 import js
-from .framework import Tag, state
+
+from .framework import Tag, state, on
+from .tags import a
 from .types import Children
-from .utils import lazy_import_cls
+from .utils import lazy_import_cls, to_js
 
 
 class WithRouter:
-    match: Match = state()
-    router: Router = state()
+    match: Match = state(move_on=True)
+    router: Router = state(move_on=True)
 
 
 class Router(Tag, name='router'):

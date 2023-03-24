@@ -27,6 +27,7 @@ class AppRouter(Router):
         'buttons/?$': 'buttons.View',
         'todos/?$': 'todos.TodoList',
         'timer/?$': 'count_down_timer.App',
+        'text-sync/?$': 'text_sync.TextSyncExample',
     }
 
     fallback_tag_cls = PageNotFound

@@ -5,7 +5,7 @@ from typing import TypeVar, Type, Literal, Union
 from .attrs import state
 from .children import Children
 from .tags import table, thead, tbody, tr, th, td
-from .style import style
+from .style import Style
 from .listeners import on
 from .actions import Action
 
@@ -22,7 +22,7 @@ class TableCellAction(Action, _root=True):
     def click(self, event):
         tr: TR = self.parent.parent
         table: Table = tr.parent.parent
-        for handler in table.handlers[self.action_name]:
+        for handler in table._handlers[self.action_name]:
             handler(table.parent, event, self.action_name, table._map_data(tr.raw_data))
         table.parent.__render__()
 
@@ -93,7 +93,7 @@ class TableHead(thead, children_tag=TR(), force_ref=True):
 
     @columns.on('change')
     def sync(self, value=None):
-        if not hasattr(self, 'parent'):
+        if not self.parent_defined:
             return
 
         self._columns[:] = [
@@ -120,7 +120,7 @@ class TableBody(tbody, force_ref=True):
 
     @rows.on('change')
     def sync(self, value=None):
-        if not hasattr(self, 'parent'):
+        if not self.parent_defined:
             return
 
         self._rows[:] = [
@@ -145,10 +145,12 @@ class Table(table):
     head: TableHead
     body: TableBody
 
-    default_style = style(styles={
+    default_style = Style(styles={
         '&': {
             'border-spacing': 0,
             'border-collapse': 'collapse',
+        },
+        '& >': {
             '&, th, td': {
                 'border': '1px solid #333',
             },

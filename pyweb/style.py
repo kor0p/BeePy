@@ -4,6 +4,7 @@ from typing import Any, Optional, Type
 from .framework import __CONFIG__, Tag, attr, state
 from .utils import log10_ceil, get_random_name, to_kebab_case, safe_eval
 from .tags import Head
+from .types import safe_html
 
 
 def dict_of_properties_to_css(properties):
@@ -101,7 +102,11 @@ def dict_to_css(selectors: dict, parent: str = '', braces=('{', '}')):
     yield from dict_of_parents_to_css(children, parent, braces)
 
 
-class style(Tag, name='style', content_tag=None, raw_html=True, force_ref=True):
+def get_reference(tag: Tag):
+    return f'[style-id="{tag.style_id}"]'
+
+
+class Style(Tag, name='style', content_tag=None, raw_html=True, force_ref=True):
     __slots__ = ('styles', 'real_parent')
     __extra_attrs__ = ('style_id',)
 
@@ -145,14 +150,12 @@ class style(Tag, name='style', content_tag=None, raw_html=True, force_ref=True):
         if self.options['global']:  # TODO: add example
             self._content = '\n'.join(list(dict_to_css(self.styles, parent._tag_name_)))
             return
-        else:
-            self._global['styles_count'] += 1
 
         if hasattr(parent, 'style_id'):  # support multiple style children
             style_id = parent.style_id
-            self._global['styles_count'] -= 1
         else:
-            style_id = get_random_name(log10_ceil(self._global['styles_count']))
+            self._global['styles_count'] += 1
+            style_id = get_random_name(log10_ceil(self._global['styles_count']) + 1)
             attr(style_id, type=str)._link_ctx('style_id', parent)
 
         # TODO: is [style-id=] slow? If so, maybe use classes?
@@ -162,28 +165,25 @@ class style(Tag, name='style', content_tag=None, raw_html=True, force_ref=True):
 
     def content(self):
         if self.options['global'] or not self._content:
-            return self._content
+            return safe_html(self._content)
 
         parent = self.real_parent
 
-        params: dict[str, Any] = dict(self=parent, ref=self.get_reference)
+        params: dict[str, Any] = dict(self=parent, ref=get_reference)
         if self.options['render_states']:
             params.update(parent.__states__)
         if self.options['render_children']:
             params['children'] = parent.children
             params.update(parent.ref_children)
         # TODO: use native css '--var: {}' instead of re-render the whole content
-        return safe_eval(f'f"""{self._content.strip()}"""', params)
-
-    def get_reference(self, tag: Tag):
-        return f'[style-id="{tag.style_id}"]'
+        return safe_html(safe_eval(f'f"""{self._content.strip()}"""', params))
 
 
-def with_style(_style: Optional[style] = None):
+def with_style(style: Optional[Style] = None):
     def wrapper(tag_cls: Type[Tag]):
-        return type(tag_cls.__name__, (tag_cls,), {"style": _style or style()})
+        return type(tag_cls.__name__, (tag_cls,), {'style': style or Style()})
 
     return wrapper
 
 
-__all__ = ['dict_to_css', 'style', 'with_style']
+__all__ = ['dict_to_css', 'Style', 'with_style']

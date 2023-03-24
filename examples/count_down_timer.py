@@ -2,9 +2,8 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
-from pyweb import Tag, state
+from pyweb import Tag, Style, state
 from pyweb.tags import a, p
-from pyweb.style import style
 from pyweb.utils import Interval
 
 
@@ -14,7 +13,7 @@ _EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
 class DateTimeDisplay(Tag, name='div'):
     parent: CountUpTimer
 
-    style = style(styles={
+    style = Style(styles={
         '> div': {
             'line-height': '2.5rem',
             'padding': '0 0.75rem 0 0.75rem',
@@ -48,7 +47,7 @@ class DateTimeDisplay(Tag, name='div'):
 class CountUpTimer(Tag, name='timer', children_tag=a()):
     __slots__ = ('_interval',)
 
-    style = style(styles={
+    style = Style(styles={
         'padding': '0.5rem',
 
         '> a': {
@@ -110,7 +109,7 @@ class CountUpTimer(Tag, name='timer', children_tag=a()):
 
 
 class App(Tag, name='div', content_tag=p()):
-    style = style({
+    style = Style(styles={
         '> p': {
             'display': 'flex',
             'flex-direction': 'row',

@@ -1,7 +1,6 @@
 import js
-from pyweb import Tag, attr, on, mount
+from pyweb import Tag, Style, attr, on, mount
 from pyweb.tags import p, Head
-from pyweb.style import style
 from pyweb.utils import delay
 
 
@@ -47,7 +46,7 @@ class Item(Tag, name='item', content_tag=p()):
 
 
 class DynamicURL(Tag, name='div'):
-    style = style(
+    style = Style(
         font_size='48px',
     )
 

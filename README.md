@@ -1,4 +1,4 @@
-# PyWeb v0.2.1
+# PyWeb v0.3.0
 
 ## A frontend framework for python, using [pyodide](https://pyodide.org/), that uses [WASM](https://webassembly.org/)
 ### Use classes, descriptors and rest python in browser!
@@ -10,6 +10,8 @@
 - ### [Modal](https://pyweb.netlify.app/examples/modal)
 - ### [Context Menu](https://pyweb.netlify.app/examples/context-menu)
 - ### [Dynamic URL](https://pyweb.netlify.app/examples/dynamic-url)
+- ### [Timer](https://pyweb.netlify.app/examples/timer)
+- ### [Input's model](https://pyweb.netlify.app/examples/text-sync)
 
 Code:
 ```python
@@ -71,6 +73,7 @@ if __name__ == '__pyweb_root__':
 will render html as below, and will react on buttons click like native JS
 ```html
 <head>
+    <title>Test 1</title>
     <style>
         view[style-id="6"] {
             zoom: 7;

@@ -2,12 +2,11 @@ from __future__ import annotations
 
 
 import js
-import pyodide
 
 from .framework import Tag, attr, state, on
-from .style import style
+from .style import Style
 from .tags import div
-from .utils import log
+from .utils import log, to_js
 
 
 class tab(div, name='tab'):
@@ -15,7 +14,7 @@ class tab(div, name='tab'):
     visible = attr(False)
     title: tab_title = state()
 
-    default_style = style(styles={
+    default_style = Style(styles={
         'padding': '6px 12px',
         'animation': 'fadeEffect 1s',
         'display': 'none',
@@ -30,8 +29,8 @@ class tab(div, name='tab'):
 
     parent: tabs
 
-    def __set_ref__(self, ref):
-        super().__set_ref__(ref)
+    def __set_ref__(self, parent, ref):
+        super().__set_ref__(parent, ref)
         self.tab_id = ref.name
 
     @visible.on('change')
@@ -58,7 +57,7 @@ class tabs(Tag, name='tabs', content_tag='ul'):
         # id: tab_title(text),
     }
 
-    default_style = style(styles={
+    default_style = Style(styles={
         'a': {
             'color': 'lightskyblue',
             'text-decoration': 'none',
@@ -157,7 +156,7 @@ class tabs(Tag, name='tabs', content_tag='ul'):
         url.searchParams.set(self.name, selected_tab.tab_id)  # modifies url.href
 
         js.history.pushState(
-            pyodide.to_js({
+            to_js({
                 'name': selected_tab.id,
                 'title': ''.join(selected_tab.title.content()),
             }),

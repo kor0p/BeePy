@@ -1,6 +1,5 @@
-from pyweb import Tag, mount, state, attr, on
-from pyweb.style import style
-from pyweb.tags import br, Head
+from pyweb import Tag, Style, mount, state, attr, on
+from pyweb.tags import Head
 
 
 class PyButton(Tag, name='button'):
@@ -12,7 +11,7 @@ class PyButton(Tag, name='button'):
     increment = state(1)
     color = state('gray')
 
-    style = style(
+    style = Style(
         margin='8px',
         color='{color}',
     )
@@ -30,7 +29,7 @@ class View(Tag, name='view'):
 
     title = state('PyWeb Test 2')
 
-    style = style(
+    style = Style(
         zoom=7,
         button=dict(backgroundColor='lightblue')
     )
@@ -41,8 +40,7 @@ class View(Tag, name='view'):
     ]
 
     def content(self):
-        # TODO: maybe parse \n as <br>?
-        return f'{self.title}{br}Count: {self.count}'
+        return f'{self.title}\nCount: {self.count}'
 
     def mount(self):
         Head.title = 'Test 1'

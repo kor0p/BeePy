@@ -2,21 +2,19 @@ from __future__ import annotations
 
 import js
 from .framework import attr, state, on
-from .style import style
+from .style import Style
 from .tags import div, hr, ul, li, Body
 
 
 class MenuDivider(hr):
-    default_style = style(
+    default_style = Style(
         border_bottom='1px solid #eee',
         margin='10px 0',
     )
 
 
 class MenuItem(li):
-    id = state(type=str)
-
-    default_style = style(styles={
+    default_style = Style(styles={
         'padding': '0.5em 1em',
         'cursor': 'pointer',
         'display': 'flex',
@@ -27,10 +25,6 @@ class MenuItem(li):
         }
     })
 
-    def __set_ref__(self, ref):
-        super().__set_ref__(ref)
-        self.id = ref.name
-
 
 class ContextMenu(ul):
     visible = attr(False)
@@ -38,12 +32,12 @@ class ContextMenu(ul):
     pos_x = state(0)
     pos_y = state(0)
 
-    dynamic_styles = style(
+    dynamic_styles = Style(
         left='{pos_x}px',
         top='{pos_y}px',
     )
 
-    default_style = style(styles={
+    default_style = Style(styles={
         'visibility': 'hidden',
         'background-color': '#353535',
         'font-size': '24px',
@@ -91,7 +85,7 @@ class ContextMenu(ul):
 class ContextMenuHandler(div):
     menu: ContextMenu
 
-    default_style = style(
+    default_style = Style(
         position='absolute',
         inset=0,
         width='100%',

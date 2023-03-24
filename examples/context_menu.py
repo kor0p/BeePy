@@ -1,7 +1,6 @@
 import js
 
-from pyweb import mount
-from pyweb.style import style
+from pyweb import Style, mount
 from pyweb.tags import p, Head
 from pyweb.context_menu import MenuDivider, MenuItem, ContextMenu, ContextMenuHandler
 
@@ -14,12 +13,11 @@ class Menu(ContextMenu):
         MenuItem('Paste'),
         MenuDivider(),
         MenuItem('Refresh'),
-        MenuItem('Exit')
+        MenuItem('Exit'),
     ]
 
     # get as references
-    share_to = children[0]
-    refresh = children[5]
+    share_to, _, _, _, _, refresh, _ = children
 
     @share_to.on('click')
     def open_share(self, event):
@@ -31,7 +29,7 @@ class Menu(ContextMenu):
 
 
 class TestContext(ContextMenuHandler, name='test-context', content_tag=p()):
-    style = style(
+    style = Style(
         font_size='48px',
     )
 

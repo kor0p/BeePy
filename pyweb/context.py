@@ -18,6 +18,11 @@ Self = TypeVar('Self', bound='Context')
 
 _CONTEXT_INITIALIZED = False
 
+OVERWRITE = '__OVERWRITE__'
+SUPER = '__SUPER__'
+CONTENT = '__CONTENT__'
+_SPECIAL_CHILD_STRINGS = (OVERWRITE, SUPER, CONTENT)
+
 
 class _MetaContext(ABCMeta):
     _context_classes = []
@@ -51,6 +56,9 @@ class _MetaContext(ABCMeta):
 
             for attribute_name, child in mcs._clean_cls_iter(base_cls):
                 new_attr = namespace.get(attribute_name)
+                if attribute_name not in static_attrs and isinstance(child, attr):
+                    static_attrs[attribute_name] = child
+
                 if new_attr and (
                     (isinstance(child, attr) and not isinstance(new_attr, attr)) or
                     (isinstance(child, _children.ChildrenRef) and not isinstance(new_attr, _children.ChildrenRef))
@@ -131,31 +139,48 @@ class Context(metaclass=_MetaContext, _root=True):
     _context_name_: str
 
     def __new__(cls, *args, **kwargs):
+        parent = kwargs.pop('__parent__', None)
         self = super().__new__(cls)
         self.attrs = self._static_attrs.copy()
 
         # define some attributes here, not in __init__, because they are used for __hash__ method
         self._id_ = get_random_name(log10_ceil(len(self._contexts) * len(self.__class__._context_classes)))
-        self.args_kwargs = args, kwargs
+        self._args = args
+        self._kwargs = kwargs
 
-        if _CONTEXT_INITIALIZED:
-            for name, attribute in self.attrs.items():
-                if hasattr(attribute, '_link_ctx'):
-                    attribute._link_ctx(name, self, force=False)
+        if not _CONTEXT_INITIALIZED:
+            return self
+
+        for name, attribute in self.attrs.items():
+            attribute._link_ctx(name, self, force=False)
+            if parent and name in kwargs:
+                attribute.__set_first__(self, kwargs[name], parent)
+
+        if parent:
+            p_args, p_kwargs = parent.args_kwargs
+            p_data = parent._attrs_defaults | p_kwargs
+
+            for name, attr_to_move_on in parent.attrs.items():
+                if attr_to_move_on.move_on:
+                    attr_to_move_on._link_ctx(name, self, force_cls_set=True)
+                    if name in p_data:
+                        self._attrs_defaults[name] = p_data[name]
 
         return self
 
     def __init__(self, *args, **kwargs: AttrType):
         self.__class__._contexts.append(self)
         data = self._attrs_defaults | kwargs
+        self.init(*args, **data)
 
+    def init(self, *args, **kwargs):
         for key, _attr in self.attrs.items():
-            if key not in data:
+            if key not in kwargs:
                 if _attr.required:
                     raise TypeError(f'Attribute {_attr.name!r} is required')
                 continue
 
-            setattr(self, key, data[key])
+            setattr(self, key, kwargs[key])
 
     @property
     def __attrs__(self) -> dict[str, AttrType]:
@@ -176,11 +201,8 @@ class Context(metaclass=_MetaContext, _root=True):
     def args_kwargs(self):
         if not hasattr(self, '_args'):
             return None
+        # TODO: make self._kwargs as frozendict
         return self._args, self._kwargs
-
-    @args_kwargs.setter
-    def args_kwargs(self, value):
-        self._args, self._kwargs = value
 
     def __hash__(self):
         # TODO: make force immutable this attributes
@@ -189,12 +211,14 @@ class Context(metaclass=_MetaContext, _root=True):
     def __notify__(self, attr_name: str, attribute: attr, value: AttrType):
         pass
 
-    def clone(self) -> Self:
+    def clone(self, parent=None) -> Self:
         args, kwargs = self.args_kwargs
+        if parent is not None:
+            kwargs = kwargs | {'__parent__': parent}
         return type(self)(*args, **kwargs)
 
 
 _CONTEXT_INITIALIZED = True
 
 
-__all__ = ['_MetaContext', 'Context']
+__all__ = ['SUPER', 'CONTENT', '_SPECIAL_CHILD_STRINGS', '_MetaContext', 'Context']

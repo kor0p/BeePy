@@ -4,10 +4,10 @@ from dataclasses import dataclass
 from typing import Optional
 from datetime import datetime
 
-from pyweb import Tag, on, mount
-from pyweb.style import style, with_style
-from pyweb.attrs import attr, state, static_state
-from pyweb.tags import button, _input, textarea, option, select, h2, label
+from pyweb import Tag, Style, SUPER, on, mount
+from pyweb.style import with_style
+from pyweb.attrs import attr, state
+from pyweb.tags import button, by__input_id, _input, textarea, option, select, h2, label
 from pyweb.tabs import tabs, tab, tab_title
 from pyweb.table import Table, TableHead, TableBody
 from pyweb.types import AttrValue
@@ -26,6 +26,10 @@ class User:
     created: datetime
     group: Optional[int] = None
 
+    @classmethod
+    def default(cls):
+        return cls(id=None, username='', created=datetime.now())
+
 
 @dataclass
 class Group:
@@ -33,11 +37,15 @@ class Group:
     name: str
     description: str = ''
 
+    @classmethod
+    def default(cls):
+        return cls(id=None, name='')
+
 
 Users = list[User, ...]
 Groups = list[Group, ...]
-users = static_state([], type=Users)
-groups = static_state([], type=Groups)
+users = state([], type=Users, static=True)
+groups = state([], type=Groups, static=True)
 
 
 @groups.on('change')
@@ -49,7 +57,7 @@ class BaseForm(Tag, name='form', content_tag=h2()):
     error = state('')
     visible = attr(False)
 
-    style = style(styles={
+    style = Style(styles={
         'opacity': 0,
         'visibility': 'hidden',
         'transition': 'opacity 0.2s, visibility 0.2s',
@@ -84,6 +92,8 @@ class ViewGroup(AttrValue):
             if group.id == self.value:
                 return group.name
 
+        return self.value
+
 
 class UsersTable(Table):
     head = TableHead(columns=[
@@ -96,7 +106,11 @@ class UsersTable(Table):
 
 
 class UserForm(BaseForm):
-    user = state(type=User)
+    user = state(
+        User.default(),
+        type=User,
+        model_options={'attribute': by__input_id},
+    )
 
     def title(self):
         if self.user and self.user.id is not None:
@@ -106,36 +120,17 @@ class UserForm(BaseForm):
 
     parent: UsersTab
 
-    # TODO: think about auto-id and id-ref for labels
-    # TODO: think about 'bind' input and state
-    #  for example: username = state(form=_input())    ||    username = _input(attr=state(''))
-    username = _input(id='username')
-    group = select(id='group')
+    username = _input(value=user)
+    group = select(value=user)
 
     children = [
         title,
-        label('Username', _for='username'),
+        label('Username', _for=username),
         username,
-        label('Group', _for='group'),
+        label('Group', _for=group),
         group,
-        '__SUPER__',
+        SUPER,
     ]
-
-    @user.on('change')
-    def user_obj_change(self, user: Optional[User]):
-        if user is None:
-            return
-
-        self.username.value = user.username
-        self.group.value = user.group
-
-    @username.on('change')
-    def username_change(self, event):
-        self.user.username = event.target.value
-
-    @group.on('change')
-    def group_change(self, event):
-        self.user.group = event.target.value
 
     @on('submit.prevent')
     async def save(self, event):
@@ -148,7 +143,7 @@ class UserForm(BaseForm):
             self.error = f'Error in request: {error}'
         else:
             self.error = ''
-            self.user = User(id=None, username='', created=datetime.now())
+            self.user = User.default()
             self.hide()
             await self.parent.load_users()
         self.parent.__render__()
@@ -169,7 +164,7 @@ class UsersTab(tab, name='users'):
     error = state('')
     users: Users = users
 
-    style = style(styles={
+    style = Style(styles={
         '{ref(add_btn)}': {
             'margin': '8px',
         },
@@ -188,7 +183,7 @@ class UsersTab(tab, name='users'):
 
     @add_btn.on('click')
     def add_new_user(self, event):
-        self.form.user = User(id=None, username='', created=datetime.now())
+        self.form.user = User.default()
         self.form.show()
 
     @table.on(':edit')
@@ -230,7 +225,11 @@ class GroupsTable(Table):
 
 
 class GroupForm(BaseForm):
-    group = state(type=Group)
+    group = state(
+        Group.default(),
+        type=Group,
+        model_options={'attribute': by__input_id},
+    )
 
     def title(self):
         if self.group and self.group.id is not None:
@@ -240,33 +239,17 @@ class GroupForm(BaseForm):
 
     parent: GroupsTab
 
-    name = _input(id='name')
-    description = textarea(id='description')
+    name = _input(value=group)
+    description = textarea(value=group)
 
     children = [
         title,
-        label('Name', _for='Name'),
+        label('Name', _for=name),
         name,
-        label('Description', _for='description'),
+        label('Description', _for=description),
         description,
-        '__SUPER__',
+        SUPER,
     ]
-
-    @group.on('change')
-    def group_obj_change(self, group: Optional[Group]):
-        if group is None:
-            return
-
-        self.name.value = group.name
-        self.description.value = group.description
-
-    @name.on('change')
-    def name_change(self, event):
-        self.group.name = event.target.value
-
-    @description.on('change')
-    def description_change(self, event):
-        self.group.description = event.target.value
 
     @on('submit.prevent')
     async def save(self, event):
@@ -279,7 +262,7 @@ class GroupForm(BaseForm):
             self.error = f'Error in request: {error}'
         else:
             self.error = ''
-            self.group = Group(id=None, name='')
+            self.group = Group.default()
             self.hide()
             await self.parent.load_groups()  # TODO: add add_row method for table
         self.parent.__render__()
@@ -289,7 +272,7 @@ class GroupsTab(tab, name='groups'):
     error = state('')
     groups: Groups = groups
 
-    style = style(styles={
+    style = Style(styles={
         '{ref(add_btn)}': {
             'margin': '8px',
         },
@@ -308,7 +291,7 @@ class GroupsTab(tab, name='groups'):
 
     @add_btn.on('click')
     def add_new_group(self, event):
-        self.form.group = Group(id=None, name='')
+        self.form.group = Group.default()
         self.form.show()
 
     @table.on(':edit')
@@ -347,6 +330,7 @@ class Admin(tabs, name='app'):
     users = UsersTab()
     groups = GroupsTab()
 
+    # TODO: create some `async def load()` instead of this
     ensure_sync(groups.load_groups())
     ensure_sync(users.load_users())
 

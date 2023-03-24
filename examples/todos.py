@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from pyweb import Tag, mount, attr, state, on
-from pyweb.style import style
+from pyweb import Tag, Style, mount, attr, state, on
 from pyweb.tags import div, p, _input, button, span, Head
 from pyweb.children import Children
 from pyweb.local_storage import LocalStorage
@@ -50,7 +49,7 @@ class TodoList(Tag, name='ul'):
 
     count_completed = state(0)
 
-    style = style(styles={
+    style = Style(styles={
         'zoom': 3,
         'padding': '0 24px',
         'form': {

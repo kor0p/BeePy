@@ -1,3 +1,6 @@
+// TODO: deploy to npm
+// TODO: make pyweb.min.js
+
 window._DEBUGGER = function _DEBUGGER (error=null) {
     const place_breakpoint_here = 'use variable _locals in console to get locals() from python frame';
 }
@@ -36,11 +39,13 @@ function _lstrip (text) {
     return text.replace(/^\/+/, '')
 }
 
+const _PY_TAG_ATTRIBUTE = '__PYTHON_TAG__'
+
 
 // console tools
 
 function getPyTag(i) {
-    return () => window[`$${i}`]._py
+    return () => window[`$${i}`][_PY_TAG_ATTRIBUTE]
 }
 
 Object.defineProperties(
@@ -52,7 +57,7 @@ Object.defineProperties(
 /**
  * usage:
  * > py0
- * evaluates $0._py
+ * evaluates $0.__PYTHON_TAG__
  * available for py0-py9
  */
 
@@ -70,31 +75,35 @@ If you have config, you must define it before loading pyweb script
     if (!window.pyweb) {
         window.pyweb = {}
     }
-    if (!window.pyweb.config) {
-        window.pyweb.config = {}
+    if (!pyweb.config) {
+        pyweb.config = {}
     }
 }
 
 // could be useful in the future, i.e: get attributes of <script src="pyweb" />
 pyweb.script = document.currentScript
+const _src = pyweb.script.src
 
 const DEFAULT_CONFIG = {
-    pyodide_version: '0.21.0a3',
-    __loading: true,
+    // user can specify version of pyodide
+    // TODO: check supporting versions of pyodide
+    pyodide_version: '0.22.1',
+    // could be useful for some internal checks
+    __loading: false,
     // use wrapper, so pyweb.__main__ could be overridden
     onload: () => pyweb.__main__(),
     // extra modules in base dir to load
     modules: [],
 }
 
-if (!pyweb.config.path && pyweb.script.src.indexOf('pyweb.js')) {
-    pyweb.config.path = pyweb.script.src.substring(0, pyweb.script.src.indexOf('pyweb.js') - 1).replace(/\/+$/, '')
+if (!pyweb.config.path && _src.indexOf('pyweb.js')) {
+    pyweb.config.path = _src.substring(0, _src.indexOf('pyweb.js') - 1).replace(/\/+$/, '')
 }
 
 const config = mergeDeep(DEFAULT_CONFIG, pyweb.config)
 pyweb.__CONFIG__ = config
 
-// loading pyodide
+// loading pyodide script
 
 const indexURL = `https://cdn.jsdelivr.net/pyodide/v${config.pyodide_version}/full/`
 const script = document.createElement('script')
@@ -113,6 +122,7 @@ pyweb.loadFile = async function loadFile (filePath) {
 }
 
 pyweb.loadFileSync = function loadFileSync (filePath) {
+    // TODO: use https://github.com/koenvo/pyodide-http and requests instead
     /**
      * Same as pyweb.loadFile, but synchronous
      * NOTE: Method is available only after Pyodide was fully loaded
@@ -122,8 +132,9 @@ pyweb.loadFileSync = function loadFileSync (filePath) {
     return pyodide.pyodide_py.http.open_url(filePath).read()
 }
 
-pyweb._writeInternalFile = async function _writeInternalFile (file) {
-    pyodide.FS.writeFile(`pyweb/${file}`, await pyweb.loadFile(`${config.path}/pyweb/${file}`))
+pyweb._writeInternalFile = async function _writeInternalFile (file, content) {
+    if (!content) content = await pyweb.loadFile(`${config.path}/pyweb/${file}`)
+    pyodide.FS.writeFile(`pyweb/${file}`, content)
 }
 
 pyweb._writeInternalFileSync = function _writeInternalFileSync (file) {
@@ -140,25 +151,38 @@ pyweb._writeLocalFileSync = function _writeLocalFileSync (file, content) {
     pyodide.FS.writeFile(`${root_folder}/${file}`, content)
 }
 
-window.py = function runPython (code, options={}) {
+function _getGlobalsDict (options) {
+    if (isObject(options)) {
+        return {globals: options.globals || pyweb.globals}
+    } else if (options === null) {
+        return {globals: pyweb.globals}
+    } else {
+        console.warn(
+            'DeprecationWarning: The globals argument to runPython and runPythonAsync is now passed as a named argument'
+        )
+        return {globals: options || pyweb.globals}
+    }
+}
+
+window.py = function runPython (code, options=null) {
     try {
-        return pyodide.runPython(code, options.globals)
+        return pyodide.runPython(code, _getGlobalsDict(options))
     } catch (e) {
         console.debug(e)
-        window._DEBUGGER(e)
+        _DEBUGGER(e)
         throw e
     }
 }
 
-window.apy = async function runPythonAsync (code, options={}) {
-    if (!options.skipImports) {
+window.apy = async function runPythonAsync (code, options=null) {
+    if (options && !options.skipImports) {
         await pyodide.loadPackagesFromImports(code)
     }
     try {
-        return await pyodide.runPythonAsync(code, options.globals)
+        return await pyodide.runPythonAsync(code, _getGlobalsDict(options))
     } catch (e) {
         console.debug(e)
-        window._DEBUGGER(e)
+        _DEBUGGER(e)
         throw e
     }
 }
@@ -177,25 +201,22 @@ if (!pyweb.__main__) {
     }
 }
 
-window.addEventListener('load', async function () {
-    window.pyodide = await window.loadPyodide({ indexURL })
+window.__pyweb_load = async () => {
     await Promise.all([systemLoad(), pywebLoad()])
-})
-
+    window.removeEventListener('load', window.__pyweb_load)
+}
+window.addEventListener('load', window.__pyweb_load)
 
 async function systemLoad () {
+    window.pyodide = await window.loadPyodide({ indexURL })
+    pyweb.globals = pyodide.globals
+    pyweb.__CONFIG__.__loading = true
     await pyodide.loadPackage('micropip')
-    py(`
-import sys
-print(sys.version)
-del sys
-`)
+    console.log(pyodide._api.sys.version)
 }
 
 async function pywebLoad () {
     // load relative modules from pyweb/__init__.py
-    pyodide.FS.mkdir(root_folder)
-    pyodide.FS.mkdir('pyweb')
     const _init = await pyweb.loadFile(`${config.path}/pyweb/__init__.py`)
     const pyweb_modules = []
     for (const match of _init.matchAll(/from . import (?<module>.+)/g)) {
@@ -204,23 +225,43 @@ async function pywebLoad () {
     config.modules.unshift('__init__.py', ...pyweb_modules)
 
     // TODO: create wheel and load pyweb modules via pip
-    await Promise.all(config.modules.map(file => pyweb._writeInternalFile(file)))
+    const contents = await Promise.all(config.modules.map(file => pyweb.loadFile(`${config.path}/pyweb/${file}`)))
 
-    py(`
+    while (pyweb.__CONFIG__.__loading === false) {
+        await delay(100)
+    }
+    // pyodide loaded in systemLoad()
+
+    pyodide.FS.mkdir(root_folder)
+    pyodide.FS.mkdir('pyweb')
+    await Promise.all(config.modules.map((file, i) => pyweb._writeInternalFile(file, contents[i])))
+
+    pyweb.globals = py(`
 import js
-from pyweb import __version__, utils
-js.console.log(f'%cPyWeb version: {__version__}', 'color: black; font-size: 35px')
-utils.merge_configs()
-del js, utils
+from pyweb import __version__
+from pyweb.utils import merge_configs, _PyWebGlobals
+js.console.log(f'%cPyWeb version: {__version__}', 'color: lightgreen; font-size: 35px')
+merge_configs()
+
+del merge_configs
+_PyWebGlobals(globals())
 `)
+    py('del _PyWebGlobals')
+
     delete pyweb.__CONFIG__.__loading
+    // new Proxy(_PyWebGlobals, {
+    //     get: (target, symbol) => "get" === symbol ? key => {
+    //         let result = target.get(key)
+    //         return void 0 === result && (result = builtins_dict.get(key)), result
+    //     } : "has" === symbol ? key => target.has(key) || builtins_dict.has(key) : Reflect.get(target, symbol)
+    // })
 
     try {
         await pyweb._loadLocalFile('')
         await apy(`import ${root_folder}`)
     } catch (e) {
         console.debug(e)
-        window._DEBUGGER(e)
+        _DEBUGGER(e)
         console.info('You can add __init__.py near index.html to auto-load your code')
     }
 
@@ -279,7 +320,7 @@ pyweb._loadLocalFile = async function _loadLocalFile (module) {
         }
     } catch (e) {
         console.error(e)
-        window._DEBUGGER(e)
+        _DEBUGGER(e)
         return
     }
 
@@ -310,7 +351,7 @@ pyweb._loadLocalFileSync = function _loadLocalFileSync (module) {
         }
     } catch (e) {
         console.error(e)
-        window._DEBUGGER(e)
+        _DEBUGGER(e)
         return
     }
 
@@ -328,9 +369,17 @@ pyweb._loadLocalFileSync = function _loadLocalFileSync (module) {
 
 Node.prototype.insertChild = function (child, index) {
     if (index == null || index >= this.children.length) {
-        this.appendChild(child)
+        if (typeof child === 'string') {
+            this.insertAdjacentHTML('beforeend', child)
+        } else {
+            this.appendChild(child)
+        }
     } else {
-        this.insertBefore(child, this.children[index])
+        if (typeof child === 'string') {
+            this.children[index].insertAdjacentHTML('beforebegin', child)
+        } else {
+            this.insertBefore(child, this.children[index])
+        }
     }
 }
 

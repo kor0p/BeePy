@@ -1,15 +1,15 @@
 from typing import Callable
 
 from .framework import Tag, attr, state, on
-from .style import style
+from .style import Style
 from .tags import div, button, Body
 
 
 class Modal(Tag, name='modal', content_tag='h2', children_tag='modal-content'):
     visible = attr(False)
-    on_close = state(type=Callable[[bool], None])  # TODO: make it
+    on_close = state(type=Callable[[bool], None])  # TODO: add example
 
-    default_style = style(styles={
+    default_style = Style(styles={
         'position': 'absolute',
         'inset': 0,
         'width': '100%',
@@ -59,7 +59,7 @@ class Modal(Tag, name='modal', content_tag='h2', children_tag='modal-content'):
 class ModalHandler(div, content_tag=div()):
     modal: Modal
 
-    default_style = style()
+    default_style = Style()
 
     button_show = button('Show Modal')
 

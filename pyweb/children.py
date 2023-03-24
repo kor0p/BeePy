@@ -7,10 +7,27 @@ import js
 
 from .types import Tag, WebBase, Children, ContentType
 from .context import Context
-from .utils import log, _current
+from .utils import log, _PY_TAG_ATTRIBUTE, _current
 
 
-class ContentWrapper(WebBase):
+class CustomWrapper(WebBase):
+    pass
+
+
+class StringWrapper(CustomWrapper):
+    __slots__ = ('content',)
+
+    def __init__(self, string):
+        self.content = string
+
+    def __mount__(self, element, parent: Tag, index=None):
+        element.insertChild(self._render(self.content).format(self=parent), index)
+
+    def __repr__(self):
+        return f'String({self.content})'
+
+
+class ContentWrapper(CustomWrapper):
     __slots__ = ('content', 'tag', 'mount_element', 'parent', 'mount_parent', 'children')
 
     SHADOW_ROOTS = (
@@ -42,7 +59,7 @@ class ContentWrapper(WebBase):
         self.mount_parent = element
         parent_name = element.tagName.lower()
         if self.tag:
-            self.mount_element = self.tag.clone().mount_element
+            self.mount_element = self.tag.clone(parent).mount_element
             self.mount_parent.insertChild(self.mount_element, index)
         elif '-' in parent_name or parent_name in self.SHADOW_ROOTS:
             # TODO[fix]: with shadow root children cannot be rendered
@@ -55,7 +72,7 @@ class ContentWrapper(WebBase):
         else:
             self.mount_element = js.document.createDocumentFragment()
             self.mount_parent.insertChild(self.mount_element, index)
-        self.mount_element._py = self
+        setattr(self.mount_element, _PY_TAG_ATTRIBUTE, self)
 
     def _mount_children(self):
         content = self.content()
@@ -119,7 +136,8 @@ class ContentWrapper(WebBase):
                 if current_html and not self.parent._raw_html:
                     log.warn(
                         f'This html `{current_html}` will be replaces with this: `{result}`.\n'
-                        'Maybe you must use pyweb.Tag instead of pyweb.tags.div',
+                        'Maybe you must use pyweb.Tag instead of pyweb.tags.div, '
+                        'or you used incorrect html tags like <br/> instead of <br>',
                     )
                 self.mount_parent.innerHTML = result
 
@@ -188,8 +206,8 @@ class TagRef(ChildRef[Tag]):
     child: Tag
 
     def _update_child(self, parent, index):
-        clone = self.__get__(parent).clone()
-        clone.__set_ref__(self)
+        clone = self.__get__(parent).clone(parent)
+        clone.__set_ref__(parent, self)
         self.__set__(parent, clone)
 
 
@@ -214,4 +232,4 @@ class ChildrenRef(ChildRef):
 from .framework import Tag
 
 
-__all__ = ['ContentWrapper', 'TagRef', 'ChildrenRef']
+__all__ = ['CustomWrapper', 'StringWrapper', 'ContentWrapper', 'TagRef', 'ChildrenRef']

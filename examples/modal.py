@@ -1,5 +1,4 @@
-from pyweb import mount
-from pyweb.style import style
+from pyweb import Style, SUPER, mount
 from pyweb.tags import p, Head
 from pyweb.modal import Modal, ModalHandler
 
@@ -11,12 +10,12 @@ class TestModal(Modal):
         p('Lorem ipsum dolor sit amet, consectetur adipisicing elit.'),
         p('Nobis deserunt corrupti, ut fugit magni qui quasi nisi amet repellendus non fuga omnis'),
         p('a sed impedit explicabo accusantium nihil doloremque consequuntur.'),
-        '__SUPER__',
+        SUPER,
     ]
 
 
 class Test(ModalHandler):
-    style = style(
+    style = Style(
         font_size='48px',
     )
 

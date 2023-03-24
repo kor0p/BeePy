@@ -6,8 +6,10 @@ from abc import ABC, abstractmethod
 from typing import Optional, Union, Iterable, ForwardRef
 
 from .trackable import TrackableList
+from .utils import __CONFIG__, escape_html
 
 
+attr = ForwardRef('attr')
 Tag = ForwardRef('Tag')
 ChildrenRef = ForwardRef('ChildrenRef')
 
@@ -29,17 +31,25 @@ class AttrValue:
         """ This method will be called on render, must return serializable value """
 
 
+class safe_html(str):
+    def __html__(self) -> str:
+        return self
+
+
 class Renderer:
     __slots__ = ()
 
-    def _render(self, string: Union[str, Iterable[str, ...]]):
-        if isinstance(string, str):
-            return string
+    def _render(self, value: Union[str, Iterable[str, ...]]) -> str:
+        if isinstance(value, safe_html):
+            return value.__html__()
 
-        if isinstance(string, Iterable):
-            return ''.join(self._render(child) for child in string)
+        if isinstance(value, str):
+            return escape_html(value, whitespace=__CONFIG__['html_replace_whitespaces'])
 
-        return str(string)
+        if isinstance(value, Iterable):
+            return ''.join(self._render(child) for child in value)
+
+        return str(value)
 
     @abstractmethod
     def __render__(self, *a, **kw):
@@ -69,34 +79,34 @@ class Children(WebBase, TrackableList):
     __slots__ = ('parent', 'parent_index', 'ref', 'mounted')
 
     parent: Optional[Tag]
-    parent_index: Optional[int]
+    parent_index: int
     ref: Optional[ChildrenRef]
     mounted: bool
 
     def __init__(self, iterable=()):
         super().__init__(iterable)
         self.parent = None
-        self.parent_index = None
+        self.parent_index = 0
         self.ref = None
         self.mounted = False
 
-    def as_child(self, exists_ok=False):
+    def as_child(self, parent: Optional[Tag], exists_ok=False):
         if self.ref:
             if exists_ok:
                 return self.ref
             else:
                 raise TypeError(f'{self} already is child')
         ref = ChildrenRef(self)
-        self.__set_parent__(None, None, ref)
+        self.__set_parent__(parent, 0, ref)
         return ref
 
-    def __set_parent__(self, parent: Optional[Tag], index: Optional[int], ref: ChildrenRef):
+    def __set_parent__(self, parent: Optional[Tag], index: int, ref: ChildrenRef):
         self.parent = parent
         self.parent_index = index
         self.ref = ref
 
     def onchange_notify(self):
-        if not hasattr(self.parent, 'parent'):
+        if not self.parent or not self.parent.parent:
             return
 
         for trigger in self.onchange_triggers:
@@ -106,14 +116,14 @@ class Children(WebBase, TrackableList):
         if not self.mounted and not self.parent:
             return
 
-        child.__mount__(self.parent.children_element, self.parent, key + self.parent_index)
+        child.__mount__(self.parent._children_element, self.parent, key + self.parent_index)
         child.__render__()
 
     def _notify_remove_one(self, key: int, child: Tag):
         if not self.mounted and not self.parent:
             return
 
-        child.__unmount__(self.parent.children_element, self.parent)
+        child.__unmount__(self.parent._children_element, self.parent)
 
     def __render__(self):
         for child in self:
@@ -134,7 +144,7 @@ class Children(WebBase, TrackableList):
             child.__unmount__(element, parent)
 
 
-AttrType = Union[None, str, int, bool, Iterable['AttrType'], dict[str, 'AttrType'], AttrValue, Tag]
+AttrType = Union[None, str, int, bool, Iterable['AttrType'], dict[str, 'AttrType'], AttrValue, Tag, attr]
 ContentType = Union[str, Iterable, Renderer]
 
 

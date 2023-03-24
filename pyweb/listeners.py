@@ -2,14 +2,13 @@ from __future__ import annotations
 
 from typing import Optional, Any, Callable
 from types import MethodType
-from functools import partial
+from functools import partial, wraps
+from copy import deepcopy
 
 import js
-import pyodide
 
 from .types import Tag
-from .utils import log, js_func, ensure_sync, _current, _debugger, IN_BROWSER
-
+from .utils import log, _PY_TAG_ATTRIBUTE, ensure_sync, _current, _debugger, add_event_listener
 
 _key_codes = {
     'esc': (27,),
@@ -24,24 +23,30 @@ _key_codes = {
 }
 
 
+# TODO: click.(right|middle) ; click.left ; etc.
+
+
 def key_code_check(key_name, event):
     return event.keyCode in _key_codes[key_name]
 
 
+def stop_propagation(event):
+    event.stopPropagation()
+
+
 def prevent_default(event):
     event.preventDefault()
-    return True
 
 
 _checks = {
     'prevent': prevent_default,
+    'stop': stop_propagation,
 }
 
 
 class on:
-    __slots__ = ('_proxies', 'name', 'callback', 'get_parent', 'modifiers', 'checks')
+    __slots__ = ('name', 'callback', 'get_parent', 'modifiers', 'checks')
 
-    _proxies: list[pyodide.JsProxy]
     name: Optional[str]
     callback: Callable[[Tag, ...], Any]
     get_parent: bool
@@ -49,7 +54,6 @@ class on:
     checks: list[Callable[[js.Event], bool], ...]
 
     def __init__(self, method):
-        self._proxies = []
         self.get_parent = False
         self.modifiers = []
         self.checks = []
@@ -106,9 +110,9 @@ class on:
             dependent.__render__()
         _current['rerender'] = []
 
-        if hasattr(event.currentTarget, '_py'):
-            log.debug('[_CALL]', 2, event.currentTarget._py)
-            event.currentTarget._py.__render__()
+        if PY_TAG := getattr(event.currentTarget, _PY_TAG_ATTRIBUTE):
+            log.debug('[_CALL]', 2, PY_TAG)
+            PY_TAG.__render__()
         else:
             log.debug('[_CALL]', 3, fn)
             tag.__render__()
@@ -116,25 +120,17 @@ class on:
         return data
 
     def _make_listener(self, event_name: str, tag: Tag):
-        @js_func()
+        @wraps(self.callback)
         def method(event):
             try:
                 return self._call(tag, event)
             except Exception as error:
                 log.debug(event_name)  # make available for debugging
                 _debugger(error)
-        method: pyodide.JsProxy
-
-        self._proxies.append(method)
-        method.__on__ = self
-        method.__qualname__ = self.callback.__qualname__
 
         is_global = event_name in ('keyup', 'keypress', 'keydown')  # TODO: check this || what about set global by attr?
-        (js.document if is_global else tag.mount_element).addEventListener(event_name, method)
+        add_event_listener(js.document if is_global else tag.mount_element, event_name, method)
         return method
-
-    def _unlink_listener(self, proxy: pyodide.JsProxy):
-        self._proxies.remove(proxy)
 
     def __set__(self, instance, value):
         raise AttributeError(f'Cannot set on_{self.name} event handler')
@@ -142,20 +138,13 @@ class on:
     def __delete__(self, instance):
         pass
 
-    def __del__(self):
-        if not IN_BROWSER:
-            return
-        for proxy in self._proxies:
-            proxy.destroy()
-
     def __set_name__(self, owner, name, *, set_static_listeners=True):
         if self.name is None:
             self.name = name
 
         if set_static_listeners:
-            owner.static_listeners = owner.static_listeners.copy()
-            owner.static_listeners[self.name] = owner.static_listeners[self.name].copy()
-            owner.static_listeners[self.name].append(self)
+            owner._static_listeners = deepcopy(owner._static_listeners)
+            owner._static_listeners[self.name].append(self)
         log.debug('[__SET_NAME__]', self, owner)
 
     def __repr__(self):
