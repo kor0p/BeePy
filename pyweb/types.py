@@ -4,6 +4,7 @@ import js
 
 from abc import ABC, abstractmethod
 from typing import Optional, Union, Iterable, ForwardRef
+from functools import wraps
 
 from .trackable import TrackableList
 from .utils import __CONFIG__, escape_html
@@ -34,6 +35,14 @@ class AttrValue:
 class safe_html(str):
     def __html__(self) -> str:
         return self
+
+    @classmethod
+    def content(cls, function):
+        @wraps(function)
+        def content_wrapper(*args, **kwargs):
+            return safe_html(function(*args, **kwargs))
+
+        return content_wrapper
 
 
 class Renderer:

@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 from pyweb import Tag, Style, state
 from pyweb.tags import a, p
 from pyweb.utils import Interval
+from pyweb.types import safe_html
 
 
 _EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
@@ -37,6 +38,7 @@ class DateTimeDisplay(Tag, name='div'):
         enum=('days', 'hours', 'minutes', 'seconds'),
     )
 
+    @safe_html.content
     def content(self):
         return f'''
 <p>{self.parent[self.type]}</p>

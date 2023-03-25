@@ -233,7 +233,10 @@ class attr:
             @self.on('change')
             @wraps_with_name(f'@attr[from:{attr_}->model{_attribute_str}->{self}]')
             def __handler_from_model(parent_instance, _value, current_instance=instance, current_attribute=attribute_):
-                instance_ = getattr(parent_instance, current_attribute)
+                if current_attribute is None:
+                    instance_ = current_instance
+                else:
+                    instance_ = getattr(parent_instance, current_attribute)
 
                 if attribute := self._prepare_attribute_for_model(current_instance, _value):
                     _value = getattr(_value, attribute)

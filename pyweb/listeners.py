@@ -32,10 +32,12 @@ def key_code_check(key_name, event):
 
 def stop_propagation(event):
     event.stopPropagation()
+    return True
 
 
 def prevent_default(event):
     event.preventDefault()
+    return True
 
 
 _checks = {
