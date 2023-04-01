@@ -1,4 +1,4 @@
-# PyWeb v0.3.0
+# PyWeb v0.3.1
 
 ## A frontend framework for python, using [pyodide](https://pyodide.org/), that uses [WASM](https://webassembly.org/)
 ### Use classes, descriptors and rest python in browser!
@@ -17,7 +17,7 @@ Code:
 ```python
 # examples/buttons.py
 from pyweb import Tag, mount, state, attr, on
-from pyweb.style import style
+from pyweb.style import Style
 from pyweb.tags import br, Head
 
 
@@ -30,7 +30,7 @@ class PyButton(Tag, name='button'):
     increment = state(1)
     color = state('gray')
 
-    style = style(
+    style = Style(
         margin='8px',
         color='{color}',
     )
@@ -48,7 +48,7 @@ class View(Tag, name='view'):
 
     title = state('PyWeb Test 2')
 
-    style = style(
+    style = Style(
         zoom=7,
         button=dict(backgroundColor='lightblue')
     )

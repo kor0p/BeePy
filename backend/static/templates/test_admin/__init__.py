@@ -19,6 +19,9 @@ dt_view_format = '%a, %b %d %Y %X'
 store = {'groups': []}
 
 
+styled_button = with_style()(button)
+
+
 @dataclass
 class User:
     id: Optional[int]
@@ -171,7 +174,7 @@ class UsersTab(tab, name='users'):
     })
 
     table = UsersTable()
-    add_btn = with_style()(button)('Add User')
+    add_btn = styled_button('Add User')
     form = UserForm()
 
     children = [
@@ -279,7 +282,7 @@ class GroupsTab(tab, name='groups'):
     })
 
     table = GroupsTable()
-    add_btn = with_style()(button)('Add Group')
+    add_btn = styled_button('Add Group')
     form = GroupForm()
 
     children = [

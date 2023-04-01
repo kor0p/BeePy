@@ -21,7 +21,7 @@ from .utils import (
 from .context import OVERWRITE, SUPER, CONTENT, _SPECIAL_CHILD_STRINGS, _MetaContext, Context
 
 
-__CONFIG__['version'] = __version__ = '0.3.0'
+__CONFIG__['version'] = __version__ = '0.3.1'
 
 
 if IN_BROWSER:
@@ -383,10 +383,12 @@ class _MetaTag(_MetaContext):
 
 
 class Tag(WebBase, Context, metaclass=_MetaTag, _root=True):
+    # TODO: add docstrings
+
     __slots__ = (
         '_content', '_dependents', '_shadow_root', '_ref',
         '_listeners', '_event_listeners',
-        'mount_parent', '_parent_',  # TODO: HERE
+        'mount_parent', '_parent_',
         'mount_element', '_children', '_children_element', '_children_tag',
         '_handlers',
     )

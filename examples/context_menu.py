@@ -1,6 +1,6 @@
 import js
 
-from pyweb import Style, mount
+from pyweb import Style, mount, __version__
 from pyweb.tags import p, Head
 from pyweb.context_menu import MenuDivider, MenuItem, ContextMenu, ContextMenuHandler
 
@@ -21,7 +21,7 @@ class Menu(ContextMenu):
 
     @share_to.on('click')
     def open_share(self, event):
-        js.open('https://t.me/kor0p', '_blank')
+        js.open(f'https://t.me/share/url?url={js.location.href}&text=Yay! It\'s PyWeb v{__version__}', '_blank')
 
     @refresh.on('click')
     def refresh_page(self, event):

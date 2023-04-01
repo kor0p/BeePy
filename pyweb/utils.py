@@ -60,9 +60,6 @@ def merge_configs():
     __CONFIG__.update(js.pyweb.__CONFIG__.to_py())
     js.pyweb.__CONFIG__ = to_js(__CONFIG__)
 
-if 1 == 1:
-    __CONFIG__['debug'] = True
-    __CONFIG__['api_url'] = 'http://localhost:9000/'
 
 if IN_BROWSER:
     merge_configs()
@@ -247,7 +244,7 @@ delay = js.delay
 
 
 @force_sync
-async def sleep(s):  # check if this really works or not
+async def sleep(s):  # TODO: check if this actually works or not
     return await js.delay(s * 1000)
 
 
@@ -296,7 +293,7 @@ def cached_import(module_path, class_name=None, package=None):
         and getattr(modules[module_path].__spec__, '_initializing', False) is True
     ):
         if IN_BROWSER:
-            js.pyweb._loadLocalFileSync(module_path.lstrip('.'))
+            js.pyweb._loadLocalModuleSync(module_path.lstrip('.'))
         import_module(module_path, package)
 
     if module_path.startswith('.') and package == '__pyweb_root__':
@@ -317,28 +314,6 @@ def lazy_import_cls(cls):
     if isinstance(cls, str):
         return import_cls(cls)
     return cls
-
-
-_all_globals = builtins.__dict__
-_globals = {}
-_allowed_globals = (
-    '__name__', 'abs', 'all', 'any', 'ascii', 'bin', 'breakpoint', 'callable', 'chr', 'delattr', 'dir', 'divmod',
-    'format', 'getattr', 'hasattr', 'hash', 'hex', 'id', 'input', 'isinstance', 'issubclass', 'iter', 'len', 'max',
-    'min', 'next', 'oct', 'ord', 'pow', 'print', 'repr', 'round', 'setattr', 'sorted', 'sum', 'vars', 'None',
-    'Ellipsis', 'False', 'True', 'bool', 'memoryview', 'bytearray', 'bytes', 'complex', 'dict', 'enumerate', 'filter',
-    'float', 'frozenset', 'int', 'list', 'map', 'object', 'range', 'reversed', 'set', 'slice', 'str', 'tuple', 'type',
-    'zip',
-)
-for _key, _value in _all_globals.items():
-    if _key in _allowed_globals:
-        _globals[_key] = _value
-
-
-def safe_eval(code, _locals=None):
-    if _locals is None:
-        _locals = {}
-
-    return eval(code, _globals, _locals)
 
 
 class _PyWebGlobals(dict):
@@ -362,7 +337,7 @@ __all__ = [
     'log', '_PY_TAG_ATTRIBUTE', 'NONE_TYPE', '__CONFIG__', '_current', '_debugger',
     'log10_ceil', 'wraps_with_name', 'get_random_name', 'to_kebab_case',
     'set_timeout', 'clear_timeout', 'set_interval', 'clear_interval', 'add_event_listener', 'remove_event_listener',
-    'const_attribute', 'ensure_sync', 'force_sync', 'delay', 'sleep', 'safe_eval',
+    'const_attribute', 'ensure_sync', 'force_sync', 'delay', 'sleep',
     'cached_import', 'import_cls', 'lazy_import_cls',
 ]
 

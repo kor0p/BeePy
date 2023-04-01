@@ -1,8 +1,10 @@
 import re
 from typing import Any, Optional, Type
 
+import js
+
 from .framework import __CONFIG__, Tag, attr, state
-from .utils import log10_ceil, get_random_name, to_kebab_case, safe_eval
+from .utils import log10_ceil, get_random_name, to_kebab_case, IN_BROWSER
 from .tags import Head
 from .types import safe_html
 
@@ -17,9 +19,6 @@ def dict_of_properties_to_css(properties):
         result = ''
         for _property in prop:
             _property = to_kebab_case(_property)
-
-            # if '&' in _property:
-            #     _property = re.sub('&', parent, _property)
             result += '    ' + _property
             if isinstance(value, (list, tuple)):  # handle raw css
                 result += ' ' + (_property + ' ').join(x for x in value if x)
@@ -122,7 +121,7 @@ class Style(Tag, name='style', content_tag=None, raw_html=True, force_ref=True):
         # TODO: implement import from css/scss/pycss
         raise AttributeError
 
-    def __init__(self, styles=None, options=None, **styles_dict):
+    def __init__(self, styles=None, options=None, get_vars=None, **styles_dict):
         super().__init__()
         if styles and not styles_dict:
             styles_dict = styles
@@ -135,6 +134,7 @@ class Style(Tag, name='style', content_tag=None, raw_html=True, force_ref=True):
             'global': False,
             'render_states': True,
             'render_children': True,
+            'get_vars_callback': get_vars,
         } | options
 
     def __mount__(self, element, parent, index=None):
@@ -173,15 +173,38 @@ class Style(Tag, name='style', content_tag=None, raw_html=True, force_ref=True):
         if self.options['render_states']:
             params.update(parent.__states__)
         if self.options['render_children']:
-            params['children'] = parent.children
             params.update(parent.ref_children)
+        if get_vars := self.options['get_vars_callback']:
+            params.update(get_vars(parent))
+
         # TODO: use native css '--var: {}' instead of re-render the whole content
-        return safe_html(safe_eval(f'f"""{self._content.strip()}"""', params))
+        return safe_html(self._content.strip().format(**params))
+
+    @classmethod
+    def import_file(cls, file_path):
+        link = js.document.createElement('link')
+        link.href = file_path
+        link.type = 'text/css'
+        link.rel = 'stylesheet'
+
+        js.document.head.appendChild(link)
 
 
-def with_style(style: Optional[Style] = None):
+def with_style(style_or_tag_cls: Optional[Style | Type[Tag]] = None):
+    """
+    @with_style
+    class Button(Tag, name='button'):
+        ...
+
+    styled_button = with_style(Style(display='block', **kwargs))(button)
+    """
+
     def wrapper(tag_cls: Type[Tag]):
-        return type(tag_cls.__name__, (tag_cls,), {'style': style or Style()})
+        return type(tag_cls.__name__, (tag_cls,), {'style': style_or_tag_cls or Style()})
+
+    if issubclass(style_or_tag_cls, Tag):
+        _tag_cls, style_or_tag_cls = style_or_tag_cls, None
+        return wrapper(_tag_cls)
 
     return wrapper
 

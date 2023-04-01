@@ -26,14 +26,14 @@ class AppRouter(Router):
         'modal/?$': 'modal.Test',
         'buttons/?$': 'buttons.View',
         'todos/?$': 'todos.TodoList',
-        'timer/?$': 'count_down_timer.App',
+        'timer/?$': 'timer.App',
         'text-sync/?$': 'text_sync.TextSyncExample',
     }
 
     fallback_tag_cls = PageNotFound
 
 
-class App(Tag, name='app'):
+class App(Tag, name='main-app'):
     head = Head
     router = AppRouter()
 

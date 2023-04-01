@@ -1,0 +1,43 @@
+app > p {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    font-size: 2rem;
+}
+
+timer {
+    padding: 0.5rem;
+}
+
+timer > a {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    font-weight: 70;
+    font-size: 2rem;
+    line-height: 3.5rem;
+    padding: 0.5rem;
+    border: 1px solid #ebebeb;
+    border-radius: 0.25rem;
+    text-decoration: none;
+}
+
+date-time-display > div {
+    line-height: 2.5rem;
+    padding: 0 0.75rem 0 0.75rem;
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+}
+
+date-time-display > div > p {
+    margin: 0;
+}
+
+date-time-display > div > span {
+    text-transform: uppercase;
+    font-size: 1.5rem;
+    line-height: 2rem;
+}

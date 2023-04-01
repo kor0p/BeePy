@@ -11,27 +11,8 @@ from pyweb.types import safe_html
 _EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
 
 
-class DateTimeDisplay(Tag, name='div'):
+class DateTimeDisplay(Tag, name='date-time-display'):
     parent: CountUpTimer
-
-    style = Style(styles={
-        '> div': {
-            'line-height': '2.5rem',
-            'padding': '0 0.75rem 0 0.75rem',
-            'align-items': 'center',
-            'display': 'flex',
-            'flex-direction': 'column',
-
-            '> p': {
-                'margin': 0,
-            },
-            '> span': {
-                'text-transform': 'uppercase',
-                'font-size': '1.5rem',
-                'line-height': '2rem',
-            },
-        },
-    })
 
     type = state(
         type=str,
@@ -49,26 +30,7 @@ class DateTimeDisplay(Tag, name='div'):
 class CountUpTimer(Tag, name='timer', children_tag=a()):
     __slots__ = ('_interval',)
 
-    style = Style(styles={
-        'padding': '0.5rem',
-
-        '> a': {
-            'display': 'flex',
-            'flex-direction': 'row',
-            'justify-content': 'center',
-            'align-items': 'center',
-            'font-weight': 700,
-            'font-size': '2rem',
-            'line-height': '3.5rem',
-            'padding': '0.5rem',
-            'border': '1px solid #ebebeb',
-            'border-radius': '0.25rem',
-            'text-decoration': 'none',
-        },
-    })
-
     start = state(_EPOCH)
-    _value = state(0, notify=True)
 
     days = state(0)
     hours = state(0)
@@ -107,20 +69,10 @@ class CountUpTimer(Tag, name='timer', children_tag=a()):
         self.hours = dt.hour
         self.minutes = dt.minute
         self.seconds = dt.second
-        self._value = dt.timestamp()  # notify=True will re-render current element
+        self.__render__()
 
 
-class App(Tag, name='div', content_tag=p()):
-    style = Style(styles={
-        '> p': {
-            'display': 'flex',
-            'flex-direction': 'row',
-            'justify-content': 'center',
-            'align-items': 'center',
-            'font-size': '2rem',
-        },
-    })
-
+class App(Tag, name='app', content_tag=p()):
     timer = CountUpTimer(start=datetime(2022, 2, 24, 3, 40, 0))
 
     _content = 'The full-scale invasion of Ukraine has been going on for'
@@ -128,6 +80,9 @@ class App(Tag, name='div', content_tag=p()):
     children = [
         timer,
     ]
+
+    def mount(self):
+        Style.import_file('timer.css')
 
 
 if __name__ == '__pyweb_root__' or __name__ == '__main__':

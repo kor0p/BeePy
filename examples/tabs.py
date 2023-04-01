@@ -4,14 +4,16 @@ from pyweb.tabs import tab, tab_title, tabs
 from pyweb.types import safe_html
 
 
-class View(Tag, name='view'):
-    class PyButton(button):
-        color = state('gray')
+class PyButton(button):
+    color = state('gray')
 
-        style = Style(
-            margin='8px',
-            color='{color}',
-        )
+    style = Style(
+        margin='8px',
+        color='{color}',
+    )
+
+
+class View(Tag, name='view'):
 
     count = attr(0)
 
