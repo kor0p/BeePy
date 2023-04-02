@@ -167,11 +167,14 @@ class UsersTab(tab, name='users'):
     error = state('')
     users: Users = users
 
-    style = Style(styles={
-        '{ref(add_btn)}': {
-            'margin': '8px',
+    style = Style(
+        get_vars=lambda self, ref, **params: {'button_ref': ref(self.add_btn)},
+        styles={
+            '{button_ref}': {
+                'margin': '8px',
+            },
         },
-    })
+    )
 
     table = UsersTable()
     add_btn = styled_button('Add User')
@@ -275,11 +278,14 @@ class GroupsTab(tab, name='groups'):
     error = state('')
     groups: Groups = groups
 
-    style = Style(styles={
-        '{ref(add_btn)}': {
-            'margin': '8px',
+    style = Style(
+        get_vars=lambda self, ref, **params: {'button_ref': ref(self.add_btn)},
+        styles={
+            '{button_ref}': {
+                'margin': '8px',
+            },
         },
-    })
+    )
 
     table = GroupsTable()
     add_btn = styled_button('Add Group')

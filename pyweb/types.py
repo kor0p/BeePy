@@ -40,7 +40,7 @@ class safe_html(str):
     def content(cls, function):
         @wraps(function)
         def content_wrapper(*args, **kwargs):
-            return safe_html(function(*args, **kwargs))
+            return cls(function(*args, **kwargs))
 
         return content_wrapper
 

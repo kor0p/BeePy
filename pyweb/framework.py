@@ -260,6 +260,8 @@ class _MetaTag(_MetaContext):
             if callable(attribute) and not isinstance(attribute, MethodType):
                 setattr(self, name, MethodType(attribute, self.parent))
 
+        self._post_mount_attrs()
+
         for event, listeners in self._listeners.items():
             for listener in listeners:
                 self._event_listeners[event].append(
@@ -322,7 +324,9 @@ class _MetaTag(_MetaContext):
             elif is_child_arg_function and children_argument and len(children_argument) == 1:
                 self._content = MethodType(children_argument[0], self)
             elif is_child_arg_tag:
-                self._children = self._children.copy() + [child.clone(self).as_child(self) for child in children_argument]
+                self._children = self._children.copy() + [
+                    child.clone(self).as_child(self) for child in children_argument
+                ]
             else:
                 self._children = self._children.copy() + [*children_argument]
 
@@ -516,6 +520,10 @@ class Tag(WebBase, Context, metaclass=_MetaTag, _root=True):
         for attribute in self.attrs.values():
             attribute.__mount_tag__(self)
 
+    def _post_mount_attrs(self):
+        for attribute in self.attrs.values():
+            attribute.__post_mount_tag__(self)
+
     def pre_mount(self):
         """empty method for easy override with code for run before mount"""
 
@@ -596,7 +604,7 @@ class Tag(WebBase, Context, metaclass=_MetaTag, _root=True):
                 return index
 
     @property
-    def children(self) -> list[Union[Mounter, Renderer, ChildRef], ...]:
+    def children(self) -> list[Union[Mounter, Renderer, ChildRef, ContentWrapper], ...]:
         return self._children
 
     @children.setter
@@ -623,7 +631,7 @@ class Tag(WebBase, Context, metaclass=_MetaTag, _root=True):
                 def child(s):
                     return getattr(s, _attr_name)
 
-            if isinstance(child, Tag) and child in self._children:
+            if isinstance(child, Tag) and child in self._children and child._ref is not None:
                 # using Tag as descriptor/just child; this allows save reference from parent to new copy of child
                 child._ref._update_child(self, self._children.index(child))
             elif isinstance(child, ChildRef) and child in self._children:

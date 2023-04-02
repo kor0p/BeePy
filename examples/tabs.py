@@ -1,7 +1,12 @@
+from functools import partial
+
 from pyweb import Tag, Style, mount, attr, state, __version__
-from pyweb.tags import button, p, select, Head
+from pyweb.tags import button, a, p, span, select, Head
 from pyweb.tabs import tab, tab_title, tabs
-from pyweb.types import safe_html
+
+
+a_nt = partial(a, target='blank')
+NEW_LINE = span('\n')
 
 
 class PyButton(button):
@@ -54,20 +59,14 @@ class SelectView(Tag, name='div', content_tag='span'):
 
     items = {'0': 'first', '1': 'second', '2': 'third'}
 
-    select = select.with_items(items)
+    select = select.with_items(items, value=selected)
 
     children = [
         select,
     ]
 
-    def mount(self):
-        self.select.select(self.selected)
-
-    @select.on
-    def change(self, event):
-        self.selected = event.target.value
-
     def content(self):
+        # TODO: maybe create decorator @content() with parameters?
         # TODO: think about better syntax?
         return [
             p(lambda _: f'Key: {self.selected}'),
@@ -85,28 +84,41 @@ class LinkTabs(tabs):
     }
 
     tab_text = tab(
-        safe_html(f'''
-        <p>
-            PyWeb (version {__version__})<br>
-            A frontend framework for python, using <a href="https://pyodide.org/" target="_blank">pyodide</a>
-            via <a href="https://webassembly.org/">WebAssembly</a>
-        </p>
-        <p>
-            More examples:<br>
-            <a href="/examples/buttons" target="_blank">First try</a><br>
-            <a href="/examples/" target="_blank">Tabs (this one)</a><br>
-            <a href="/examples/todos" target="_blank">Todo List</a><br>
-            <a href="/examples/modal" target="_blank">Modal</a><br>
-            <a href="/examples/context-menu" target="_blank">Context Menu</a><br>
-            <a href="/examples/dynamic-url" target="_blank">Dynamic URL</a><br>
-            <a href="/examples/timer" target="_blank">Timer</a><br>
-            <a href="/examples/text-sync" target="_blank">Input's model</a><br>
-        </p>
-        <p>
-            Made by <a href="https://t.me/kor0p" target="_blank">© kor0p</a><br>
-            Source code of PyWeb: <a href="https://github.com/kor0p/PyWeb" target="_blank">GitHub</a>
-        </p>
-        ''')
+        p(
+            span(f'PyWeb (version {__version__})'),
+            NEW_LINE,
+            span('A frontend framework for python, using '),
+            a_nt('pyodide', href='https://pyodide.org/'),
+            span(' via '),
+            a_nt('WebAssembly', href='https://webassembly.org/'),
+        ),
+        p(
+            span('More examples:'),
+            NEW_LINE,
+            a_nt('First try', href='/examples/buttons'),
+            NEW_LINE,
+            a_nt('Tabs (this one)', href='/examples/'),
+            NEW_LINE,
+            a_nt('Todo List', href='/examples/todos'),
+            NEW_LINE,
+            a_nt('Modal', href='/examples/modal'),
+            NEW_LINE,
+            a_nt('Context Menu', href='/examples/context-menu'),
+            NEW_LINE,
+            a_nt('Dynamic URL', href='/examples/dynamic-url'),
+            NEW_LINE,
+            a_nt('Timer', href='/examples/timer'),
+            NEW_LINE,
+            a_nt('Input\'s model', href='/examples/text-sync'),
+            NEW_LINE,
+        ),
+        p(
+            span('Made by '),
+            a_nt('© kor0p', href='https://t.me/kor0p'),
+            NEW_LINE,
+            span('Source code of PyWeb: '),
+            a_nt('GitHub', href='https://github.com/kor0p/PyWeb'),
+        ),
     )
     tab_buttons = tab(
         View(title='PyWeb Test 2'),

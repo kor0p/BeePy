@@ -1,11 +1,10 @@
 from __future__ import annotations as _
 
-from functools import partial
 from typing import Optional, Callable, Union, Iterable, Type, get_type_hints, ForwardRef, TypeVar, Any
 from collections import defaultdict
 
 from .types import AttrType, AttrValue
-from .utils import log, NONE_TYPE, wraps_with_name, to_kebab_case, add_event_listener, set_timeout
+from .utils import log, NONE_TYPE, wraps_with_name, to_kebab_case
 
 
 Context = ForwardRef('Context')
@@ -192,6 +191,25 @@ class attr:
                 return attribute(instance, value)
             return attribute
 
+    def _set_model_value(self, instance, attr_, ctx: Context):
+        value = self.__get__(instance.parent if instance.parent_defined else ctx)
+
+        if value is None:
+            if self.initial_value is not None:
+                value = self.initial_value
+            elif self.type:
+                __value = self._get_type_instance(error_text=f'Will be better to set {self.name} not to None')
+                if __value is not None:
+                    value = __value
+        if attribute_ := self._prepare_attribute_for_model(instance, value):
+            value = getattr(value, attribute_)
+        if value is None:
+            value = ''
+
+        attr_.__set__(instance, value, _prevent_model=True)
+
+        return attribute_
+
     def _handle_model_listeners(self, ctx: Context):
         to_remove_indexes = []
 
@@ -201,23 +219,10 @@ class attr:
                 to_remove_indexes.append(index)
                 continue
 
-            if instance.parent_defined:
-                value = self.__get__(instance.parent)
-            else:
-                value = self.__get__(False)
-            if value is None:
-                if self.initial_value is not None:
-                    value = self.initial_value
-                elif self.type:
-                    __value = self._get_type_instance(error_text=f'Will be better to set {self.name} not to None')
-                    if __value is not None:
-                        value = __value
-            if attribute_ := self._prepare_attribute_for_model(instance, value):
-                value = getattr(value, attribute_)
-            if value is None:
-                value = ''
+            if instance.parent_defined and instance.parent != ctx:
+                continue
 
-            attr_.__set__(instance, value, _prevent_model=True)
+            attribute_ = self._set_model_value(instance, attr_, ctx)
 
             _attribute_str = f'({attribute_})' if attribute_ else ''
 
@@ -248,6 +253,10 @@ class attr:
 
     def __mount_tag__(self, ctx: Context):
         self._handle_model_listeners(ctx)
+
+    def __post_mount_tag__(self, ctx: Context):
+        for instance, attr_, _ in self._from_model_cache:
+            self._set_model_value(instance, attr_, ctx)
 
     def __delete__(self, instance):
         return (self.fdel or self._fdel)(instance)

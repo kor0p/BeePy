@@ -4,7 +4,7 @@ from typing import Any, Optional, Type
 import js
 
 from .framework import __CONFIG__, Tag, attr, state
-from .utils import log10_ceil, get_random_name, to_kebab_case, IN_BROWSER
+from .utils import log10_ceil, get_random_name, to_kebab_case, safe_issubclass
 from .tags import Head
 from .types import safe_html
 
@@ -163,22 +163,23 @@ class Style(Tag, name='style', content_tag=None, raw_html=True, force_ref=True):
             list(dict_to_css(self.styles, f'{parent._tag_name_}[style-id="{style_id}"]', braces=('{{', '}}')))
         )
 
+    @safe_html.content
     def content(self):
         if self.options['global'] or not self._content:
-            return safe_html(self._content)
+            return self._content
 
         parent = self.real_parent
 
-        params: dict[str, Any] = dict(self=parent, ref=get_reference)
+        params: dict[str, Any] = {}
         if self.options['render_states']:
             params.update(parent.__states__)
         if self.options['render_children']:
             params.update(parent.ref_children)
         if get_vars := self.options['get_vars_callback']:
-            params.update(get_vars(parent))
+            params.update(get_vars(self=parent, ref=get_reference, **params))
 
         # TODO: use native css '--var: {}' instead of re-render the whole content
-        return safe_html(self._content.strip().format(**params))
+        return self._content.strip().format(**params)
 
     @classmethod
     def import_file(cls, file_path):
@@ -202,7 +203,7 @@ def with_style(style_or_tag_cls: Optional[Style | Type[Tag]] = None):
     def wrapper(tag_cls: Type[Tag]):
         return type(tag_cls.__name__, (tag_cls,), {'style': style_or_tag_cls or Style()})
 
-    if issubclass(style_or_tag_cls, Tag):
+    if safe_issubclass(style_or_tag_cls, Tag):
         _tag_cls, style_or_tag_cls = style_or_tag_cls, None
         return wrapper(_tag_cls)
 

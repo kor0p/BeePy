@@ -162,8 +162,8 @@ class select(html_tag, name='select'):
     @classmethod
     def with_items(cls, items: dict[str, Any], **kwargs):
         return cls(options=[
-            option(label=label, value=value)
-            for value, label in items.items()
+            option(label=label_, value=value)
+            for value, label_ in items.items()
         ], **kwargs)
 
 

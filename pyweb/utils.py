@@ -6,8 +6,7 @@ import re
 import sys
 import string
 import random
-import builtins
-import inspect
+# TODO: add some param to use shadow root directlyimport inspect
 import traceback
 import asyncio
 from functools import wraps
@@ -16,7 +15,7 @@ from datetime import datetime
 from importlib import import_module
 
 import js
-import pyodide
+from pyodide import http as pyodide_http
 
 
 # TODO: make it a module (could be a quite complicated due to loading pyweb modules as /<file>.py requests)
@@ -171,6 +170,13 @@ class const_attribute(property):
             raise AttributeError
 
 
+def safe_issubclass(type_or_Any, class_or_tuple_to_check):
+    try:
+        return issubclass(type_or_Any, class_or_tuple_to_check)
+    except TypeError:
+        return False
+
+
 async def request(url, method='GET', body=None, headers=None, **opts):
     if body is not None:
         body = json.dumps(body, cls=UpgradedJSONEncoder)
@@ -185,7 +191,7 @@ async def request(url, method='GET', body=None, headers=None, **opts):
         'Access-Control-Allow-Origin': '*',
     })
 
-    response = await pyodide.http.pyfetch(
+    response = await pyodide_http.pyfetch(
         __CONFIG__['api_url'] + 'api/' + url, method=method, body=body, headers=headers, **opts
     )
 
@@ -338,7 +344,7 @@ __all__ = [
     'log10_ceil', 'wraps_with_name', 'get_random_name', 'to_kebab_case',
     'set_timeout', 'clear_timeout', 'set_interval', 'clear_interval', 'add_event_listener', 'remove_event_listener',
     'const_attribute', 'ensure_sync', 'force_sync', 'delay', 'sleep',
-    'cached_import', 'import_cls', 'lazy_import_cls',
+    'cached_import', 'import_cls', 'lazy_import_cls', 'safe_issubclass',
 ]
 
 # """

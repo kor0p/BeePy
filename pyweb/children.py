@@ -61,9 +61,10 @@ class ContentWrapper(CustomWrapper):
         if self.tag:
             self.mount_element = self.tag.clone(parent).mount_element
             self.mount_parent.insertChild(self.mount_element, index)
-        elif '-' in parent_name or parent_name in self.SHADOW_ROOTS:
-            # TODO[fix]: with shadow root children cannot be rendered
-            # TODO: at least warn developer, or raise error, if not fixed
+        elif ('-' in parent_name or parent_name in self.SHADOW_ROOTS) and False:
+            # TODO: add some param to use shadow root directly
+            # (or) TODO[fix]: with shadow root children cannot be rendered
+            # (or) TODO: at least warn developer, or raise error, if not fixed
             if self.parent._shadow_root:
                 self.mount_element = self.parent._shadow_root
             else:
@@ -123,7 +124,7 @@ class ContentWrapper(CustomWrapper):
 
         result = self.content()
 
-        result = self._render(result).strip()
+        result = self._render(result)
         if not isinstance(result, str):
             raise TypeError(f'Function {self.content} cannot return {result}!')
 
@@ -132,7 +133,8 @@ class ContentWrapper(CustomWrapper):
         else:  # fragment can't be re-rendered
             self.mount_element.innerHTML = result
             current_html = self.mount_parent.innerHTML
-            if current_html != result and result:
+            current_html_escaped = self._render(current_html)
+            if result and result not in (current_html, current_html_escaped):
                 if current_html and not self.parent._raw_html:
                     log.warn(
                         f'This html `{current_html}` will be replaces with this: `{result}`.\n'
