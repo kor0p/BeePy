@@ -25,7 +25,7 @@ SECRET_KEY = '%y^4xv#+pw49-@ry_e#g+s^o^wl*^3hu&7b2og3ft6nb5^7306'
 
 DEBUG = True # IS_DEV
 
-ALLOWED_HOSTS = ['0.0.0.0', 'localhost', '.vercel.app']
+ALLOWED_HOSTS = ['0.0.0.0', 'localhost']
 
 
 # Application definition
@@ -70,7 +70,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'test_task_django_pyweb.wsgi.app'
+WSGI_APPLICATION = 'test_task_django_pyweb.wsgi.application'
 
 
 # Database
