@@ -70,7 +70,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'test_task_django_pyweb.wsgi.application'
+WSGI_APPLICATION = 'test_task_django_pyweb.wsgi.app'
 
 
 # Database
