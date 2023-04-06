@@ -689,11 +689,13 @@ def empty_tag(name):
     return _MetaTag(name, (Tag, ), {}, name=name, content_tag=None)
 
 
-def mount(element: Tag, root_element: str):
+def mount(element: Tag, root_element: str, clear=False):
     _MetaTag._pre_top_mount()
     root = js.document.querySelector(root_element)
     if root is None:
         raise NameError('Mount point not found')
+    if clear:
+        root.innerHTML = ''
     parent = empty_tag(root.tagName.lower())()
     setattr(root,  _PY_TAG_ATTRIBUTE, parent)
     element.__mount__(root, parent)
