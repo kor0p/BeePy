@@ -25,7 +25,7 @@ SECRET_KEY = '%y^4xv#+pw49-@ry_e#g+s^o^wl*^3hu&7b2og3ft6nb5^7306'
 
 DEBUG = True # IS_DEV
 
-ALLOWED_HOSTS = ['0.0.0.0', 'localhost']
+ALLOWED_HOSTS = ['0.0.0.0', 'localhost', '.vercel.app']
 
 
 # Application definition
@@ -77,10 +77,6 @@ WSGI_APPLICATION = 'test_task_django_pyweb.wsgi.application'
 # https://docs.djangoproject.com/en/3.1/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
 }
 
 
