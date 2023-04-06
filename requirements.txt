@@ -1,1 +1,1 @@
-pyodide==0.19.0a1
+-r backend/requirements.txt
