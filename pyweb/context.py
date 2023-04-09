@@ -5,9 +5,9 @@ from typing import Union, Type, TypeVar
 
 import pyweb
 
-from .attrs import attr
-from .types import AttrType
-from .utils import log, log10_ceil, get_random_name, const_attribute, Interval
+from pyweb.attrs import attr
+from pyweb.types import AttrType
+from pyweb.utils import log, log10_ceil, get_random_name, const_attribute, Interval
 
 
 __obj = object()
@@ -113,8 +113,8 @@ class _MetaContext(ABCMeta):
 
     @classmethod
     def _top_mount(mcs, element, root, parent):
-        from .utils import _current
-        from .tags import Body
+        from pyweb.utils import _current
+        from pyweb.tags import Body
 
         Body.style = 'display: none'
         element.__mount__(root, parent)
@@ -126,8 +126,8 @@ class _MetaContext(ABCMeta):
 
     @classmethod
     def _top_render_real(mcs, element):
-        from .utils import _current
-        from .tags import Body
+        from pyweb.utils import _current
+        from pyweb.tags import Body
 
         element.__render__()
         _current['render'].insert(0, {'root_element': element})

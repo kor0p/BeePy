@@ -1,8 +1,8 @@
 from typing import Callable
 
-from .framework import Tag, attr, state, on
-from .style import Style
-from .tags import div, button, Body
+from pyweb.framework import Tag, attr, state, on
+from pyweb.style import Style
+from pyweb.tags import div, button, Body
 
 
 class Modal(Tag, name='modal', content_tag='h2', children_tag='modal-content'):

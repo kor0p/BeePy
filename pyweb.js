@@ -235,8 +235,10 @@ async function pywebLoad () {
     // load relative modules from pyweb/__init__.py
     const _init = await pyweb.loadFile(`${config.path}/pyweb/__init__.py`, {_internal: true})
     const pywebModules = []
-    for (const match of _init.matchAll(/from . import (?<module>.+)/g)) {
-        pywebModules.push(`${match.groups.module}.py`)
+    for (const match of _init.matchAll(/from pyweb import (?<modules>.+)/g)) {
+        for (const module of match.groups.modules.split(/, ?/g)) {
+            pywebModules.push(`${module}.py`)
+        }
     }
     config.modules.unshift('__init__.py', ...pywebModules)
 

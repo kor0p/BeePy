@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import js
-from .framework import attr, state, on
-from .style import Style
-from .tags import div, hr, ul, li, Body
+from pyweb.framework import attr, state, on
+from pyweb.style import Style
+from pyweb.tags import div, hr, ul, li, Body
 
 
 class MenuDivider(hr):

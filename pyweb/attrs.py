@@ -3,8 +3,8 @@ from __future__ import annotations as _
 from typing import Optional, Callable, Union, Sequence, Type, get_type_hints, ForwardRef, TypeVar, Any
 from collections import defaultdict
 
-from .types import AttrType, AttrValue
-from .utils import log, NONE_TYPE, wraps_with_name, to_kebab_case
+from pyweb.types import AttrType, AttrValue
+from pyweb.utils import log, NONE_TYPE, wraps_with_name, to_kebab_case
 
 
 Context = ForwardRef('Context')

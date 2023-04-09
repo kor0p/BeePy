@@ -6,8 +6,8 @@ from abc import ABC, abstractmethod
 from typing import Optional, Union, Iterable, ForwardRef
 from functools import wraps
 
-from .trackable import TrackableList
-from .utils import __CONFIG__, escape_html
+from pyweb.trackable import TrackableList
+from pyweb.utils import __CONFIG__, escape_html
 
 
 attr = ForwardRef('attr')
@@ -158,7 +158,7 @@ AttrType = Union[None, str, int, bool, Iterable['AttrType'], dict[str, 'AttrType
 ContentType = Union[str, Iterable, Renderer]
 
 
-from .children import ChildrenRef
-from .framework import Tag
+from pyweb.children import ChildrenRef
+from pyweb.framework import Tag
 
 __all__ = ['AttrType', 'ContentType', 'AttrValue', 'Renderer', 'Mounter', 'Children']

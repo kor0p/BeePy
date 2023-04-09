@@ -1,111 +1,43 @@
-# PyWeb v0.3.1
+# PyWeb v0.3.2
 
 ## A frontend framework for python, using [pyodide](https://pyodide.org/), that uses [WASM](https://webassembly.org/)
-### Use classes, descriptors and rest python in browser!
+### Use Python in browser to build modern frontend via PyWeb!
 
-## Netlify static examples:
-- ### [First try](https://pyweb.netlify.app/examples/buttons)
-- ### [Tabs](https://pyweb.netlify.app/examples/)
-- ### [Todo List](https://pyweb.netlify.app/examples/todos)
-- ### [Modal](https://pyweb.netlify.app/examples/modal)
-- ### [Context Menu](https://pyweb.netlify.app/examples/context-menu)
-- ### [Dynamic URL](https://pyweb.netlify.app/examples/dynamic-url)
-- ### [Timer](https://pyweb.netlify.app/examples/timer)
-- ### [Input's model](https://pyweb.netlify.app/examples/text-sync)
+## Static examples:
+- ### [List of examples (with Tabs)](https://pyweb.herokuapp.com/e/list-examples)
+- ### [Admin panel](https://pyweb.herokuapp.com/e/)
+- ### [First try](https://pyweb.herokuapp.com/e/buttons)
+- ### [Todo List](https://pyweb.herokuapp.com/e/todos)
+- ### [Modal](https://pyweb.herokuapp.com/e/modal)
+- ### [Context Menu](https://pyweb.herokuapp.com/e/context-menu)
+- ### [Dynamic URL](https://pyweb.herokuapp.com/e/dynamic-url)
+- ### [Timer](https://pyweb.herokuapp.com/e/timer)
+- ### [Input's model](https://pyweb.herokuapp.com/e/text-sync)
+- ### [Other page, served by Django](https://pyweb.herokuapp.com/e/custom_url)
 
-Code:
+Code (custom_url.py from examples):
 ```python
-# examples/buttons.py
-from pyweb import Tag, mount, state, attr, on
-from pyweb.style import Style
-from pyweb.tags import br, Head
+from pyweb import Tag, mount, state, on
 
-
-class PyButton(Tag, name='button'):
-    parent: 'View'
-
-    test = attr(True)
-
-    title = state('')
-    increment = state(1)
-    color = state('gray')
-
-    style = Style(
-        margin='8px',
-        color='{color}',
-    )
+class IncrementButton(Tag, name='button'):
+    count = state(0)
 
     @on
     def click(self, event):
-        self.parent.count += self.increment
+        self.count += 1
 
     def content(self):
-        return self.title
+        return f'Count: {self.count}'
 
-
-class View(Tag, name='view'):
-    count = attr(0)
-
-    title = state('PyWeb Test 2')
-
-    style = Style(
-        zoom=7,
-        button=dict(backgroundColor='lightblue')
-    )
-
-    children = [
-        PyButton(title='+', color='red'),
-        PyButton(title='–', increment=-1),
-    ]
-
-    def content(self):
-        return f'{self.title}{br}Count: {self.count}'
-
-    def mount(self):
-        Head.title = 'Test 1'
-
-
-if __name__ == '__pyweb_root__':
-    mount(View(), '#pyweb')
-
-
+mount(IncrementButton(), '#root')
 ```
 will render html as below, and will react on buttons click like native JS
 ```html
-<head>
-    <title>Test 1</title>
-    <style>
-        view[style-id="6"] {
-            zoom: 7;
-        }
-        view[style-id="6"] button {
-            background-color: lightblue;
-        }
-    </style>
-    <style>
-        button[style-id="B"] {
-            margin: 8px;
-            color: red;
-        }
-    </style>
-    <style>
-        button[style-id="c"] {
-            margin: 8px;
-            color: gray;
-        }
-    </style>
-</head>
 <body>
-    <div id="pyweb">
-        <view count="0" style-id="6">
-            <div>PyWeb Test 2<br>Count: 0</div>
-            <button test style-id="B">
-                <div>+</div>
-            </button>
-            <button test style-id="c">
-                <div>–</div>
-            </button>
-        </view>
+    <div id="root">
+        <button>
+            <div>Count: 5</div>
+        </button>
     </div>
 </body>
 ```

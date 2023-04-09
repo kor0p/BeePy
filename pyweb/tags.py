@@ -2,10 +2,10 @@ from typing import Any, Optional
 
 import js
 
-from .framework import Tag
-from .attrs import attr, state, html_attr
-from .children import Children
-from .utils import get_random_name, __CONFIG__, AnyOfType
+from pyweb.framework import Tag
+from pyweb.attrs import attr, state, html_attr
+from pyweb.children import Children
+from pyweb.utils import get_random_name, __CONFIG__, AnyOfType
 
 
 AUTO_ID = object()

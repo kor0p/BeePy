@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from typing import TypeVar, Type, Literal, Union
 
-from .attrs import state
-from .children import Children
-from .tags import table, thead, tbody, tr, th, td
-from .style import Style
-from .listeners import on
-from .actions import Action
+from pyweb.attrs import state
+from pyweb.children import Children
+from pyweb.tags import table, thead, tbody, tr, th, td
+from pyweb.style import Style
+from pyweb.listeners import on
+from pyweb.actions import Action
 
 
 T = TypeVar('T')

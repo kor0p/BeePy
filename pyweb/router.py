@@ -3,14 +3,12 @@ from __future__ import annotations
 import re
 from re import Match
 from typing import Union, Type
-from dataclasses import dataclass
 
 import js
 
-from .framework import Tag, state, on
-from .tags import a
-from .types import Children
-from .utils import lazy_import_cls, to_js
+from pyweb.framework import Tag, state
+from pyweb.types import Children
+from pyweb.utils import lazy_import_cls
 
 
 class WithRouter:

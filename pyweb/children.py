@@ -5,9 +5,9 @@ from typing import Optional, Callable, Union, Type, TypeVar, Generic, Iterable
 
 import js
 
-from .types import Tag, WebBase, Children, ContentType
-from .context import Context
-from .utils import log, _PY_TAG_ATTRIBUTE, _current
+from pyweb.types import Tag, WebBase, Children, ContentType
+from pyweb.context import Context
+from pyweb.utils import log, _PY_TAG_ATTRIBUTE, _current
 
 
 class CustomWrapper(WebBase):
@@ -230,7 +230,7 @@ class ChildrenRef(ChildRef):
             current_value[:] = value
 
 
-from .framework import Tag
+from pyweb.framework import Tag
 
 
 __all__ = ['CustomWrapper', 'StringWrapper', 'ContentWrapper', 'TagRef', 'ChildrenRef']

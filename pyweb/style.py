@@ -3,10 +3,10 @@ from typing import Any, Optional, Type
 
 import js
 
-from .framework import __CONFIG__, Tag, attr, state
-from .utils import log10_ceil, get_random_name, to_kebab_case, safe_issubclass
-from .tags import Head
-from .types import safe_html
+from pyweb.framework import __CONFIG__, Tag, attr, state
+from pyweb.utils import log10_ceil, get_random_name, to_kebab_case, safe_issubclass
+from pyweb.tags import Head
+from pyweb.types import safe_html
 
 
 def dict_of_properties_to_css(properties):

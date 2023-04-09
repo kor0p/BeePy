@@ -10,18 +10,18 @@ from copy import deepcopy
 
 import js
 
-from .attrs import attr, state, html_attr
-from .children import CustomWrapper, StringWrapper, ContentWrapper, ChildRef, TagRef, Children
-from .listeners import on
-from .types import safe_html, Renderer, Mounter, WebBase, AttrType, ContentType
-from .utils import (
+from pyweb.attrs import attr, state, html_attr
+from pyweb.children import CustomWrapper, StringWrapper, ContentWrapper, ChildRef, TagRef, Children
+from pyweb.listeners import on
+from pyweb.types import safe_html, Renderer, Mounter, WebBase, AttrType, ContentType
+from pyweb.utils import (
     log, NONE_TYPE, _PY_TAG_ATTRIBUTE, __CONFIG__, _current, _debugger, get_random_name, to_kebab_case, IN_BROWSER,
     remove_event_listener, to_js
 )
-from .context import OVERWRITE, SUPER, CONTENT, _SPECIAL_CHILD_STRINGS, _MetaContext, Context
+from pyweb.context import OVERWRITE, SUPER, CONTENT, _SPECIAL_CHILD_STRINGS, _MetaContext, Context
 
 
-__CONFIG__['version'] = __version__ = '0.3.1'
+__CONFIG__['version'] = __version__ = '0.3.2'
 
 
 if IN_BROWSER:
@@ -714,3 +714,4 @@ __all__ = [
     '__version__', '__CONFIG__', '_debugger', 'attr', 'state', 'html_attr', '_MetaTag', 'Tag', 'on', 'empty_tag',
     'mount', 'safe_html',
 ]
+# TODO: publish mock js.py, that allows to test PyWeb's code outside of browser

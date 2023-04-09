@@ -7,8 +7,8 @@ from copy import deepcopy
 
 import js
 
-from .types import Tag
-from .utils import log, _PY_TAG_ATTRIBUTE, ensure_sync, _current, _debugger, add_event_listener
+from pyweb.types import Tag
+from pyweb.utils import log, _PY_TAG_ATTRIBUTE, ensure_sync, _current, _debugger, add_event_listener
 
 _key_codes = {
     'esc': (27,),

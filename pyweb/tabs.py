@@ -3,10 +3,10 @@ from __future__ import annotations
 
 import js
 
-from .framework import Tag, attr, state, on
-from .style import Style
-from .tags import div
-from .utils import log, to_js
+from pyweb.framework import Tag, attr, state, on
+from pyweb.style import Style
+from pyweb.tags import div
+from pyweb.utils import log, to_js
 
 
 class tab(div, name='tab'):
