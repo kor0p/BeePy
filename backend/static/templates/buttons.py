@@ -1,4 +1,4 @@
-from pyweb import Tag, Style, mount, state, attr, on
+from pyweb import Tag, Style, state, attr, on
 from pyweb.tags import Head
 
 
@@ -27,7 +27,7 @@ class PyButton(Tag, name='button'):
 class View(Tag, name='view'):
     count = attr(0)
 
-    title = state('PyWeb Test 2')
+    title = state('Increment buttons example')
 
     style = Style(
         zoom=7,
@@ -44,7 +44,3 @@ class View(Tag, name='view'):
 
     def mount(self):
         Head.title = 'Test 1'
-
-
-if __name__ == '__pyweb_root__':
-    mount(View(), '#root')

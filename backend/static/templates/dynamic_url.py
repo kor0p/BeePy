@@ -1,5 +1,5 @@
 import js
-from pyweb import Tag, Style, attr, on, mount
+from pyweb import Tag, Style, attr, on
 from pyweb.tags import p, Head
 from pyweb.utils import delay
 
@@ -57,7 +57,3 @@ class DynamicURL(Tag, name='div'):
 
     def mount(self):
         Head.title = 'Dynamic URL'
-
-
-if __name__ == '__pyweb_root__':
-    mount(DynamicURL(), '#root')

@@ -81,10 +81,5 @@ class App(Tag, name='app', content_tag=p()):
         timer,
     ]
 
-    def mount(self):
-        Style.import_file('timer.css')
-
-
-if __name__ == '__pyweb_root__' or __name__ == '__main__':
-    from pyweb import mount
-    mount(App(), '#root')
+    def pre_mount(self):
+        Style.import_file('styles/timer.css')

@@ -116,16 +116,16 @@ document.head.appendChild(script)
 
 const rootFolder = '__pyweb_root__'
 
-pyweb.loadFile = async function loadFile (filePath) {
-    pyweb.__CURRENT_LOADING_FILE__ = filePath
+pyweb.loadFile = async function loadFile (filePath, options = {_internal: false}) {
+    if (!options._internal) pyweb.__CURRENT_LOADING_FILE__ = filePath
     return await (await fetch(filePath)).text()
 }
 
-pyweb.loadFileSync = function loadFileSync (filePath) {
+pyweb.loadFileSync = function loadFileSync (filePath, options = {_internal: false}) {
     /**
      * Same as pyweb.loadFile, but synchronous
      */
-    pyweb.__CURRENT_LOADING_FILE__ = filePath
+    if (!options._internal) pyweb.__CURRENT_LOADING_FILE__ = filePath
     const req = new XMLHttpRequest()
     req.open("GET", filePath, false)
     req.send(null)
@@ -133,21 +133,21 @@ pyweb.loadFileSync = function loadFileSync (filePath) {
 }
 
 pyweb._writeInternalFile = async function _writeInternalFile (file, content) {
-    if (!content) content = await pyweb.loadFile(`${config.path}/pyweb/${file}`)
+    if (!content) content = await pyweb.loadFile(`${config.path}/pyweb/${file}`, {_internal: true})
     pyodide.FS.writeFile(`pyweb/${file}`, content)
 }
 
 pyweb._writeInternalFileSync = function _writeInternalFileSync (file) {
-    pyodide.FS.writeFile(`pyweb/${file}`, pyweb.loadFileSync(`${config.path}/pyweb/${file}`))
+    pyodide.FS.writeFile(`pyweb/${file}`, pyweb.loadFileSync(`${config.path}/pyweb/${file}`), {_internal: true})
 }
 
 pyweb._writeLocalFile = async function _writeLocalFile (file, content) {
-    if (!content) content = await pyweb.loadFile(`./${_lstrip(file)}`)
+    if (!content) content = await pyweb.loadFile(_lstrip(file), {_internal: true})
     pyodide.FS.writeFile(`${rootFolder}/${file}`, content)
 }
 
 pyweb._writeLocalFileSync = function _writeLocalFileSync (file, content) {
-    if (!content) content = pyweb.loadFileSync(`./${_lstrip(file)}`)
+    if (!content) content = pyweb.loadFileSync(_lstrip(file), {_internal: true})
     pyodide.FS.writeFile(`${rootFolder}/${file}`, content)
 }
 
@@ -195,6 +195,20 @@ window.apyf = async function runPythonAsyncFile (filePath) {
     return await window.apy(await pyweb.loadFile(filePath))
 }
 
+window.enterPythonModule = async function enterPythonModule (module) {
+    try {
+        if (module.includes('/')) {
+            module = _lstrip(module).replace(/\//g, '.')
+        }
+
+        await pyweb._loadLocalModule(module, '__init__.py')
+        await apy(`import ${rootFolder}`)
+    } catch (e) {
+        console.error(e)
+        _DEBUGGER(e)
+    }
+}
+
 if (!pyweb.__main__) {
     pyweb.__main__ = () => {
         console.info('You can override pyweb.__main__ to run code after pyweb finish loading')
@@ -217,7 +231,7 @@ async function systemLoad () {
 
 async function pywebLoad () {
     // load relative modules from pyweb/__init__.py
-    const _init = await pyweb.loadFile(`${config.path}/pyweb/__init__.py`)
+    const _init = await pyweb.loadFile(`${config.path}/pyweb/__init__.py`, {_internal: true})
     const pywebModules = []
     for (const match of _init.matchAll(/from . import (?<module>.+)/g)) {
         pywebModules.push(`${match.groups.module}.py`)
@@ -225,7 +239,9 @@ async function pywebLoad () {
     config.modules.unshift('__init__.py', ...pywebModules)
 
     // TODO: create wheel and load pyweb modules via pip
-    const contents = await Promise.all(config.modules.map(file => pyweb.loadFile(`${config.path}/pyweb/${file}`)))
+    const contents = await Promise.all(
+        config.modules.map(file => pyweb.loadFile(`${config.path}/pyweb/${file}`, {_internal: true}))
+    )
 
     while (pyweb.__CONFIG__.__loading === false) {
         await delay(100)
@@ -266,6 +282,7 @@ _globals # last evaluated value is returned from 'py' function
         console.info('You can add __init__.py near index.html to auto-load your code')
     }
 
+    pyweb.__CURRENT_LOADING_FILE__ = ''
     await config.onload()
 }
 
@@ -279,7 +296,7 @@ function mkDirPath(path) {
 }
 
 
-function _parseAndMkDirFile (filePath, separator='/') {
+function _parseAndMkDirFile (filePath, addCurrentPath = false, separator='/') {
     let path = ''
 
     if (filePath && filePath.indexOf(separator) !== -1) {
@@ -289,12 +306,16 @@ function _parseAndMkDirFile (filePath, separator='/') {
         mkDirPath(path)
     }
 
+    if (addCurrentPath) {
+        return [pyweb.populateCurrentPath(path), filePath, path]
+    }
+
     return [path, filePath]
 }
 
 
-function _parseAndMkDirModule (module) {
-    return _parseAndMkDirFile(module, '.')
+function _parseAndMkDirModule (module, addCurrentPath) {
+    return _parseAndMkDirFile(module, addCurrentPath, '.')
 }
 
 
@@ -315,18 +336,25 @@ function _getModulesFromLocalInit (initFile, pathDotted) {
 }
 
 
-pyweb._loadLocalModule = async function _loadLocalModule (module) {
+pyweb.__CURRENT_LOADING_FILE__ = ''
+pyweb.populateCurrentPath = function populateCurrentPath (path) {
+    const currentPath = pyweb.__CURRENT_LOADING_FILE__.replace(/(\/(\w*.py)?)*$/, '')
+    return `${currentPath}${currentPath && path ? '/' : ''}${path.replace(/^\/*/, '')}`
+}
+
+
+pyweb._loadLocalModule = async function _loadLocalModule (module, pathToWrite='') {
     let initFile = ''
 
-    const [path, parsedModule] = _parseAndMkDirModule(module)
-    const modulePath = parsedModule ? `/${parsedModule}/` : '/'
-    let initFilePath = `${path}${modulePath}__init__.py`
+    const [path, parsedModule, fsPath] = _parseAndMkDirModule(module, true)
+    const fullPath = `${path}${path && parsedModule ? '/' : ''}${parsedModule}`
+    let initFilePath = fullPath + '.py'
 
     try {
-        initFile = await pyweb.loadFile(`./${_lstrip(initFilePath)}`)
+        initFile = await pyweb.loadFile(_lstrip(initFilePath))
         if (initFile.substring(0, 1) === '<') {
-            initFilePath = `${path}/${parsedModule}.py`
-            initFile = await pyweb.loadFile(`./${_lstrip(initFilePath)}`)
+            initFilePath = fullPath + (parsedModule ? `/` : '') + '__init__.py'
+            initFile = await pyweb.loadFile(_lstrip(initFilePath))
         }
     } catch (e) {
         console.error(e)
@@ -334,11 +362,12 @@ pyweb._loadLocalModule = async function _loadLocalModule (module) {
         return
     }
 
+    if (!pathToWrite) pathToWrite = initFilePath.replace(new RegExp(`^${path}`), fsPath)
     const [pywebModules, localModules] = _getModulesFromLocalInit(initFile, path.replace(/\//g, '.'))
 
     await Promise.all(pywebModules.map(file => pyweb._writeInternalFile(file)))
     await Promise.all(
-        [pyweb._writeLocalFile(initFilePath, initFile)].concat(
+        [pyweb._writeLocalFile(pathToWrite, initFile)].concat(
             localModules.map(file => pyweb._loadLocalModule(file))
         )
     )
@@ -346,18 +375,18 @@ pyweb._loadLocalModule = async function _loadLocalModule (module) {
 
 
 // utils.ensure_sync(js.pyweb._loadLocalModule(module)) doesn't work correctly
-pyweb._loadLocalModuleSync = function _loadLocalModuleSync (module) {
+pyweb._loadLocalModuleSync = function _loadLocalModuleSync (module, pathToWrite='') {
     let initFile = ''
 
-    const [path, parsedModule] = _parseAndMkDirModule(module)
-    const modulePath = parsedModule ? `/${parsedModule}/` : '/'
-    let initFilePath = `${path}${modulePath}__init__.py`
+    const [path, parsedModule, fsPath] = _parseAndMkDirModule(module, true)
+    const fullPath = `${path}${path && parsedModule ? '/' : ''}${parsedModule}`
+    let initFilePath = fullPath + '.py'
 
     try {
-        initFile = pyweb.loadFileSync(`./${_lstrip(initFilePath)}`)
+        initFile = pyweb.loadFileSync(_lstrip(initFilePath))
         if (initFile.substring(0, 1) === '<') {
-            initFilePath = `${path}/${parsedModule}.py`
-            initFile = pyweb.loadFileSync(`./${_lstrip(initFilePath)}`)
+            initFilePath = fullPath + (parsedModule ? `/` : '') + '__init__.py'
+            initFile = pyweb.loadFileSync(_lstrip(initFilePath))
         }
     } catch (e) {
         console.error(e)
@@ -365,13 +394,14 @@ pyweb._loadLocalModuleSync = function _loadLocalModuleSync (module) {
         return
     }
 
+    if (!pathToWrite) pathToWrite = initFilePath.replace(new RegExp(`^${path}`), fsPath)
     const [pywebModules, localModules] = _getModulesFromLocalInit(initFile, path.replace(/\//g, '.'))
 
     for (const file of pywebModules) {
         pyweb._writeInternalFileSync(file)
     }
 
-    pyweb._writeLocalFileSync(initFilePath, initFile)
+    pyweb._writeLocalFileSync(pathToWrite, initFile)
     for (const file of localModules) {
         pyweb._loadLocalModuleSync(file)
     }
@@ -379,7 +409,7 @@ pyweb._loadLocalModuleSync = function _loadLocalModuleSync (module) {
 
 
 pyweb._loadLocalFileSync = function _loadLocalFile (filePath) {
-    pyweb._writeLocalFileSync(_parseAndMkDirFile(filePath).join('/'))
+    pyweb._writeLocalFileSync(_parseAndMkDirFile(filePath, true).slice(0, 2).join('/'))
 }
 
 Node.prototype.insertChild = function (child, index) {

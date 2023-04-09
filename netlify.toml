@@ -1,11 +1,19 @@
 [[redirects]]
-  from = "/*"
-  to = "/examples/index.html"
+  from = "/"
+  to = "https://pyweb.herokuapp.com/list-examples"
+  force = true # COMMENT: ensure that we always redirect
   status = 200
 
 [[redirects]]
-  from = "/__init__.py"
-  to = "/examples/__init__.py"
+  from = "/examples"
+  to = "https://pyweb.herokuapp.com/list-examples"
+  force = true # COMMENT: ensure that we always redirect
+  status = 200
+
+[[redirects]]
+  from = "/examples/*"
+  to = "https://pyweb.herokuapp.com/:splat"
+  force = true # COMMENT: ensure that we always redirect
   status = 200
 
 [[headers]]

@@ -4,10 +4,10 @@ from dataclasses import dataclass
 from typing import Optional
 from datetime import datetime
 
-from pyweb import Tag, Style, SUPER, on, mount
+from pyweb import Tag, Style, SUPER, on
 from pyweb.style import with_style
 from pyweb.attrs import attr, state
-from pyweb.tags import button, by__input_id, _input, textarea, option, select, h2, label
+from pyweb.tags import button, by__input_id, _input, textarea, option, select, h2, label, Head
 from pyweb.tabs import tabs, tab, tab_title
 from pyweb.table import Table, TableHead, TableBody
 from pyweb.types import AttrValue
@@ -348,8 +348,6 @@ class Admin(tabs, name='app'):
         groups,
     ]
 
-
-mount(
-    Admin(),
-    '#root',
-)
+    def pre_mount(self):
+        Head.title = 'Admin panel example'
+        Style.import_file('styles/admin.css')

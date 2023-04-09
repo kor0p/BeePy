@@ -126,7 +126,8 @@ class Children(WebBase, TrackableList):
             return
 
         child.__mount__(self.parent._children_element, self.parent, key + self.parent_index)
-        child.__render__()
+        if self.parent._mount_finished_:
+            child.__render__()
 
     def _notify_remove_one(self, key: int, child: Tag):
         if not self.mounted and not self.parent:

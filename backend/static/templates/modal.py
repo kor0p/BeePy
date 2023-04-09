@@ -1,4 +1,4 @@
-from pyweb import Style, SUPER, mount
+from pyweb import Style, SUPER
 from pyweb.tags import p, Head
 from pyweb.modal import Modal, ModalHandler
 
@@ -27,7 +27,3 @@ class Test(ModalHandler):
 
     def mount(self):
         Head.title = 'Modal example'
-
-
-if __name__ == '__pyweb_root__':
-    mount(Test(), '#root')

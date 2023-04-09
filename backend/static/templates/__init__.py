@@ -1,4 +1,4 @@
-from pyweb import Tag, mount, __CONFIG__
+from pyweb import Tag, __CONFIG__, safe_html, mount
 from pyweb.tags import Head
 from pyweb.router import WithRouter, Router
 
@@ -9,6 +9,7 @@ class PageNotFound(Tag, WithRouter, name='error'):
 <p>Page Not Found!</p>
 '''
 
+    @safe_html.content
     def content(self):
         if not __CONFIG__['debug']:
             return self._base_content
@@ -20,14 +21,15 @@ class PageNotFound(Tag, WithRouter, name='error'):
 
 class AppRouter(Router):
     routes = {
-        '/$': 'tabs.test_tabs',
-        'context-menu/?$': 'context_menu.TestContext',
-        'dynamic-url/?$': 'dynamic_url.DynamicURL',
-        'modal/?$': 'modal.Test',
-        'buttons/?$': 'buttons.View',
-        'todos/?$': 'todos.TodoList',
-        'timer/?$': 'timer.App',
-        'text-sync/?$': 'text_sync.TextSyncExample',
+        '/$': 'admin.Admin',
+        'list-examples$': 'tabs.test_tabs',
+        'context-menu$': 'context_menu.TestContext',
+        'dynamic-url$': 'dynamic_url.DynamicURL',
+        'modal$': 'modal.Test',
+        'buttons$': 'buttons.View',
+        'todos$': 'todos.TodoList',
+        'timer$': 'timer.App',
+        'text-sync$': 'text_sync.TextSyncExample',
     }
 
     fallback_tag_cls = PageNotFound

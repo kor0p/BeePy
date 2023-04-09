@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+{% load static %}
 <html lang='en'>
     <head>
         <meta charset='UTF-8'>
@@ -7,9 +8,15 @@
             html {
                 background: #333333;
                 color: white;
+                zoom: 7;
             }
         </style>
-        <script src='../pyweb.js'></script>
+        <script src='https://pyweb.netlify.app/pyweb.js'></script>
+        <script>
+            pyweb.__main__ = async () => {
+                await enterPythonModule('{% static "templates/custom_url" %}')
+            }
+        </script>
     </head>
     <body>
         <div id='root'></div>

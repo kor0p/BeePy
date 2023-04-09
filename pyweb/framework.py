@@ -13,7 +13,7 @@ import js
 from .attrs import attr, state, html_attr
 from .children import CustomWrapper, StringWrapper, ContentWrapper, ChildRef, TagRef, Children
 from .listeners import on
-from .types import Renderer, Mounter, WebBase, AttrType, ContentType
+from .types import safe_html, Renderer, Mounter, WebBase, AttrType, ContentType
 from .utils import (
     log, NONE_TYPE, _PY_TAG_ATTRIBUTE, __CONFIG__, _current, _debugger, get_random_name, to_kebab_case, IN_BROWSER,
     remove_event_listener, to_js
@@ -237,6 +237,8 @@ class _MetaTag(_MetaContext):
         self.__class__._tags.append(self)
         log.debug('[__MOUNT__]', self, args, kwargs, _original_func, *args)
 
+        self._mount_finished_ = False
+
         result = _original_func(self, *args, **kwargs)
 
         self._mount_attrs()
@@ -276,10 +278,15 @@ class _MetaTag(_MetaContext):
 
         self.mount()
 
+        self._mount_finished_ = True
+
         return result
 
     @_lifecycle_method()
     def __render(self: Tag, args, kwargs, _original_func):
+        if not self._mount_finished_:
+            return  # Prevent render before mount finished; Could be useful for setting intervals inside mount method
+
         # TODO: maybe function 'render' could return some content, appended to args?
         self.render()
 
@@ -334,6 +341,7 @@ class _MetaTag(_MetaContext):
         self._shadow_root = None
         self._parent_ = None
         self.mount_parent = None
+        self._mount_finished_ = False
 
         if not hasattr(self, 'mount_element'):
             self.mount_element = js.document.createElement(self._tag_name_)
@@ -392,7 +400,7 @@ class Tag(WebBase, Context, metaclass=_MetaTag, _root=True):
     __slots__ = (
         '_content', '_dependents', '_shadow_root', '_ref',
         '_listeners', '_event_listeners',
-        'mount_parent', '_parent_',
+        'mount_parent', '_parent_', '_mount_finished_',
         'mount_element', '_children', '_children_element', '_children_tag',
         '_handlers',
     )
@@ -418,6 +426,7 @@ class Tag(WebBase, Context, metaclass=_MetaTag, _root=True):
     _children_element: js.HTMLElement
     _static_children_tag: Tag
     _children_tag: Tag
+    _mount_finished_: bool
     _handlers: defaultdict[str, list[Callable[[Tag, js.Event, str, Any], None], ...]]
     _static_onchange_handlers: list[tuple[Callable[[Tag, Any], Any], dict[str, list[state, ...]]]]
 
@@ -479,7 +488,6 @@ class Tag(WebBase, Context, metaclass=_MetaTag, _root=True):
 
     def __render__(self, attrs: Optional[dict[str, AttrType]] = None):
         _current['render'].append(self)
-        _current['rerender'].append(self)
 
         if attrs is None:
             attrs = {}
@@ -698,12 +706,11 @@ def mount(element: Tag, root_element: str, clear=False):
         root.innerHTML = ''
     parent = empty_tag(root.tagName.lower())()
     setattr(root,  _PY_TAG_ATTRIBUTE, parent)
-    element.__mount__(root, parent)
-    _current['render'] = []
-    element.__render__()
+    _MetaTag._top_mount(element, root, parent)
+    _MetaTag._top_render(element)
 
 
 __all__ = [
     '__version__', '__CONFIG__', '_debugger', 'attr', 'state', 'html_attr', '_MetaTag', 'Tag', 'on', 'empty_tag',
-    'mount',
+    'mount', 'safe_html',
 ]

@@ -5,7 +5,7 @@ import js
 from .framework import Tag
 from .attrs import attr, state, html_attr
 from .children import Children
-from .utils import get_random_name, __CONFIG__
+from .utils import get_random_name, __CONFIG__, AnyOfType
 
 
 AUTO_ID = object()
@@ -39,6 +39,7 @@ class hr(html_tag, name='hr'):
 
 class a(html_tag, name='a'):
     href = attr(type=str)
+    target = attr(type=str, enum={'_blank', '_self', '_parent', '_top', AnyOfType(str)})
 
 
 class p(html_tag, name='p'):
@@ -117,10 +118,10 @@ class h6(html_tag, name='h6'):
 class _input(html_tag, name='input'):
     type = attr(
         'text',
-        enum=(
+        enum={
             'button', 'checkbox', 'color', 'date', 'datetime-local', 'email', 'file', 'hidden', 'image', 'month',
             'number', 'password', 'radio', 'range', 'reset', 'search', 'submit', 'tel', 'text', 'time', 'url', 'week',
-        ),
+        },
     )
     hidden = attr(False)
     value = html_attr('', model='input')
@@ -137,7 +138,7 @@ class textarea(html_tag, name='textarea'):
 
 
 class button(html_tag, name='button'):
-    type = attr('button', type=str, enum=('submit', 'reset', 'button'))
+    type = attr('button', type=str, enum={'submit', 'reset', 'button'})
 
 
 class option(html_tag, name='option'):
@@ -197,7 +198,7 @@ Head = Head()
 
 
 class Body(StandaloneTag, name='body', mount=js.document.body):
-    pass
+    style = html_attr()
 
 
 Body = Body()

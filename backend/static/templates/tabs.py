@@ -1,11 +1,11 @@
 from functools import partial
 
-from pyweb import Tag, Style, mount, attr, state, __version__
+from pyweb import Tag, Style, attr, state, __version__
 from pyweb.tags import button, a, p, span, select, Head
 from pyweb.tabs import tab, tab_title, tabs
 
 
-a_nt = partial(a, target='blank')
+a_nt = partial(a, target='_blank')
 NEW_LINE = span('\n')
 
 
@@ -95,21 +95,23 @@ class LinkTabs(tabs):
         p(
             span('More examples:'),
             NEW_LINE,
-            a_nt('First try', href='/examples/buttons'),
+            a_nt('Admin panel (Django)', href='/'),
             NEW_LINE,
-            a_nt('Tabs (this one)', href='/examples/'),
+            a_nt('First try', href='/buttons'),
             NEW_LINE,
-            a_nt('Todo List', href='/examples/todos'),
+            a_nt('Tabs (this one)', href='/list-examples'),
             NEW_LINE,
-            a_nt('Modal', href='/examples/modal'),
+            a_nt('Todo List', href='/todos'),
             NEW_LINE,
-            a_nt('Context Menu', href='/examples/context-menu'),
+            a_nt('Modal', href='/modal'),
             NEW_LINE,
-            a_nt('Dynamic URL', href='/examples/dynamic-url'),
+            a_nt('Context Menu', href='/context-menu'),
             NEW_LINE,
-            a_nt('Timer', href='/examples/timer'),
+            a_nt('Dynamic URL', href='/dynamic-url'),
             NEW_LINE,
-            a_nt('Input\'s model', href='/examples/text-sync'),
+            a_nt('Timer', href='/timer'),
+            NEW_LINE,
+            a_nt('Input\'s model', href='/text-sync'),
             NEW_LINE,
         ),
         p(
@@ -147,7 +149,3 @@ class test_tabs(Tag, name='test-tabs'):
 
     def mount(self):
         Head.title = 'Tabs example'
-
-
-if __name__ == '__pyweb_root__':
-    mount(test_tabs(), '#root')

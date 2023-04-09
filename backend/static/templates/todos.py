@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pyweb import Tag, Style, mount, attr, state, on
+from pyweb import Tag, Style, attr, state, on
 from pyweb.tags import div, p, _input, button, span, Head
 from pyweb.children import Children
 from pyweb.local_storage import LocalStorage
@@ -164,7 +164,3 @@ class TodoList(Tag, name='ul'):
     def recalculate_completed(self):
         self.sync_to_local_storage()
         self.count_completed = len([todo for todo in self.todos if todo.completed])
-
-
-if __name__ == '__pyweb_root__':
-    mount(TodoList(), '#root')

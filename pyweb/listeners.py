@@ -103,14 +103,10 @@ class on:
 
         data = ensure_sync(fn(event))
 
-        _current['rerender'] = []
         for dependent in tag._dependents:
-            if dependent in _current['rerender']:
-                continue
             # TODO: move to other place
             log.debug('[_CALL]', 1, fn, dependent)
             dependent.__render__()
-        _current['rerender'] = []
 
         if PY_TAG := getattr(event.currentTarget, _PY_TAG_ATTRIBUTE):
             log.debug('[_CALL]', 2, PY_TAG)

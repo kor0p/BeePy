@@ -104,13 +104,12 @@ class ContentWrapper(CustomWrapper):
 
     def __render__(self):
         _current['render'].append(self)
-        _current['rerender'].append(self)
         log.debug('[__RENDER__]', _current)
 
         log.debug('[DEPENDENT]', _current['render'])
         if current_renderers := _current['render']:
             for renderer in current_renderers:
-                if self.parent and renderer not in self.parent._dependents:
+                if self.parent and renderer not in self.parent._dependents and not isinstance(renderer, dict):
                     self.parent._dependents.append(renderer)
 
         if self.children:

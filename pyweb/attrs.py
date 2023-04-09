@@ -1,6 +1,6 @@
 from __future__ import annotations as _
 
-from typing import Optional, Callable, Union, Iterable, Type, get_type_hints, ForwardRef, TypeVar, Any
+from typing import Optional, Callable, Union, Sequence, Type, get_type_hints, ForwardRef, TypeVar, Any
 from collections import defaultdict
 
 from .types import AttrType, AttrValue
@@ -40,7 +40,7 @@ class attr:
     fset: Callable[[Context, T], None]
     fdel: Callable[[Context], None]
     handlers: dict[str, list[Callable[[Context, T], None], ...]]
-    enum: Iterable
+    enum: Sequence
 
     _cache: dict[Context, AttrType]
 
@@ -214,7 +214,6 @@ class attr:
         to_remove_indexes = []
 
         for index, (instance, attr_, name) in enumerate(self._from_model_cache):
-            log.warn(f'[HERE] {ctx} {instance} {attr_} {name}')
             if name is None:
                 to_remove_indexes.append(index)
                 continue

@@ -1,4 +1,4 @@
-from pyweb import Tag, Style, CONTENT, state, mount
+from pyweb import Tag, Style, CONTENT, state
 from pyweb.tags import button, _input
 
 
@@ -30,7 +30,3 @@ class TextSyncExample(Tag, name='example'):
     @clear_btn.on('click')
     def clear(self, _event):
         self.value = ''
-
-
-if __name__ == '__pyweb_root__' or __name__ == '__main__':
-    mount(TextSyncExample(), '#root')

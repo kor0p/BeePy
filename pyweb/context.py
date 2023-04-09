@@ -7,7 +7,7 @@ import pyweb
 
 from .attrs import attr
 from .types import AttrType
-from .utils import log, log10_ceil, get_random_name, const_attribute
+from .utils import log, log10_ceil, get_random_name, const_attribute, Interval
 
 
 __obj = object()
@@ -25,6 +25,8 @@ _SPECIAL_CHILD_STRINGS = (OVERWRITE, SUPER, CONTENT)
 
 
 class _MetaContext(ABCMeta):
+    _to_load_before_top_render = []
+    _wait_onload_interval = None
     _context_classes = []
     __clean_class_attribute_names = ()
     _contexts: list[Context, ...]
@@ -110,6 +112,28 @@ class _MetaContext(ABCMeta):
         mcs._resolve_annotations()
 
     @classmethod
+    def _top_mount(mcs, element, root, parent):
+        from .utils import _current
+        from .tags import Body
+
+        Body.style = 'display: none'
+        element.__mount__(root, parent)
+        _current['render'].clear()
+
+    @classmethod
+    def _top_render(mcs, element):
+        mcs._wait_onload_interval = Interval(mcs.wait_onload, (element,), period=0.5)
+
+    @classmethod
+    def _top_render_real(mcs, element):
+        from .utils import _current
+        from .tags import Body
+
+        element.__render__()
+        _current['render'].insert(0, {'root_element': element})
+        Body.style = ''
+
+    @classmethod
     def _clean_namespace(mcs, namespace):
         base_obj_dir = _base_obj_dir + mcs.__clean_class_attribute_names
         for key, value in namespace.items():
@@ -122,6 +146,21 @@ class _MetaContext(ABCMeta):
         for key in dir(cls):
             if key not in base_obj_dir:
                 yield key, getattr(cls, key)
+
+    @classmethod
+    def create_onload(mcs):
+        def onload(_):
+            mcs._to_load_before_top_render.remove(onload)
+
+        mcs._to_load_before_top_render.append(onload)
+        return onload
+
+    @classmethod
+    def wait_onload(mcs, element):
+        if not mcs._to_load_before_top_render:
+            if mcs._wait_onload_interval:
+                mcs._wait_onload_interval.clear()
+            mcs._top_render_real(element)
 
 
 class Context(metaclass=_MetaContext, _root=True):

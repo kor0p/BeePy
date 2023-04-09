@@ -1,4 +1,5 @@
 from http.client import HTTPException
+import inspect
 import dataclasses
 import json
 import math
@@ -65,18 +66,22 @@ if IN_BROWSER:
 
 
 _current_render: list['Renderer', ...] = []
-_current_rerender: list['Renderer', ...] = []
 _current__lifecycle_method: dict[str, dict[int, 'Tag']] = {}
 _current: dict[str, Any] = {
     'render': _current_render,
-    'rerender': _current_rerender,
     '_lifecycle_method': _current__lifecycle_method,
 }
 
 
 def _debugger(error=None):
-    log.warn(traceback.format_exc())
-    js._locals = to_js(inspect.currentframe().f_back.f_locals)
+    if isinstance(error, Exception):
+        log.warn(traceback.format_exc())
+    else:
+        log.warn(''.join(traceback.format_stack()[:-1]))
+        log.warn(error)
+    frame = inspect.currentframe().f_back
+    js._locals = to_js(frame.f_locals)
+    js._locals._frame = frame
     js._DEBUGGER(error)
 
 
@@ -175,6 +180,22 @@ def safe_issubclass(type_or_Any, class_or_tuple_to_check):
         return issubclass(type_or_Any, class_or_tuple_to_check)
     except TypeError:
         return False
+
+
+class AnyOfType:
+    __slots__ = ('type',)
+
+    def __init__(self, type):
+        self.type = type
+
+    def __eq__(self, other):
+        return isinstance(other, self.type)
+
+    def __repr__(self):
+        return f'AnyOfType<{self.type}>'
+
+    def __hash__(self):
+        return hash(self.type)
 
 
 async def request(url, method='GET', body=None, headers=None, **opts):
@@ -299,7 +320,10 @@ def cached_import(module_path, class_name=None, package=None):
         and getattr(modules[module_path].__spec__, '_initializing', False) is True
     ):
         if IN_BROWSER:
-            js.pyweb._loadLocalModuleSync(module_path.lstrip('.'))
+            try:
+                js.pyweb._loadLocalModuleSync(module_path.lstrip('.'))
+            except Exception as e:
+                _debugger(e)
         import_module(module_path, package)
 
     if module_path.startswith('.') and package == '__pyweb_root__':
