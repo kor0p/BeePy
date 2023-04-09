@@ -1,20 +1,14 @@
 [[redirects]]
   from = "/"
   to = "https://pyweb.herokuapp.com/list-examples"
-  force = true # COMMENT: ensure that we always redirect
-  status = 200
 
 [[redirects]]
   from = "/examples"
   to = "https://pyweb.herokuapp.com/list-examples"
-  force = true # COMMENT: ensure that we always redirect
-  status = 200
 
 [[redirects]]
   from = "/examples/*"
   to = "https://pyweb.herokuapp.com/:splat"
-  force = true # COMMENT: ensure that we always redirect
-  status = 200
 
 [[headers]]
   for = "/*"
