@@ -1,14 +1,14 @@
 [[redirects]]
   from = "/"
-  to = "https://pyweb.herokuapp.com/list-examples"
+  to = "https://pyweb.herokuapp.com/e/list-examples"
 
 [[redirects]]
   from = "/examples"
-  to = "https://pyweb.herokuapp.com/list-examples"
+  to = "https://pyweb.herokuapp.com/e/list-examples"
 
 [[redirects]]
   from = "/examples/*"
-  to = "https://pyweb.herokuapp.com/:splat"
+  to = "https://pyweb.herokuapp.com/e/:splat"
 
 [[headers]]
   for = "/*"

@@ -118,6 +118,7 @@ const rootFolder = '__pyweb_root__'
 
 pyweb.loadFile = async function loadFile (filePath, options = {_internal: false}) {
     if (!options._internal) pyweb.__CURRENT_LOADING_FILE__ = filePath
+    if (!filePath.includes('http')) filePath = `${window.location.origin}/${filePath}`
     return await (await fetch(filePath)).text()
 }
 
@@ -126,6 +127,7 @@ pyweb.loadFileSync = function loadFileSync (filePath, options = {_internal: fals
      * Same as pyweb.loadFile, but synchronous
      */
     if (!options._internal) pyweb.__CURRENT_LOADING_FILE__ = filePath
+    if (!filePath.includes('http')) filePath = `${window.location.origin}/${filePath}`
     const req = new XMLHttpRequest()
     req.open("GET", filePath, false)
     req.send(null)
@@ -201,7 +203,7 @@ window.enterPythonModule = async function enterPythonModule (module) {
             module = _lstrip(module).replace(/\//g, '.')
         }
 
-        await pyweb._loadLocalModule(module, '__init__.py')
+        await pyweb._loadLocalModule(module, '__init__.py', false)
         await apy(`import ${rootFolder}`)
     } catch (e) {
         console.error(e)
@@ -274,7 +276,7 @@ _globals # last evaluated value is returned from 'py' function
     // })
 
     try {
-        await pyweb._loadLocalModule('')
+        await pyweb._loadLocalModule('', false)
         await apy(`import ${rootFolder}`)
     } catch (e) {
         console.debug(e)
@@ -341,12 +343,15 @@ pyweb.populateCurrentPath = function populateCurrentPath (path) {
     const currentPath = pyweb.__CURRENT_LOADING_FILE__.replace(/(\/(\w*.py)?)*$/, '')
     return `${currentPath}${currentPath && path ? '/' : ''}${path.replace(/^\/*/, '')}`
 }
+pyweb.getPathWithCurrentPathAndOrigin = function getPathWithCurrentPathAndOrigin (path) {
+    return `${window.location.origin}/${pyweb.populateCurrentPath(path)}`
+}
 
 
-pyweb._loadLocalModule = async function _loadLocalModule (module, pathToWrite='') {
+pyweb._loadLocalModule = async function _loadLocalModule (module, pathToWrite='', addCurrentPath=true) {
     let initFile = ''
 
-    const [path, parsedModule, fsPath] = _parseAndMkDirModule(module, true)
+    const [path, parsedModule, fsPath] = _parseAndMkDirModule(module, addCurrentPath)
     const fullPath = `${path}${path && parsedModule ? '/' : ''}${parsedModule}`
     let initFilePath = fullPath + '.py'
 
@@ -375,10 +380,10 @@ pyweb._loadLocalModule = async function _loadLocalModule (module, pathToWrite=''
 
 
 // utils.ensure_sync(js.pyweb._loadLocalModule(module)) doesn't work correctly
-pyweb._loadLocalModuleSync = function _loadLocalModuleSync (module, pathToWrite='') {
+pyweb._loadLocalModuleSync = function _loadLocalModuleSync (module, pathToWrite='', addCurrentPath=true) {
     let initFile = ''
 
-    const [path, parsedModule, fsPath] = _parseAndMkDirModule(module, true)
+    const [path, parsedModule, fsPath] = _parseAndMkDirModule(module, addCurrentPath)
     const fullPath = `${path}${path && parsedModule ? '/' : ''}${parsedModule}`
     let initFilePath = fullPath + '.py'
 

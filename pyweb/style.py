@@ -184,7 +184,7 @@ class Style(Tag, name='style', content_tag=None, raw_html=True, force_ref=True):
     @classmethod
     def import_file(cls, file_path):
         link = js.document.createElement('link')
-        link.href = js.pyweb.populateCurrentPath(file_path)
+        link.href = js.pyweb.getPathWithCurrentPathAndOrigin(file_path)
         link.onload = cls.create_onload()
         link.type = 'text/css'
         link.rel = 'stylesheet'
