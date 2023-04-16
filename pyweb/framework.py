@@ -21,7 +21,7 @@ from pyweb.utils import (
 from pyweb.context import OVERWRITE, SUPER, CONTENT, _SPECIAL_CHILD_STRINGS, _MetaContext, Context
 
 
-__CONFIG__['version'] = __version__ = '0.3.2'
+__CONFIG__['version'] = __version__ = '0.3.3'
 
 
 if IN_BROWSER:
@@ -337,6 +337,14 @@ class _MetaTag(_MetaContext):
             else:
                 self._children = self._children.copy() + [*children_argument]
 
+        for key, value in kwargs.items():
+            if not isinstance(value, (Tag, Children)) or key in self.attrs:
+                continue
+            child = value.as_child(self, exists_ok=True)
+            child.__set_name__(self, key)
+            setattr(type(self), key, child)
+            self._children.append(child)
+
         self._dependents = []
         self._shadow_root = None
         self._parent_ = None
@@ -461,18 +469,14 @@ class Tag(WebBase, Context, metaclass=_MetaTag, _root=True):
     def __getitem__(self, key):
         return getattr(self, key)
 
-    @classmethod
-    def comment(cls, string) -> str:
-        return f'<!-- {string} -->'
-
-    def as_child(self, parent: Optional[Tag], exists_ok=False):
+    def as_child(self, parent: Optional[Tag], exists_ok=False, inline_def=False):
         if self._ref:
             if exists_ok:
                 self.__set_ref__(parent, self._ref)
                 return self._ref
             else:
                 raise TypeError(f'Tag {self._tag_name_} already is child')
-        ref = TagRef(self)
+        ref = TagRef(self, inline_def=inline_def)
         self.__set_ref__(parent, ref)
         return ref
 
@@ -482,6 +486,8 @@ class Tag(WebBase, Context, metaclass=_MetaTag, _root=True):
 
     def __set_ref__(self, parent: Optional[Tag], ref: TagRef):
         self._ref = ref
+        if ref.inline_def:
+            setattr(type(parent), ref.name, self)
 
     def render(self):
         """empty method for easy override with code for run before render"""

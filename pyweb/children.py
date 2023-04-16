@@ -121,9 +121,7 @@ class ContentWrapper(CustomWrapper):
                 _current['render'].pop()
             return
 
-        result = self.content()
-
-        result = self._render(result)
+        result = self._render(self.content())
         if not isinstance(result, str):
             raise TypeError(f'Function {self.content} cannot return {result}!')
 
@@ -154,15 +152,16 @@ C = TypeVar('C')
 
 
 class ChildRef(WebBase, Generic[C]):
-    __slots__ = ('name', 'child', '_cache')
+    __slots__ = ('name', 'child', 'inline_def', '_cache')
 
     name: Optional[str]
     child: C
     _cache: dict[Context, C]
 
-    def __init__(self, child: C):
+    def __init__(self, child: C, inline_def=False):
         self.name = None
         self.child = child
+        self.inline_def = inline_def
         self._cache = {}
 
     def __repr__(self):

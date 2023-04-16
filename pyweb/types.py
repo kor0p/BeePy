@@ -113,6 +113,8 @@ class Children(WebBase, TrackableList):
         self.parent = parent
         self.parent_index = index
         self.ref = ref
+        if ref.inline_def:
+            setattr(type(parent), ref.name, self)
 
     def onchange_notify(self):
         if not self.parent or not self.parent.parent:

@@ -8,6 +8,7 @@ from pyweb.utils import Interval
 from pyweb.types import safe_html
 
 
+Style.import_file('styles/timer.css')
 _EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
 
 
@@ -80,6 +81,3 @@ class App(Tag, name='app', content_tag=p()):
     children = [
         timer,
     ]
-
-    def pre_mount(self):
-        Style.import_file('styles/timer.css')

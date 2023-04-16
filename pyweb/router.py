@@ -34,22 +34,24 @@ class Router(Tag, name='router'):
     def mount(self):
         self._load_children()
 
+    def add_tag_component(self, tag_cls: str | Type[Tag], **kwargs):
+        tag_cls: Type[Tag] = lazy_import_cls(tag_cls)
+        if issubclass(tag_cls, WithRouter):
+            kwargs['router'] = self
+        self.components.append(tag_cls(**kwargs))
+
     def _load_children(self):
         self.components.clear()
 
         for path, tag_cls in self.routes.items():
             if match := re.search(path, js.location.pathname):
-                self.components.append(
-                    lazy_import_cls(tag_cls)(match=match, router=self)
-                )
+                self.add_tag_component(tag_cls, match=match)
                 if self.single_tag:
                     break
 
         if not self.components:
             if fallback := self.fallback_tag_cls:
-                self.components.append(
-                    lazy_import_cls(fallback)(match=None, router=self)
-                )
+                self.add_tag_component(fallback, match=None)
             else:
                 # TODO: maybe create PyWebError?
                 raise ValueError('No route to use!')

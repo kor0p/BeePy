@@ -1,0 +1,71 @@
+ul.todos {
+    zoom: 3;
+    padding: 0 24px;
+}
+ul.todos form {
+    display: flex;
+    flex-flow: row nowrap;
+    align-items: center;
+}
+ul.todos form input {
+    border: none;
+    outline: none;
+    border-radius: .5rem;
+    padding: .5rem;
+    height: 1.5rem;
+    flex: 0 1 calc(90% - 0.5rem);
+    margin-right: .5rem;
+}
+ul.todos form button {
+    cursor: pointer;
+    height: 2.5rem;
+    width: 2.5rem;
+    border-radius: .5rem;
+    font-size: 1.25rem;
+    font-weight: 500;
+    border: none;
+    outline: none;
+    color: #dddddd;
+    background-color: #4a8cce;
+}
+ul.todos li {
+    display: flex;
+    flex-flow: row nowrap;
+    align-items: center;
+    user-select: none;
+}
+ul.todos li span {
+    cursor: pointer;
+    margin-right: 1rem;
+}
+ul.todos li span:hover {
+    color: #f05454;
+}
+ul.todos li[completed] p:before {
+    top: 10px;
+    height: 2px;
+    transform: scaleX(1);
+}
+ul.todos li p {
+    cursor: pointer;
+    position: relative;
+    margin-right: 1rem;
+}
+ul.todos li p:before {
+    position: absolute;
+    z-index: 5;
+    content: "";
+    top: 9px;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background-color: #4a8cce;
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: all .2s ease-in-out;
+}
+ul.todos li p:hover:before {
+    top: 9px;
+    height: 4px;
+    transform: scaleX(1);
+}

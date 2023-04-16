@@ -91,6 +91,10 @@ class label(html_tag, name='label'):
             self._for = self._for._ref.__get__(parent).id
 
 
+class form(html_tag, name='form'):
+    pass
+
+
 class h1(html_tag, name='h1'):
     pass
 
@@ -208,6 +212,6 @@ Body = Body()
 
 
 __all__ = [
-    'html_tag', 'div', 'a', 'p', 'ul', 'li', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+    'html_tag', 'div', 'a', 'p', 'ul', 'li', 'span', 'form', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
     '_input', 'textarea', 'button', 'option', 'select', 'Head',
 ]
