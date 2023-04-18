@@ -1,9 +1,9 @@
 from django.shortcuts import render
-from .utils import IS_DEV
+from django.conf import settings
 
 
 def index(request):
-    return render(request, 'index.html', {'IS_DEV': IS_DEV})
+    return render(request, 'index.html', {'DEBUG': settings.DEBUG})
 
 
 def custom_url(request):

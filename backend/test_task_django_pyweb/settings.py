@@ -11,7 +11,6 @@ https://docs.djangoproject.com/en/3.1/ref/settings/
 '''
 
 from pathlib import Path
-from .utils import IS_DEV
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -23,7 +22,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = '%y^4xv#+pw49-@ry_e#g+s^o^wl*^3hu&7b2og3ft6nb5^7306'
 
-DEBUG = True # IS_DEV
+DEBUG = False
 
 ALLOWED_HOSTS = ['*']
 
@@ -43,6 +42,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -131,7 +131,7 @@ DEFAULT_RENDERER_CLASSES = [
     'rest_framework.renderers.JSONRenderer',
 ]
 
-if IS_DEV:
+if DEBUG:
     DEFAULT_RENDERER_CLASSES.append('rest_framework.renderers.BrowsableAPIRenderer')
 
 REST_FRAMEWORK = {

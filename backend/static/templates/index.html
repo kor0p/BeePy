@@ -10,12 +10,10 @@
                 color: white;
             }
         </style>
-        <script>window.IS_DEV = {{ IS_DEV|lower }}</script>
         <script>
             window.pyweb = {
                 config: {
-                    debug: window.IS_DEV,
-                    modules: ['tabs.py', 'table.py'],
+                    debug: {{ DEBUG|lower }},
                 },
             }
         </script>

@@ -6,6 +6,28 @@ window._DEBUGGER = function _DEBUGGER (error=null) {
 }
 
 // utils
+Node.prototype.insertChild = function (child, index) {
+    if (index == null || index >= this.children.length) {
+        if (typeof child === 'string') {
+            this.insertAdjacentHTML('beforeend', child)
+        } else {
+            this.appendChild(child)
+        }
+    } else {
+        if (typeof child === 'string') {
+            this.children[index].insertAdjacentHTML('beforebegin', child)
+        } else {
+            this.insertBefore(child, this.children[index])
+        }
+    }
+}
+
+Node.prototype.safeRemoveChild = function (child) {
+    if (this.contains(child)) {
+        return this.removeChild(child)
+    }
+}
+
 function isObject (obj) {
   return obj && typeof obj === 'object'
 }
@@ -80,10 +102,6 @@ If you have config, you must define it before loading pyweb script
     }
 }
 
-// could be useful in the future, i.e: get attributes of <script src="pyweb" />
-pyweb.script = document.currentScript
-const _src = pyweb.script.src
-
 const DEFAULT_CONFIG = {
     // user can specify version of pyodide
     // TODO: check supporting versions of pyodide
@@ -94,22 +112,35 @@ const DEFAULT_CONFIG = {
     onload: () => pyweb.__main__(),
     // extra modules in base dir to load
     modules: [],
+    requirements: [],
 }
 
+// could be useful in the future, i.e: get attributes of <script src="pyweb" />
+pyweb.script = document.currentScript
+const _src = pyweb.script.src
 if (!pyweb.config.path && _src.indexOf('pyweb.js')) {
     pyweb.config.path = _src.substring(0, _src.indexOf('pyweb.js') - 1).replace(/\/+$/, '')
 }
 
 const config = mergeDeep(DEFAULT_CONFIG, pyweb.config)
 pyweb.__CONFIG__ = config
+pyweb.addElement = function addElement (mountPoint, elementName, options={}) {
+    const element = document.createElement(elementName, {is: options._is})
+    const index = options._index
+    delete options._is
+    delete options._index
+
+    for (const [optionName, optionValue] of Object.entries(options)) {
+        element[optionName] = optionValue
+    }
+    mountPoint.insertChild(element, index)
+    return element
+}
 
 // loading pyodide script
 
 const indexURL = `https://cdn.jsdelivr.net/pyodide/v${config.pyodideVersion}/full/`
-const script = document.createElement('script')
-script.type = 'module'
-script.src = indexURL + 'pyodide.js'
-document.head.appendChild(script)
+pyweb.addElement(document.head, 'script', {type: 'module', src: indexURL + 'pyodide.js'})
 
 
 // defining tools for running python
@@ -140,7 +171,7 @@ pyweb._writeInternalFile = async function _writeInternalFile (file, content) {
 }
 
 pyweb._writeInternalFileSync = function _writeInternalFileSync (file) {
-    pyodide.FS.writeFile(`pyweb/${file}`, pyweb.loadFileSync(`${config.path}/pyweb/${file}`), {_internal: true})
+    pyodide.FS.writeFile(`pyweb/${file}`, pyweb.loadFileSync(`${config.path}/pyweb/${file}`, {_internal: true}))
 }
 
 pyweb._writeLocalFile = async function _writeLocalFile (file, content) {
@@ -218,6 +249,11 @@ if (!pyweb.__main__) {
 }
 
 window.__pyweb_load = async () => {
+    if (!document.getElementById('pyweb-loading')) {
+        const loadingEl = pyweb.addElement(document.body, 'div', {id: 'pyweb-loading', _index: 0})
+        pyweb.addElement(loadingEl, 'style', {innerHTML: '#pyweb-loading {display: inline-block; width: 50px; height: 50px; position: fixed; top: 50%; left: 50%; border: 3px solid rgba(172, 237, 255, 0.5); border-radius: 50%; border-top-color: #fff; animation: spin 1s ease-in-out infinite; -webkit-animation: spin 1s ease-in-out infinite;} @keyframes spin {to {-webkit-transform: rotate(360deg);}} @-webkit-keyframes spin {to {-webkit-transform: rotate(360deg);}'})
+    }
+
     await Promise.all([systemLoad(), pywebLoad()])
     window.removeEventListener('load', window.__pyweb_load)
 }
@@ -228,7 +264,10 @@ async function systemLoad () {
     pyweb.globals = pyodide.globals
     pyweb.__CONFIG__.__loading = true
     await pyodide.loadPackage('micropip')
+    const micropip = pyodide.pyimport('micropip')
+    await Promise.all(pyweb.__CONFIG__.requirements.map(requirement => micropip.install(requirement)))
     console.log(pyodide._api.sys.version)
+    document.getElementById('pyweb-loading').remove()
 }
 
 async function pywebLoad () {
@@ -359,7 +398,7 @@ pyweb._loadLocalModule = async function _loadLocalModule (module, pathToWrite=''
 
     try {
         initFile = await pyweb.loadFile(_lstrip(initFilePath))
-        if (initFile.substring(0, 1) === '<') {
+        if (initFile.replace(/^\s+/, '').substring(0, 1) === '<') {
             initFilePath = fullPath + (parsedModule ? `/` : '') + '__init__.py'
             initFile = await pyweb.loadFile(_lstrip(initFilePath))
         }
@@ -391,7 +430,7 @@ pyweb._loadLocalModuleSync = function _loadLocalModuleSync (module, pathToWrite=
 
     try {
         initFile = pyweb.loadFileSync(_lstrip(initFilePath))
-        if (initFile.substring(0, 1) === '<') {
+        if (initFile.replace(/^\s+/, '').substring(0, 1) === '<') {
             initFilePath = fullPath + (parsedModule ? `/` : '') + '__init__.py'
             initFile = pyweb.loadFileSync(_lstrip(initFilePath))
         }
@@ -417,26 +456,4 @@ pyweb._loadLocalModuleSync = function _loadLocalModuleSync (module, pathToWrite=
 
 pyweb._loadLocalFileSync = function _loadLocalFile (filePath) {
     pyweb._writeLocalFileSync(_parseAndMkDirFile(filePath, true).slice(0, 2).join('/'))
-}
-
-Node.prototype.insertChild = function (child, index) {
-    if (index == null || index >= this.children.length) {
-        if (typeof child === 'string') {
-            this.insertAdjacentHTML('beforeend', child)
-        } else {
-            this.appendChild(child)
-        }
-    } else {
-        if (typeof child === 'string') {
-            this.children[index].insertAdjacentHTML('beforebegin', child)
-        } else {
-            this.insertBefore(child, this.children[index])
-        }
-    }
-}
-
-Node.prototype.safeRemoveChild = function (child) {
-    if (this.contains(child)) {
-        return this.removeChild(child)
-    }
 }
