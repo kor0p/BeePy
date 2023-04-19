@@ -330,11 +330,14 @@ _globals # last evaluated value is returned from 'py' function
 }
 
 
-function mkDirPath(path) {
+function mkDirPath(path, removeFileName=false) {
     const pathParts = path.split('/')
+    let maxLength = pathParts.length
+    if (removeFileName) maxLength -= 1
 
-    for (let length = 0; length < pathParts.length; length++) {
-        pyodide.FS.mkdir(rootFolder + '/' + pathParts.slice(0, length+1).join('/'))
+    for (let length = 0; length < maxLength; length++) {
+        const pathToCreate = rootFolder + '/' + pathParts.slice(0, length+1).join('/')
+        if (!pyodide.FS.analyzePath(pathToCreate).exists) pyodide.FS.mkdir(pathToCreate)
     }
 }
 
@@ -409,6 +412,8 @@ pyweb._loadLocalModule = async function _loadLocalModule (module, pathToWrite=''
     }
 
     if (!pathToWrite) pathToWrite = initFilePath.replace(new RegExp(`^${path}`), fsPath)
+    if (pathToWrite.includes('/')) mkDirPath(pathToWrite, true)
+
     const [pywebModules, localModules] = _getModulesFromLocalInit(initFile, path.replace(/\//g, '.'))
 
     await Promise.all(pywebModules.map(file => pyweb._writeInternalFile(file)))
@@ -441,6 +446,8 @@ pyweb._loadLocalModuleSync = function _loadLocalModuleSync (module, pathToWrite=
     }
 
     if (!pathToWrite) pathToWrite = initFilePath.replace(new RegExp(`^${path}`), fsPath)
+    if (pathToWrite.includes('/')) mkDirPath(pathToWrite, true)
+
     const [pywebModules, localModules] = _getModulesFromLocalInit(initFile, path.replace(/\//g, '.'))
 
     for (const file of pywebModules) {

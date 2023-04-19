@@ -180,7 +180,7 @@ class _MetaTag(_MetaContext):
         if initialized:
             cls._static_children = cls._static_children.copy()
             if not hasattr(cls, '_content_tag'):
-                cls._content_tag = empty_tag('div')()
+                cls._content_tag = empty_div()
         else:
             cls._static_children = []
 
@@ -306,6 +306,8 @@ class _MetaTag(_MetaContext):
         children_argument: Union[Callable, ContentType] = kwargs.get('children') or args
         if children_argument and (not isinstance(children_argument, Iterable) or isinstance(children_argument, str)):
             children_argument = (children_argument,)
+        children_argument = list(children_argument)
+
         if children_argument:
             is_child_arg_string = False
             is_child_arg_function = False
@@ -318,13 +320,16 @@ class _MetaTag(_MetaContext):
                 is_child_arg_string = True
                 is_child_arg_function = True
                 is_child_arg_tag = True
-                for child_arg in children_argument:
+                for index, child_arg in enumerate(children_argument):
                     if not isinstance(child_arg, str):
                         is_child_arg_string = False
                     if (isinstance(child_arg, type) and issubclass(child_arg, Tag)) or not callable(child_arg):
                         is_child_arg_function = False
                     if not isinstance(child_arg, Tag):
-                        is_child_arg_tag = False
+                        if isinstance(child_arg, str) and len(children_argument) > 1:
+                            children_argument[index] = empty_span(child_arg)
+                        else:
+                            is_child_arg_tag = False
 
             if is_child_arg_string and children_argument:
                 self._content = children_argument
@@ -701,6 +706,10 @@ _TAG_INITIALIZED = True
 @cache
 def empty_tag(name):
     return _MetaTag(name, (Tag, ), {}, name=name, content_tag=None)
+
+
+empty_div = empty_tag('div')
+empty_span = empty_tag('span')
 
 
 def mount(element: Tag, root_element: str, clear=False):

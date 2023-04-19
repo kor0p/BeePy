@@ -129,9 +129,9 @@ class UserForm(BaseForm):
 
     children = [
         title,
-        label('Username', _for=username),
+        label('Username', for_=username),
         username,
-        label('Group', _for=group),
+        label('Group', for_=group),
         group,
         SUPER,
     ]
@@ -251,9 +251,9 @@ class GroupForm(BaseForm):
 
     children = [
         title,
-        label('Name', _for=name),
+        label('Name', for_=name),
         name,
-        label('Description', _for=description),
+        label('Description', for_=description),
         description,
         SUPER,
     ]

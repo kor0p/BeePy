@@ -13,7 +13,7 @@ AUTO_ID = object()
 
 class html_tag(Tag, _root=True, content_tag=None):
     id = attr(type=str)
-    _class = attr(type=str)
+    class_ = attr(type=str)
 
     def __set_ref__(self, parent, ref):
         super().__set_ref__(parent, ref)
@@ -83,12 +83,12 @@ class td(html_tag, name='td'):
 
 
 class label(html_tag, name='label'):
-    _for = attr(type=str)
+    for_ = attr(type=str)
 
     def __set_ref__(self, parent, ref):
         super().__set_ref__(parent, ref)
-        if parent and isinstance(self._for, Tag):
-            self._for = self._for._ref.__get__(parent).id
+        if parent and isinstance(self.for_, Tag):
+            self.for_ = self.for_._ref.__get__(parent).id
 
 
 class form(html_tag, name='form'):

@@ -96,7 +96,7 @@ def wraps_with_name(name):
     return wrapper
 
 
-def escape_html(s, quote=True, whitespace=False):
+def escape_html(s, quote=False, whitespace=False):
     """ Replace special characters "&", "<" and ">" to HTML-safe sequences.
         If the optional flag quote is True (default), the quotation mark characters (" and ') are also translated.
         If the optional flag whitespace is True, new line (\n) and tab (\t) characters are also translated.

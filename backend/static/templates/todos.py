@@ -33,7 +33,7 @@ class TodoList(ul, content_tag=p()):
     ####
 
     count_completed = state(0)
-    _class = 'todos'
+    class_ = 'todos'
 
     todos = Children([
         Todo('Create Todo List', completed=True),
