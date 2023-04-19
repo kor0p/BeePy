@@ -12,6 +12,7 @@ AUTO_ID = object()
 
 
 class html_tag(Tag, _root=True, content_tag=None):
+    contenteditable = attr(type=bool)
     id = attr(type=str)
     class_ = attr(type=str)
 
@@ -141,6 +142,22 @@ class textarea(html_tag, name='textarea'):
         self.value = ''
 
 
+class header(html_tag, name='header'):
+    pass
+
+
+class main(html_tag, name='main'):
+    pass
+
+
+class footer(html_tag, name='footer'):
+    pass
+
+
+class nav(html_tag, name='nav'):
+    pass
+
+
 class button(html_tag, name='button'):
     type = attr('button', type=str, enum={'submit', 'reset', 'button'})
 
@@ -213,5 +230,5 @@ Body = Body()
 
 __all__ = [
     'html_tag', 'div', 'a', 'p', 'ul', 'li', 'span', 'form', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-    '_input', 'textarea', 'button', 'option', 'select', 'Head',
+    '_input', 'textarea', 'header', 'main', 'footer', 'nav', 'button', 'option', 'select', 'Head',
 ]

@@ -30,6 +30,7 @@ class AppRouter(Router):
         'todos$': 'todos.TodoList',
         'timer$': 'timer.App',
         'text-sync$': 'text_sync.TextSyncExample',
+        'latex$': 'latex.HighlightLaTeX',
     }
 
     fallback_tag_cls = PageNotFound
