@@ -38,6 +38,10 @@ class hr(html_tag, name='hr'):
     pass
 
 
+class img(html_tag, name='img'):
+    src = attr(type=str)
+
+
 class a(html_tag, name='a'):
     href = attr(type=str)
     target = attr(type=str, enum={'_blank', '_self', '_parent', '_top', AnyOfType(str)})

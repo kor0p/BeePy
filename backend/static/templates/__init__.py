@@ -31,6 +31,7 @@ class AppRouter(Router):
         'timer$': 'timer.App',
         'text-sync$': 'text_sync.TextSyncExample',
         'latex$': 'latex.HighlightLaTeX',
+        'plot$': 'plot.App',
     }
 
     fallback_tag_cls = PageNotFound

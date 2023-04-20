@@ -1,0 +1,9 @@
+img.plot {
+    position: fixed;
+    top: 60px;
+    left: 0;
+}
+
+button.reload {
+    font-size: 30px;
+}

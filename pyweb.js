@@ -262,10 +262,9 @@ window.addEventListener('load', window.__pyweb_load)
 async function systemLoad () {
     window.pyodide = await window.loadPyodide({ indexURL })
     pyweb.globals = pyodide.globals
-    pyweb.__CONFIG__.__loading = true
     await pyodide.loadPackage('micropip')
-    const micropip = pyodide.pyimport('micropip')
-    await Promise.all(pyweb.__CONFIG__.requirements.map(requirement => micropip.install(requirement)))
+    await Promise.all(pyweb.__CONFIG__.requirements.map(requirement => pyodide.loadPackage(requirement)))
+    pyweb.__CONFIG__.__loading = true
     console.log(pyodide._api.sys.version)
     document.getElementById('pyweb-loading').remove()
 }
@@ -309,12 +308,6 @@ _globals # last evaluated value is returned from 'py' function
 `)
 
     delete pyweb.__CONFIG__.__loading
-    // new Proxy(_PyWebGlobals, {
-    //     get: (target, symbol) => "get" === symbol ? key => {
-    //         let result = target.get(key)
-    //         return void 0 === result && (result = builtins_dict.get(key)), result
-    //     } : "has" === symbol ? key => target.has(key) || builtins_dict.has(key) : Reflect.get(target, symbol)
-    // })
 
     try {
         await pyweb._loadLocalModule('', false)

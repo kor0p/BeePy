@@ -97,6 +97,8 @@ class LinkTabs(tabs):
             NEW_LINE,
             a_nt('Admin panel (Django)', href='/e/'),
             NEW_LINE,
+            a_nt('Dynamic plot', href='/e/plot'),
+            NEW_LINE,
             a_nt('First try', href='/e/buttons'),
             NEW_LINE,
             a_nt('Tabs (this one)', href='/e/list-examples'),

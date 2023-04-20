@@ -6,6 +6,7 @@
 ## Static examples:
 - ### [List of examples (with Tabs)](https://pyweb.herokuapp.com/e/list-examples)
 - ### [Admin panel](https://pyweb.herokuapp.com/e/)
+- ### [Dynamic plot](https://pyweb.herokuapp.com/e/plot)
 - ### [First try](https://pyweb.herokuapp.com/e/buttons)
 - ### [Todo List](https://pyweb.herokuapp.com/e/todos)
 - ### [Modal](https://pyweb.herokuapp.com/e/modal)

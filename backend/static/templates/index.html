@@ -14,7 +14,11 @@
             window.pyweb = {
                 config: {
                     debug: {{ DEBUG|lower }},
+                    requirements: [],
                 },
+            }
+            if (window.location.href.includes('plot')) {
+                window.pyweb.config.requirements.push('numpy', 'matplotlib')
             }
         </script>
         <script src='https://pyweb.netlify.app/pyweb.js'></script>
