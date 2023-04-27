@@ -10,6 +10,16 @@ from pyweb.utils import log, NONE_TYPE, wraps_with_name, to_kebab_case
 Context = ForwardRef('Context')
 T = TypeVar('T')
 
+SPECIAL_CONVERT_ATTRIBUTES = {
+    'contenteditable': lambda tag, val: (
+        convert_boolean_attribute_value(val) if val == tag.mount_element.isContentEditable else val
+    ),
+}
+
+
+def convert_boolean_attribute_value(value):
+    return '' if value else None
+
 
 class attr:
     __slots__ = (
@@ -165,6 +175,7 @@ class attr:
             if raise_error:
                 raise TypeError(error) from e
             else:
+                self.type = NONE_TYPE
                 return log.error(error)
 
         self.type = _type
@@ -299,11 +310,11 @@ class attr:
                 raise ValueError('You cannot provide both instance and value arguments')
             value = self.__get__(instance)
 
+        if check_fn := SPECIAL_CONVERT_ATTRIBUTES.get(self.name):
+            return check_fn(instance, value)
+
         if issubclass(self.type, bool):
-            if value:
-                return ''
-            else:
-                return
+            return convert_boolean_attribute_value(value)
 
         # support for custom types for attr
         if isinstance(self.type, AttrValue):
