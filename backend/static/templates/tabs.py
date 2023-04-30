@@ -3,6 +3,7 @@ from functools import partial
 from pyweb import Tag, Style, attr, state, __version__
 from pyweb.tags import button, a, p, span, select, Head
 from pyweb.tabs import tab, tab_title, tabs
+from pyweb.router import WithRouter, Link
 
 
 a_nt = partial(a, target='_blank')
@@ -99,7 +100,7 @@ class LinkTabs(tabs):
             NEW_LINE,
             a_nt('Dynamic plot', href='/e/plot'),
             NEW_LINE,
-            a_nt('First try', href='/e/buttons'),
+            Link('First try (this link is shallow 😊)', to='/e/buttons'),
             NEW_LINE,
             a_nt('Tabs (this one)', href='/e/list-examples'),
             NEW_LINE,
@@ -140,7 +141,7 @@ class LinkTabs(tabs):
     ]
 
 
-class test_tabs(Tag, name='test-tabs'):
+class test_tabs(Tag, WithRouter, name='test-tabs'):
     style = Style(
         color='white',
         zoom=4,
