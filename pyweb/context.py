@@ -3,11 +3,12 @@ from __future__ import annotations
 from abc import ABCMeta
 from typing import Union, Type, TypeVar
 
+import js
 import pyweb
 
 from pyweb.attrs import attr
 from pyweb.types import AttrType
-from pyweb.utils import log, log10_ceil, get_random_name, const_attribute, Interval
+from pyweb.utils import log, log10_ceil, get_random_name, const_attribute, Interval, to_kebab_case, create_once_callable
 
 
 __obj = object()
@@ -78,8 +79,8 @@ class _MetaContext(ABCMeta):
             ctx_name = kwargs.get('name')
         namespace['__ROOT__'] = is_root
 
-        if ctx_name:
-            namespace['_context_name_'] = ctx_name
+        if ctx_name or (initialized and not hasattr(base_cls, '_context_name_')):
+            namespace['_context_name_'] = ctx_name or to_kebab_case(_name)
 
         cls: Union[Type[Context], type] = super().__new__(mcs, _name, bases, namespace)
 
@@ -113,25 +114,20 @@ class _MetaContext(ABCMeta):
 
     @classmethod
     def _top_mount(mcs, element, root, parent):
-        from pyweb.utils import _current
-        from pyweb.tags import Body
-
-        Body.style = 'display: none'
+        pyweb.tags.Body.style = 'display: none'
         element.__mount__(root, parent)
-        _current['render'].clear()
+        pyweb.utils._current['render'].clear()
 
     @classmethod
     def _top_render(mcs, element):
-        mcs._wait_onload_interval = Interval(mcs.wait_onload, (element,), period=0.5)
+        mcs._wait_onload_interval = Interval(mcs.wait_onload, (element,), period=0.2)
 
     @classmethod
     def _top_render_real(mcs, element):
-        from pyweb.utils import _current
-        from pyweb.tags import Body
-
         element.__render__()
-        _current['render'].insert(0, {'root_element': element})
-        Body.style = ''
+        pyweb.utils._current['render'].insert(0, {'root_element': element})
+        pyweb.tags.Body.style = ''
+        js.document.getElementById('pyweb-loading').remove()
 
     @classmethod
     def _clean_namespace(mcs, namespace):
@@ -149,6 +145,7 @@ class _MetaContext(ABCMeta):
 
     @classmethod
     def create_onload(mcs):
+        @create_once_callable
         def onload(_):
             mcs._to_load_before_top_render.remove(onload)
 

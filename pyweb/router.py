@@ -8,7 +8,7 @@ import js
 
 from pyweb.framework import Tag, state
 from pyweb.types import Children
-from pyweb.utils import lazy_import_cls
+from pyweb.utils import lazy_import_cls, _debugger
 
 
 class WithRouter:
@@ -16,7 +16,7 @@ class WithRouter:
     router: Router = state(move_on=True)
 
 
-class Router(Tag, name='router'):
+class Router(Tag):
     routes: dict[str, Union[str, Type[Tag]]] = {
         # r'/$': Tag,
         # r'/app/(?P<id>.*)$': 'app.App',  # lazy import!
@@ -34,10 +34,16 @@ class Router(Tag, name='router'):
     def mount(self):
         self._load_children()
 
-    def add_tag_component(self, tag_cls: str | Type[Tag], **kwargs):
-        tag_cls: Type[Tag] = lazy_import_cls(tag_cls)
+    def add_tag_component(self, tag_cls: str | Type[Tag], match, **kwargs):
+        try:
+            tag_cls: Type[Tag] = lazy_import_cls(tag_cls)
+        except ModuleNotFoundError as e:
+            _debugger(e)
+            raise
+
         if issubclass(tag_cls, WithRouter):
             kwargs['router'] = self
+            kwargs['match'] = match
         self.components.append(tag_cls(**kwargs))
 
     def _load_children(self):

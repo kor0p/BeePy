@@ -17,6 +17,7 @@ from pyweb.utils import __CONFIG__, request, ensure_sync
 Style.import_file('styles/admin.css')
 dt_input_format = __CONFIG__['default_datetime_format'] = '%Y-%m-%dT%H:%M:%S.%fZ'
 dt_view_format = '%a, %b %d %Y %X'
+__CONFIG__['api_url'] = '/api/'
 store = {'groups': []}
 
 

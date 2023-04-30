@@ -213,7 +213,7 @@ async def request(url, method='GET', body=None, headers=None, **opts):
     })
 
     response = await pyodide_http.pyfetch(
-        __CONFIG__['api_url'] + 'api/' + url, method=method, body=body, headers=headers, **opts
+        __CONFIG__['api_url'] + url, method=method, body=body, headers=headers, **opts
     )
 
     if int(response.status) >= 400:
@@ -240,7 +240,7 @@ if not IN_BROWSER:
         # TODO: check opts argument compatibility
 
         response = requests.request(
-            method, __CONFIG__['api_url'] + 'api/' + url, data=body, headers=headers,
+            method, __CONFIG__['api_url'] + url, data=body, headers=headers,
         )
 
         if int(response.status_code) >= 400:
@@ -309,40 +309,25 @@ class Locker:
         return f'Locker<{self.name}>({self.locked})'
 
 
-def cached_import(module_path, class_name=None, package=None):
-    if module_path.startswith('.') and package is None:
-        package = '__pyweb_root__'
-
-    modules = sys.modules
-    if module_path not in modules or (
-        # Module is not fully initialized.
-        getattr(modules[module_path], '__spec__', None) is not None
-        and getattr(modules[module_path].__spec__, '_initializing', False) is True
+def lazy_import(module_path):
+    if not (
+        (module := sys.modules.get(module_path))
+        and (spec := getattr(module, "__spec__", None))
+        and getattr(spec, "_initializing", False) is False
     ):
-        if IN_BROWSER:
-            try:
-                js.pyweb._loadLocalModuleSync(module_path.lstrip('.'))
-            except Exception as e:
-                _debugger(e)
-        import_module(module_path, package)
+        module = import_module(module_path)
 
-    if module_path.startswith('.') and package == '__pyweb_root__':
-        module_path = f'{package}{module_path}'
-
-    if class_name:
-        return getattr(modules[module_path], class_name)
-    else:
-        return modules[module_path]
+    return module
 
 
-def import_cls(import_string):
-    module_path, class_name = import_string.rsplit('.', 1)
-    return cached_import(f'.{module_path}' if IN_BROWSER else module_path, class_name)
+def import_string(dotted_path):
+    module_path, class_name = dotted_path.rsplit('.', 1)
+    return getattr(lazy_import(module_path), class_name)
 
 
 def lazy_import_cls(cls):
     if isinstance(cls, str):
-        return import_cls(cls)
+        return import_string(cls)
     return cls
 
 
@@ -364,11 +349,12 @@ __pyweb_global_handlers__ = [_default_global_handlers]
 
 
 __all__ = [
+    'IN_BROWSER', 'create_once_callable', 'create_proxy', 'to_js',
     'log', '_PY_TAG_ATTRIBUTE', 'NONE_TYPE', '__CONFIG__', '_current', '_debugger',
     'log10_ceil', 'wraps_with_name', 'get_random_name', 'to_kebab_case',
     'set_timeout', 'clear_timeout', 'set_interval', 'clear_interval', 'add_event_listener', 'remove_event_listener',
     'const_attribute', 'ensure_sync', 'force_sync', 'delay', 'sleep',
-    'cached_import', 'import_cls', 'lazy_import_cls', 'safe_issubclass',
+    'lazy_import', 'import_string', 'lazy_import_cls', 'safe_issubclass',
 ]
 
 # """

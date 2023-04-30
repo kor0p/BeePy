@@ -92,8 +92,8 @@ class _MetaTag(_MetaContext):
             tag_name = kwargs.get('name')
         namespace['__ROOT__'] = is_root
 
-        if tag_name:
-            namespace['_tag_name_'] = to_kebab_case(tag_name)
+        if tag_name or (initialized and not hasattr(base_cls, '_tag_name_')):
+            namespace['_tag_name_'] = to_kebab_case(tag_name or _name)
 
         if 'raw_html' in kwargs:
             namespace['_raw_html'] = kwargs['raw_html']
@@ -255,8 +255,8 @@ class _MetaTag(_MetaContext):
 
         if self.content_child is None:
             _debugger(self)
-
-        self.content_child._mount_children()
+        else:
+            self.content_child._mount_children()
 
         for name, attribute in self.__states__.items():
             if callable(attribute) and not isinstance(attribute, MethodType):
@@ -613,9 +613,9 @@ class Tag(WebBase, Context, metaclass=_MetaTag, _root=True):
 
     @property
     def content_child(self) -> ContentWrapper:
-        index = self.get_content_index()
-        if index is not None:
-            return self.children[index]
+        for child in self.children:
+            if isinstance(child, ContentWrapper) and child.content.__func__.__name__ == 'content':
+                return child
 
     def get_content_index(self):
         for index, child in enumerate(self.children):
