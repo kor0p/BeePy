@@ -24,7 +24,7 @@ class TodoList(ul, content_tag=p()):
         @on('click')
         def toggle(self, event):
             self.completed = not self.completed
-            self.parent.recalculate_completed()
+            self.parent.sync_to_local_storage()
 
         @remove.on('click')
         def delete(self, event):
@@ -68,6 +68,7 @@ class TodoList(ul, content_tag=p()):
             {'text': todo._content[0], 'completed': todo.completed}
             for todo in self.todos
         ]
+        self.recalculate_completed()
 
     @on('submit.prevent')
     def save_todo(self, event):
@@ -79,5 +80,4 @@ class TodoList(ul, content_tag=p()):
         self.add.input.clear()
 
     def recalculate_completed(self):
-        self.sync_to_local_storage()
         self.count_completed = len([todo for todo in self.todos if todo.completed])
