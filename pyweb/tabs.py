@@ -6,7 +6,7 @@ import js
 from pyweb.framework import Tag, attr, state, on
 from pyweb.style import Style
 from pyweb.tags import div
-from pyweb.utils import log, to_js
+from pyweb.utils import to_js
 
 
 class tab(div, name='tab'):
@@ -32,10 +32,6 @@ class tab(div, name='tab'):
     def __set_ref__(self, parent, ref):
         super().__set_ref__(parent, ref)
         self.tab_id = ref.name
-
-    @visible.on('change')
-    def onchange(self, value):
-        log.debug(f'{self} visible: {value}')
 
 
 class tab_title(Tag, name='li', content_tag=None):

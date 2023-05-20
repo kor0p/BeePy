@@ -49,7 +49,7 @@ class attr:
     fget: Callable[[Context], T]
     fset: Callable[[Context, T], None]
     fdel: Callable[[Context], None]
-    handlers: dict[str, list[Callable[[Context, T], None], ...]]
+    handlers: dict[str, list[Callable[[Context, T], None]]]
     enum: Sequence
 
     _cache: dict[Context, AttrType]
@@ -99,13 +99,26 @@ class attr:
 
         self._cache = {}
 
+    @property
+    def priority(self):
+        if self.move_on:
+            return 0
+        elif self.model:
+            return 2
+        else:
+            return 1
+
+    @classmethod
+    def order_dict_by_priority(cls, dict_attrs):
+        return dict(sorted(dict_attrs.items(), key=lambda item: item[1].priority))
+
     def __get__(self, instance, owner=None):
         if instance is None:
             return self
         return (self.fget or self._fget)(instance)
 
     def _fget(self, instance):
-        return self._cache.get(instance, self.initial_value)
+        return self._cache.get(None if self.static else instance, self.initial_value)
 
     def __call__(self, fget):
         self.fget = fget
@@ -117,10 +130,13 @@ class attr:
         return self
 
     def __set__(self, instance, value, _prevent_model=False):
-        if self.const and self.__get__(instance) is not None:
+        current_value = self.__get__(instance)
+        if self.const and current_value is not None:
             raise AttributeError
 
-        log.debug('[__SET__]', instance, self.name, value)
+        if current_value == value:
+            return
+
         (self.fset or self._fset)(instance, value)
 
         for trigger in self.handlers['change']:
@@ -145,7 +161,7 @@ class attr:
         if self.enum is not None and value not in self.enum:
             raise TypeError(f'Possible values: {self.enum}. Provided value: {value}')
 
-        self._cache[instance] = value
+        self._cache[None if self.static else instance] = value
 
     def setter(self, fset):
         self.fset = fset
@@ -158,12 +174,6 @@ class attr:
             self.name = to_kebab_case(name)
         else:
             self.name = name
-
-        # print(f'[+---+] {owner} {self._from_model_cache} {name} {self}')
-        # for index, (instance, _attr, _) in enumerate(self._from_model_cache):
-        #     print(f'[---] {owner} {instance} {_attr} {name} {self}')
-        #     if isinstance(instance, owner):
-        #         self._from_model_cache[index] = (instance, _attr, name)
 
     def _set_type(self, _type, raise_error=False):
         if hasattr(_type, '__origin__'):  # TODO: add support of strict check of type on change/etc
@@ -274,8 +284,10 @@ class attr:
     def _fdel(self, instance):
         if self.fget is not None:
             raise AttributeError
+        if self.static:
+            return
 
-        del self._cache[instance]
+        self._cache.pop(instance, None)
 
     def deleter(self, fdel):
         self.fdel = fdel
@@ -352,8 +364,13 @@ class html_attr(attr):
     def _fset(self, instance, value):
         if hasattr(instance, 'mount_element'):
             value = self._get_view_value(value=value)
-            # attributes are set like setAttribute, if attribute is native, even if it's hidden
-            setattr(instance.mount_element, self.name, value)
+            if issubclass(self.type, bool):
+                if value is None:
+                    instance.mount_element.removeAttribute(self.name)
+                else:
+                    instance.mount_element.setAttribute(self.name, value)
+            else:
+                setattr(instance.mount_element, self.name, value)
 
     def _fdel(self, instance):
         delattr(instance.mount_element, self.name)

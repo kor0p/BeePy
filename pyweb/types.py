@@ -6,6 +6,7 @@ from abc import ABC, abstractmethod
 from typing import Optional, Union, Iterable, ForwardRef
 from functools import wraps
 
+import pyweb
 from pyweb.trackable import TrackableList
 from pyweb.utils import __CONFIG__, escape_html
 
@@ -48,7 +49,7 @@ class safe_html(str):
 class Renderer:
     __slots__ = ()
 
-    def _render(self, value: Union[str, Iterable[str, ...]]) -> str:
+    def _render(self, value: Union[str, Iterable[str]]) -> str:
         if isinstance(value, safe_html):
             return value.__html__()
 
@@ -105,7 +106,7 @@ class Children(WebBase, TrackableList):
                 return self.ref
             else:
                 raise TypeError(f'{self} already is child')
-        ref = ChildrenRef(self)
+        ref = pyweb.children.ChildrenRef(self)
         self.__set_parent__(parent, 0, ref)
         return ref
 
@@ -158,9 +159,5 @@ class Children(WebBase, TrackableList):
 
 AttrType = Union[None, str, int, bool, Iterable['AttrType'], dict[str, 'AttrType'], AttrValue, Tag, attr]
 ContentType = Union[str, Iterable, Renderer]
-
-
-from pyweb.children import ChildrenRef
-from pyweb.framework import Tag
 
 __all__ = ['AttrType', 'ContentType', 'AttrValue', 'Renderer', 'Mounter', 'Children']

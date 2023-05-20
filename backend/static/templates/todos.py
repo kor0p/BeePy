@@ -6,6 +6,7 @@ from pyweb.children import Children
 from pyweb.local_storage import LocalStorage
 
 
+Head.title = 'Todo List'
 Style.import_file('styles/todos.css')
 
 
@@ -57,7 +58,6 @@ class TodoList(ul, content_tag=p()):
                 for todo in saved_todos
             ]
         self.recalculate_completed()
-        Head.title = 'Todo List'
 
     def content(self):
         return f'Completed: {self.count_completed}/{len(self.todos)}'

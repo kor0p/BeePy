@@ -32,7 +32,7 @@ class Modal(Tag, name='modal', content_tag='h2', children_tag='modal-content'):
             'flex-direction': 'column',
             ('justify-content', 'justify-items', 'align-items'): 'center',
             'background-color': '#333',
-            'box-shadow': '0 0 1.5rem rgb(255 255 255 / 33%)',
+            'box-shadow': '0 0 1.5rem rgb(255 255 255 / 33%)',  # TODO: create pyweb.style.rgb function
         },
     })
 
@@ -54,6 +54,9 @@ class Modal(Tag, name='modal', content_tag='h2', children_tag='modal-content'):
 
     def __mount__(self, element, parent, index=None):
         super().__mount__(Body.mount_element, Body)
+
+    def __unmount__(self, element, parent, _unsafe=False):
+        return super().__unmount__(element, parent, _unsafe=True)
 
 
 class ModalHandler(div, content_tag=div()):

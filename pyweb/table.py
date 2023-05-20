@@ -46,7 +46,7 @@ class TD(td):
 
 
 class TR(tr):
-    data = state(type=list[dict[str, str], ...])
+    data = state(type=list[dict[str, str]])
 
     _data = Children()
 
@@ -76,7 +76,7 @@ class TR(tr):
 
 
 class TableHead(thead, children_tag=TR(), force_ref=True):
-    columns = state(type=list[dict[Literal['id', 'label', 'view'], str], ...])
+    columns = state(type=list[dict[Literal['id', 'label', 'view'], str]])
     # TODO: maybe use 'name' instead of 'id'
     #       add 'hidden' option (availability to hide some columns)
 
@@ -105,7 +105,7 @@ class TableHead(thead, children_tag=TR(), force_ref=True):
 
 
 class TableBody(tbody, force_ref=True):
-    rows = state(type=list[list[str, ...], ...])
+    rows = state(type=list[list[str]])
 
     _rows = Children()
 

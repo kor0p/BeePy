@@ -110,12 +110,12 @@ If you have config, you must define it before loading pyweb script
 const DEFAULT_CONFIG = {
     // user can specify version of pyodide
     // TODO: check supporting versions of pyodide
-    pyodideVersion: '0.23.1',
+    pyodideVersion: '0.23.2',
     // could be useful for some internal checks
     __loading: false,
     // extra modules in base dir to load
     modules: [],
-    requirements: [],
+    requirements: [],  // also could be function
 }
 
 // could be useful in the future, i.e: get attributes of <script src="pyweb" />
@@ -257,7 +257,9 @@ async function systemLoad () {
     window.pyodide = await window.loadPyodide({ indexURL })
     pyweb.globals = pyodide.globals
     await pyodide.loadPackage('micropip')
-    await Promise.all(pyweb.__CONFIG__.requirements.map(requirement => pyodide.loadPackage(requirement)))
+    let requirements = pyweb.__CONFIG__.requirements
+    if (!Array.isArray(requirements)) requirements = requirements()
+    await Promise.all(requirements.map(requirement => pyodide.loadPackage(requirement)))
     pyweb.__CONFIG__.__loading = true
     console.log(pyodide._api.sys.version)
 }
@@ -394,4 +396,26 @@ pyweb._loadLocalModule = function _loadLocalModule (
     pyweb._writeLocalFileSync(pathToWrite, moduleFile)
 
     return false
+}
+
+pyweb.listenerCheckFunctions = {
+    'prevent': 'preventDefault',
+    'stop': 'stopPropagation',
+    'stop_all': 'stopImmediatePropagation',
+}
+
+pyweb.addAsyncListener = function addAsyncListener (el, eventName, method, modifiers, options={}) {
+    async function _listener (event) {
+        for (const modifier of modifiers) {
+            event[pyweb.listenerCheckFunctions[modifier]]()
+        }
+
+        try {
+            return await method(event)
+        } catch (err) {
+            _DEBUGGER(err)
+        }
+    }
+    el.addEventListener(eventName, _listener, options)
+    return _listener
 }

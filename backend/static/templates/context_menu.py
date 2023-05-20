@@ -4,6 +4,8 @@ from pyweb import Style, __version__
 from pyweb.tags import p, Head
 from pyweb.context_menu import MenuDivider, MenuItem, ContextMenu, ContextMenuHandler
 
+Head.title = 'Context Menu example'
+
 
 class Menu(ContextMenu):
     children = [
@@ -40,6 +42,3 @@ class TestContext(ContextMenuHandler, name='test-context', content_tag=p()):
     ]
 
     _content = 'Right click somewhere on the page...'
-
-    def mount(self):
-        Head.title = 'Context Menu example'

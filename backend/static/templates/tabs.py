@@ -6,6 +6,7 @@ from pyweb.tabs import tab, tab_title, tabs
 from pyweb.router import WithRouter, Link
 
 
+Head.title = 'Tabs example'
 a_nt = partial(a, target='_blank')
 NEW_LINE = span('\n')
 
@@ -96,25 +97,25 @@ class LinkTabs(tabs):
         p(
             span('More examples:'),
             NEW_LINE,
-            a_nt('Admin panel (Django)', href='/e/'),
+            Link('Admin panel (Django)', to='admin'),
             NEW_LINE,
-            a_nt('Dynamic plot', href='/e/plot'),
+            Link('Dynamic plot', to='plot'),
             NEW_LINE,
-            Link('First try (this link is shallow 😊)', to='/e/buttons'),
+            Link('First try', to='buttons'),
             NEW_LINE,
-            a_nt('Tabs (this one)', href='/e/list-examples'),
+            Link('Tabs (this one)', to=''),
             NEW_LINE,
-            a_nt('Todo List', href='/e/todos'),
+            Link('Todo List', to='todos'),
             NEW_LINE,
-            a_nt('Modal', href='/e/modal'),
+            Link('Modal', to='modal'),
             NEW_LINE,
-            a_nt('Context Menu', href='/e/context-menu'),
+            Link('Context Menu', to='context-menu'),
             NEW_LINE,
-            a_nt('Dynamic URL', href='/e/dynamic-url'),
+            Link('Dynamic URL', to='dynamic-url'),
             NEW_LINE,
-            a_nt('Timer', href='/e/timer'),
+            Link('Timer', to='timer'),
             NEW_LINE,
-            a_nt('Input\'s model', href='/e/text-sync'),
+            Link('Input\'s model', to='text-sync'),
             NEW_LINE,
             a_nt('Custom url, hosted by Django', href='/custom_url'),
             NEW_LINE,
@@ -151,6 +152,3 @@ class test_tabs(Tag, WithRouter, name='test-tabs'):
     children = [
         LinkTabs(),
     ]
-
-    def mount(self):
-        Head.title = 'Tabs example'

@@ -144,6 +144,9 @@ class Style(Tag, name='style', content_tag=None, raw_html=True, force_ref=True):
         else:
             super().__mount__(element, parent, index)
 
+    def __unmount__(self, element, parent, _unsafe=False):
+        return super().__unmount__(element, parent, _unsafe=True)
+
     def mount(self):
         parent = self.real_parent
 
@@ -183,7 +186,7 @@ class Style(Tag, name='style', content_tag=None, raw_html=True, force_ref=True):
 
     @classmethod
     def import_file(cls, file_path):
-        js.pyweb.addElement(
+        return js.pyweb.addElement(
             js.document.head,
             'link',
             href=js.pyweb.getPathWithCurrentPathAndOrigin(file_path),

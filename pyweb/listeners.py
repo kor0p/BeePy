@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 from typing import Optional, Any, Callable
 from types import MethodType
 from functools import partial, wraps
@@ -8,8 +9,9 @@ from copy import deepcopy
 import js
 
 from pyweb.types import Tag
-from pyweb.utils import log, _PY_TAG_ATTRIBUTE, ensure_sync, _current, _debugger, add_event_listener
+from pyweb.utils import _PY_TAG_ATTRIBUTE, create_proxy, to_js
 
+GLOBAL_EVENTS_LIST = ('keyup', 'keypress', 'keydown')
 _key_codes = {
     'esc': (27,),
     'tab': (9,),
@@ -30,35 +32,24 @@ def key_code_check(key_name, event):
     return event.keyCode in _key_codes[key_name]
 
 
-def stop_propagation(event):
-    event.stopPropagation()
-    return True
-
-
-def prevent_default(event):
-    event.preventDefault()
-    return True
-
-
-_checks = {
-    'prevent': prevent_default,
-    'stop': stop_propagation,
-}
+RAW_JS_CHECKS = ('prevent', 'stop', 'stop_all')
 
 
 class on:
-    __slots__ = ('name', 'callback', 'get_parent', 'modifiers', 'checks')
+    __slots__ = ('name', 'callback', 'get_parent', 'modifiers', 'checks', 'js_checks')
 
     name: Optional[str]
     callback: Callable[[Tag, ...], Any]
     get_parent: bool
-    modifiers: list[str, ...]
-    checks: list[Callable[[js.Event], bool], ...]
+    modifiers: list[str]
+    checks: list[Callable[[js.Event], bool]]
+    js_checks: list[str]
 
     def __init__(self, method):
         self.get_parent = False
         self.modifiers = []
         self.checks = []
+        self.js_checks = []
 
         if isinstance(method, str):
             if '.' in method:
@@ -67,8 +58,8 @@ class on:
                     if modifier in _key_codes:
                         # TODO: check for visibility?
                         self.checks.append(partial(key_code_check, modifier))
-                    elif modifier in _checks:
-                        self.checks.append(_checks[modifier])
+                    elif modifier in RAW_JS_CHECKS:
+                        self.js_checks.append(modifier)
                     else:
                         raise ValueError(f'Unknown event modifier ".{modifier}"!')
 
@@ -84,51 +75,68 @@ class on:
         return self
 
     def __get__(self, instance, owner=None):
-        log.debug('[ON]', self, instance, owner)
         if instance is None:
             return self
         return self.callback
 
-    def _call(self, tag, event):
+    def _prepare_call(self, tag, event):
         for check in self.checks:
             if not check(event):
                 return
 
         if self.get_parent:
             tag = tag.parent
+
         if isinstance(self.callback, MethodType):
-            fn = self.callback
+            return self.callback, tag
         else:
-            fn = MethodType(self.callback, tag)
+            return MethodType(self.callback, tag), tag
 
-        data = ensure_sync(fn(event))
+    async def _a_call(self, tag, event):
+        if (prepare := self._prepare_call(tag, event)) is None:
+            return
 
-        for dependent in tag._dependents:
-            # TODO: move to other place
-            log.debug('[_CALL]', 1, fn, dependent)
-            dependent.__render__()
+        fn, tag = prepare
 
-        if PY_TAG := getattr(event.currentTarget, _PY_TAG_ATTRIBUTE):
-            log.debug('[_CALL]', 2, PY_TAG)
-            PY_TAG.__render__()
-        else:
-            log.debug('[_CALL]', 3, fn)
-            tag.__render__()
-
+        data = await fn(event)
+        self._after_call(tag, event)
         return data
 
-    def _make_listener(self, event_name: str, tag: Tag):
-        @wraps(self.callback)
-        def method(event):
-            try:
-                return self._call(tag, event)
-            except Exception as error:
-                log.debug(event_name)  # make available for debugging
-                _debugger(error)
+    def _call(self, tag, event):
+        if (prepare := self._prepare_call(tag, event)) is None:
+            return
 
-        is_global = event_name in ('keyup', 'keypress', 'keydown')  # TODO: check this || what about set global by attr?
-        add_event_listener(js.document if is_global else tag.mount_element, event_name, method)
-        return method
+        fn, tag = prepare
+        data = fn(event)
+        self._after_call(tag, event)
+        return data
+
+    def _after_call(self, tag, event):
+        for dependent in tag._dependents:
+            # TODO: move to other place
+            dependent.__render__()
+
+        getattr(event.currentTarget, _PY_TAG_ATTRIBUTE, tag).__render__()
+
+    def _make_listener(self, event_name: str, tag: Tag):
+        if inspect.iscoroutinefunction(self.callback):
+            @wraps(self.callback)
+            async def method(event):
+                return await self._a_call(tag, event)
+        else:
+            @wraps(self.callback)
+            def method(event):
+                return self._call(tag, event)
+        is_global = event_name in GLOBAL_EVENTS_LIST  # TODO: check this || what about set global by attr?
+        return js.pyweb.addAsyncListener(
+            js.document if is_global else tag.mount_element, event_name, create_proxy(method), to_js(self.js_checks)
+        )
+
+    @classmethod
+    def _remove_listener(cls, event_name: str, tag: Tag, event_listener: Callable):
+        is_global = event_name in GLOBAL_EVENTS_LIST
+
+        (js.document if is_global else tag.mount_element).removeEventListener(event_name, event_listener)
 
     def __set__(self, instance, value):
         raise AttributeError(f'Cannot set on_{self.name} event handler')
@@ -143,10 +151,9 @@ class on:
         if set_static_listeners:
             owner._static_listeners = deepcopy(owner._static_listeners)
             owner._static_listeners[self.name].append(self)
-        log.debug('[__SET_NAME__]', self, owner)
 
     def __repr__(self):
         return f'on_{self.name}({self.callback})'
 
 
-__all__ = ['on', '_key_codes', '_checks']
+__all__ = ['on', '_key_codes', 'RAW_JS_CHECKS']

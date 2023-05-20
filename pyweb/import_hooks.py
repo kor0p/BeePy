@@ -8,8 +8,13 @@ from pyweb.utils import IN_BROWSER, __CONFIG__, _debugger
 
 
 PYWEB_ROOT_PACKAGE = '__pyweb_root__'
+requirements = __CONFIG__['requirements']
 MODULES_NOT_EXISTING_ON_SERVER = [
-    PYWEB_ROOT_PACKAGE, *__CONFIG__['requirements'], '_hashlib', '_strptime', 'pprint',
+    PYWEB_ROOT_PACKAGE,
+    *(requirements() if callable(requirements) else requirements),
+    '_hashlib',
+    '_strptime',
+    'pprint',
 ]
 # some modules must be ignored to prevent load it from local server, when importing modules like micropip or datetime
 # TODO: move this hook higher to support importing `pyweb/__init__.py` natively

@@ -6,15 +6,16 @@ from datetime import datetime
 
 from pyweb import Tag, Style, SUPER, on
 from pyweb.style import with_style
-from pyweb.attrs import attr, state
+from pyweb.attrs import html_attr, state
 from pyweb.tags import button, by__input_id, _input, textarea, option, select, h2, label, Head
 from pyweb.tabs import tabs, tab, tab_title
 from pyweb.table import Table, TableHead, TableBody
 from pyweb.types import AttrValue
-from pyweb.utils import __CONFIG__, request, ensure_sync
+from pyweb.utils import __CONFIG__, request, force_sync, log
 
 
-Style.import_file('styles/admin.css')
+Head.title = 'Admin panel example'
+
 dt_input_format = __CONFIG__['default_datetime_format'] = '%Y-%m-%dT%H:%M:%S.%fZ'
 dt_view_format = '%a, %b %d %Y %X'
 __CONFIG__['api_url'] = '/api/'
@@ -47,8 +48,8 @@ class Group:
         return cls(id=None, name='')
 
 
-Users = list[User, ...]
-Groups = list[Group, ...]
+Users = list[User]
+Groups = list[Group]
 users = state([], type=Users, static=True)
 groups = state([], type=Groups, static=True)
 
@@ -60,7 +61,7 @@ def sync_groups(__from_tag, new_groups):
 
 class BaseForm(Tag, name='form', content_tag=h2()):
     error = state('')
-    visible = attr(False)
+    visible = html_attr(False)
 
     style = Style(styles={
         'opacity': 0,
@@ -147,9 +148,9 @@ class UserForm(BaseForm):
         except Exception as error:
             self.error = f'Error in request: {error}'
         else:
+            self.hide()
             self.error = ''
             self.user = User.default()
-            self.hide()
             await self.parent.load_users()
         self.parent.__render__()
 
@@ -204,8 +205,10 @@ class UsersTab(tab, name='users'):
         # TODO: request to DELETE user on backend
         self.table.delete_row(id=row['id'])
 
-    def mount(self):
-        ensure_sync(self.load_users())
+    @groups.on('change')
+    def reload_groups_changed(self, _tag, _new_groups):
+        self.__render__()
+        self.table.body.sync()
 
     async def load_users(self):
         try:
@@ -269,9 +272,9 @@ class GroupForm(BaseForm):
         except Exception as error:
             self.error = f'Error in request: {error}'
         else:
+            self.hide()
             self.error = ''
             self.group = Group.default()
-            self.hide()
             await self.parent.load_groups()  # TODO: add add_row method for table
         self.parent.__render__()
 
@@ -315,9 +318,6 @@ class GroupsTab(tab, name='groups'):
         # TODO: request to DELETE group on backend
         self.table.delete_row(id=row['id'])
 
-    def mount(self):
-        ensure_sync(self.load_groups())
-
     async def load_groups(self):
         try:
             new_groups = await request('groups/')
@@ -331,6 +331,7 @@ class GroupsTab(tab, name='groups'):
 
 
 class Admin(tabs, name='app'):
+    dark_theme = True
     name = 'admin'
 
     tabs_titles = {
@@ -341,14 +342,15 @@ class Admin(tabs, name='app'):
     users = UsersTab()
     groups = GroupsTab()
 
-    # TODO: create some `async def load()` instead of this
-    ensure_sync(groups.load_groups())
-    ensure_sync(users.load_users())
-
     children = [
         users,
         groups,
     ]
 
     def pre_mount(self):
-        Head.title = 'Admin panel example'
+        self.load_data()
+
+    @force_sync.wait_load
+    async def load_data(self):
+        await self.groups.load_groups()
+        await self.users.load_users()

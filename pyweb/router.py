@@ -10,7 +10,7 @@ import js
 from pyweb.framework import Tag, state, on
 from pyweb.tags import a
 from pyweb.types import Children
-from pyweb.utils import lazy_import_cls, _debugger, to_js
+from pyweb.utils import lazy_import_cls, _debugger, to_js, _current, reload_requirements
 
 
 class WithRouter:
@@ -59,7 +59,7 @@ class Path:
             key, value = search_element.split('=', 1)
             yield key, js.decodeURIComponent(value)
 
-    def make_href(self):
+    def push_state(self):
         url = js.URL.new(js.location.origin + self.pathname + self.hash)
 
         if (not url.hash and url.href[-1] == '#') or url.hash == '#':
@@ -75,24 +75,19 @@ class Path:
         )
 
 
-def join_paths(paths: list[str, ...]):
-    return re.sub('//+', '/', '/'.join(paths))
-
-
-# TODO: prevent <a href> to reload page and
-
 class Link(a, WithRouter):
-    to = state(type=str)
+    to = state(type=str, required=True)
 
     @to.on('change')
     def to_changed(self, value):
+        if self.router:
+            value = self.router.basename + value
         self.href = Path.parse_to(value)
 
     @on('click.prevent')
-    def navigate(self, event=None, to=None):
-        if to is None:
-            to = self.to
-        Path.parse(to).make_href()
+    async def navigate(self, event=None):  # TODO: make possible to create function without `event` argument
+        Path.parse(self.router.basename + self.to).push_state()
+        await reload_requirements()
         self.router._load_children()
 
 
@@ -112,10 +107,10 @@ class Router(Tag):
         components,
     ]
 
-    def mount(self):
+    def pre_mount(self):
         self._load_children()
 
-    def add_tag_component(self, tag_cls: str | Type[Tag], match, **kwargs):
+    def import_tag_component(self, tag_cls: str | Type[Tag], match, **kwargs):
         try:
             tag_cls: Type[Tag] = lazy_import_cls(tag_cls)
         except ModuleNotFoundError as e:
@@ -125,20 +120,37 @@ class Router(Tag):
         if issubclass(tag_cls, WithRouter):
             kwargs['router'] = self
             kwargs['match'] = match
-        self.components.append(tag_cls(**kwargs))
+        return tag_cls(**kwargs)
+
+    def add_tag_component(self, tag_cls: str | Type[Tag], match, path, **kwargs):
+        self.components.append(self.import_tag_component(tag_cls, match=match))
 
     def _load_children(self):
-        self.components.clear()
+        del _current['render'][1:]  # leave root
 
-        for path, tag_cls in self.routes.items():
-            if match := re.search(path, js.location.pathname):
-                self.add_tag_component(tag_cls, match=match)
-                if self.single_tag:
-                    break
+        old_components = list(self.components)
 
-        if not self.components:
-            if fallback := self.fallback_tag_cls:
-                self.add_tag_component(fallback, match=None)
-            else:
-                # TODO: maybe create PyWebError?
-                raise ValueError('No route to use!')
+        with self.components._disable_onchange:  # can Locker also be descriptor with auto-replace as in last two lines?
+            self.components.clear()
+
+            for path, tag_cls in self.routes.items():
+                if match := re.search(self.basename + path, js.location.pathname):
+                    self.add_tag_component(tag_cls, match=match, path=path)
+                    if self.single_tag:
+                        break
+
+            if not self.components:
+                if fallback := self.fallback_tag_cls:
+                    self.add_tag_component(fallback, match=None)
+                else:
+                    # TODO: maybe create PyWebError?
+                    raise ValueError('No route to use!')
+
+            for child in self.components:
+                child.link_parent_attrs(self)
+                args, kwargs = child.args_kwargs
+                kwargs = child._attrs_defaults | kwargs
+                child.init(*args, _load_children=False, **kwargs)
+
+            new_components, self.components = list(self.components), old_components
+        self.components[:] = new_components  # triggers correct onchange handlers

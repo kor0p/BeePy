@@ -5,6 +5,7 @@ from typing import Union, Type, TypeVar
 
 import js
 import pyweb
+import traceback
 
 from pyweb.attrs import attr
 from pyweb.types import AttrType
@@ -30,7 +31,7 @@ class _MetaContext(ABCMeta):
     _wait_onload_interval = None
     _context_classes = []
     __clean_class_attribute_names = ()
-    _contexts: list[Context, ...]
+    _contexts: list[Context]
 
     def __new__(mcs, _name: str, bases: tuple, namespace: dict, **kwargs):
         initialized = _CONTEXT_INITIALIZED  # if class Context is already defined
@@ -70,8 +71,6 @@ class _MetaContext(ABCMeta):
 
             namespace['__slots__'] = (*extra_attrs, *namespace['__slots__'])
 
-        log.debug('[__NAMESPACE__]', namespace)
-
         is_root = kwargs.get('_root')
         if is_root:
             ctx_name = ''
@@ -85,7 +84,7 @@ class _MetaContext(ABCMeta):
         cls: Union[Type[Context], type] = super().__new__(mcs, _name, bases, namespace)
 
         if initialized:
-            cls._static_attrs = cls._static_attrs.copy() | static_attrs
+            cls._static_attrs = attr.order_dict_by_priority(cls._static_attrs.copy() | static_attrs)
             cls._attrs_defaults = cls._attrs_defaults.copy() | attrs_defaults
         else:
             cls._static_attrs = {}
@@ -124,8 +123,8 @@ class _MetaContext(ABCMeta):
 
     @classmethod
     def _top_render_real(mcs, element):
-        element.__render__()
         pyweb.utils._current['render'].insert(0, {'root_element': element})
+        element.__render__()
         pyweb.tags.Body.style = ''
         js.document.getElementById('pyweb-loading').remove()
 
@@ -146,7 +145,7 @@ class _MetaContext(ABCMeta):
     @classmethod
     def create_onload(mcs):
         @create_once_callable
-        def onload(_):
+        def onload(*_, **__):
             mcs._to_load_before_top_render.remove(onload)
 
         mcs._to_load_before_top_render.append(onload)
@@ -193,16 +192,19 @@ class Context(metaclass=_MetaContext, _root=True):
                 attribute.__set_first__(self, kwargs[name], parent)
 
         if parent:
-            p_args, p_kwargs = parent.args_kwargs
-            p_data = parent._attrs_defaults | p_kwargs
-
-            for name, attr_to_move_on in parent.attrs.items():
-                if attr_to_move_on.move_on:
-                    attr_to_move_on._link_ctx(name, self, force_cls_set=True)
-                    if name in p_data:
-                        self._attrs_defaults[name] = p_data[name]
+            self.link_parent_attrs(parent)
 
         return self
+
+    def link_parent_attrs(self, parent):
+        p_args, p_kwargs = parent.args_kwargs
+        p_data = parent._attrs_defaults | p_kwargs
+
+        for name, attr_to_move_on in parent.attrs.items():
+            if attr_to_move_on.move_on:
+                attr_to_move_on._link_ctx(name, self, force_cls_set=True)
+                if name in p_data:
+                    self._attrs_defaults[name] = p_data[name]
 
     def __init__(self, *args, **kwargs: AttrType):
         self.__class__._contexts.append(self)

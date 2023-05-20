@@ -7,7 +7,7 @@ from pyweb.utils import Locker
 class Trackable(ABC):
     __slots__ = ()
 
-    onchange_triggers: list[Callable, ...]
+    onchange_triggers: list[Callable]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -162,11 +162,11 @@ class TrackableList(Trackable, list):
 
     def __iadd__(self, other):
         self.extend(other)
+        return self
 
     def __imul__(self, n):
         if self._disable_onchange:
-            super().__imul__(n)
-            return
+            return super().__imul__(n)
 
         length = len(self)
         n = n.__index__()
@@ -178,6 +178,7 @@ class TrackableList(Trackable, list):
                 self._notify_post_remove()
         else:
             self._notify_add(slice(length, len(self)), self[length:len(self)])
+        return self
 
     def __setitem__(self, key, value):
         if self._disable_onchange:

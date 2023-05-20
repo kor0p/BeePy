@@ -1,6 +1,8 @@
 from pyweb import Tag, Style, state, attr, on
 from pyweb.tags import Head
 
+Head.title = 'Test 1'
+
 
 class PyButton(Tag, name='button'):
     parent: 'View'
@@ -11,10 +13,14 @@ class PyButton(Tag, name='button'):
     increment = state(1)
     color = state('gray')
 
-    style = Style(
-        margin='8px',
-        color='{color}',
-    )
+    style = Style(styles={
+        '&': {
+            'margin': '8px',
+        },
+        '& *': {
+            'color': '{color}',
+        }
+    })
 
     @on
     def click(self, event):
@@ -31,7 +37,6 @@ class View(Tag, name='view'):
 
     style = Style(
         zoom=7,
-        button=dict(backgroundColor='lightblue')
     )
 
     children = [
@@ -41,6 +46,3 @@ class View(Tag, name='view'):
 
     def content(self):
         return f'{self.title}\nCount: {self.count}'
-
-    def mount(self):
-        Head.title = 'Test 1'

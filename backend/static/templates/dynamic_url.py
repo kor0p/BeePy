@@ -3,6 +3,8 @@ from pyweb import Tag, Style, attr, on
 from pyweb.tags import p, Head
 from pyweb.utils import delay
 
+Head.title = 'Dynamic URL'
+
 
 def push_hash(hash):
     url = js.URL.new(js.location.href)
@@ -54,6 +56,3 @@ class DynamicURL(Tag, name='div'):
         Item(name, url=url)
         for url, name in urls.items()
     ]
-
-    def mount(self):
-        Head.title = 'Dynamic URL'

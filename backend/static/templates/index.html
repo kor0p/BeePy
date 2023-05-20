@@ -5,7 +5,7 @@
         <meta charset='UTF-8'>
         <title>PyWeb</title>
         <style>
-            html {
+            * {
                 background: #333333;
                 color: white;
             }
@@ -14,11 +14,8 @@
             window.pyweb = {
                 config: {
                     debug: {{ DEBUG|lower }},
-                    requirements: [],
+                    requirements: () => window.location.href.includes('plot') ? ['numpy', 'matplotlib'] : [],
                 },
-            }
-            if (window.location.href.includes('plot')) {
-                window.pyweb.config.requirements.push('numpy', 'matplotlib')
             }
         </script>
         <script src='https://pyweb.netlify.app/pyweb.js'></script>

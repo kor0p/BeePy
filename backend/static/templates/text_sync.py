@@ -6,7 +6,6 @@ class TextSyncExample(Tag, name='example'):
     style = Style(
         zoom=5,
         input=dict(
-            backgroundColor='rgb(243, 244, 246)',  # TODO: create pyweb.style.rgb function
             outline='2px solid transparent',
             padding='0.5rem 0',
         ),

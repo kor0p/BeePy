@@ -2,6 +2,8 @@ from pyweb import Style, SUPER
 from pyweb.tags import p, Head
 from pyweb.modal import Modal, ModalHandler
 
+Head.title = 'Modal example'
+
 
 class TestModal(Modal):
     children = [
@@ -24,6 +26,3 @@ class Test(ModalHandler):
     children = [
         modal,
     ]
-
-    def mount(self):
-        Head.title = 'Modal example'

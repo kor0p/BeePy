@@ -5,6 +5,7 @@ from typing import Optional, Callable, Union, Type, TypeVar, Generic, Iterable
 
 import js
 
+import pyweb
 from pyweb.types import Tag, WebBase, Children, ContentType
 from pyweb.context import Context
 from pyweb.utils import log, _PY_TAG_ATTRIBUTE, _current
@@ -40,7 +41,7 @@ class ContentWrapper(CustomWrapper):
     mount_element: Optional[js.HTMLElement]
     parent: Optional[Tag]
     mount_parent: Optional[js.HTMLElement]
-    children: Optional[list[Tag, ...]]
+    children: Optional[list[Tag]]
 
     def __init__(self, content, tag):
         self.content = content
@@ -78,12 +79,12 @@ class ContentWrapper(CustomWrapper):
     def _mount_children(self):
         content = self.content()
 
-        if isinstance(content, Tag):
+        if isinstance(content, pyweb.framework.Tag):
             content = (content,)
         elif isinstance(content, Iterable) and not isinstance(content, str) and content:
             content = list(content)
             for _child in content[:]:
-                if not isinstance(_child, Tag):
+                if not isinstance(_child, pyweb.framework.Tag):
                     content = None
                     break
         else:
@@ -103,20 +104,17 @@ class ContentWrapper(CustomWrapper):
         # TODO: handle shadowRoot and documentFragment?
 
     def __render__(self):
-        _current['render'].append(self)
-        log.debug('[__RENDER__]', _current)
-
-        log.debug('[DEPENDENT]', _current['render'])
         if current_renderers := _current['render']:
             for renderer in current_renderers:
                 if self.parent and renderer not in self.parent._dependents and not isinstance(renderer, dict):
                     self.parent._dependents.append(renderer)
 
+        _current['render'].append(self)
+
         if self.children:
             for child in self.children:
                 child.__render__()
 
-            log.debug('[END __RENDER__]', _current)
             if _current['render'][-1] is self:
                 _current['render'].pop()
             return
@@ -125,14 +123,14 @@ class ContentWrapper(CustomWrapper):
         if not isinstance(result, str):
             raise TypeError(f'Function {self.content} cannot return {result}!')
 
-        if self.tag or self.parent._shadow_root:
+        if self.tag or (self.parent and self.parent._shadow_root):
             self.mount_element.innerHTML = result
         else:  # fragment can't be re-rendered
             self.mount_element.innerHTML = result
             current_html = self.mount_parent.innerHTML
             current_html_escaped = self._render(current_html)
             if result and result not in (current_html, current_html_escaped):
-                if current_html and not self.parent._raw_html:
+                if current_html and not (self.parent and self.parent._raw_html):
                     log.warn(
                         f'This html `{current_html}` will be replaces with this: `{result}`.\n'
                         'Maybe you must use pyweb.Tag instead of pyweb.tags.div, '
@@ -140,7 +138,6 @@ class ContentWrapper(CustomWrapper):
                     )
                 self.mount_parent.innerHTML = result
 
-        log.debug('[END __RENDER__]', _current)
         if _current['render'][-1] is self:
             _current['render'].pop()
 

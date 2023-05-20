@@ -46,6 +46,7 @@ class ContextMenu(ul):
         'width': '180px',
         'height': 'auto',
         'margin': 0,
+        'z-index': 50,
         # use absolute positioning
         'position': 'absolute',
         'list-style': 'none',
@@ -80,6 +81,9 @@ class ContextMenu(ul):
 
     def __mount__(self, element, parent, index=None):
         super().__mount__(Body.mount_element, Body)
+
+    def __unmount__(self, element, parent, _unsafe=False):
+        return super().__unmount__(element, parent, _unsafe=True)
 
 
 class ContextMenuHandler(div):

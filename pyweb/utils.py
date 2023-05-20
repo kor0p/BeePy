@@ -16,7 +16,9 @@ from datetime import datetime
 from importlib import import_module
 
 import js
+import micropip
 from pyodide import http as pyodide_http
+import pyweb
 
 
 # TODO: make it a module (could be a quite complicated due to loading pyweb modules as /<file>.py requests)
@@ -61,11 +63,11 @@ def merge_configs():
     js.pyweb.__CONFIG__ = to_js(__CONFIG__)
 
 
-if IN_BROWSER:
+if IN_BROWSER:  # TODO: check support for non-browser runs
     merge_configs()
 
 
-_current_render: list['Renderer', ...] = []
+_current_render: list['Renderer'] = []
 _current__lifecycle_method: dict[str, dict[int, 'Tag']] = {}
 _current: dict[str, Any] = {
     'render': _current_render,
@@ -254,17 +256,55 @@ if not IN_BROWSER:
         return response
 
 
-def ensure_sync(to_await):
-    if hasattr(to_await, '__await__'):
-        return asyncio.get_event_loop().run_until_complete(to_await)
+def ensure_sync(to_await, callback=lambda x: x):
+    if inspect.iscoroutine(to_await):
+        task = asyncio.get_event_loop().run_until_complete(to_await)
+        task.add_done_callback(callback)
+        return task
+
+    callback(to_await)
     return to_await
 
 
 def force_sync(function):
+    # TODO: maybe do it with class will be better?
+
+    callbacks = []
+
     @wraps(function)
-    def wrapper(*args, **kwargs):
-        return ensure_sync(function(*args, **kwargs))
+    def wrapper(*args, _done_callback_=None, **kwargs):
+        current_callbacks = [(cb() if dynamic else cb) for cb, dynamic in callbacks]
+        current_callbacks.append(_done_callback_)
+
+        def _callback(_res_):
+            try:
+                r = _res_.result()
+            except Exception as e:
+                _debugger(e)
+                return
+
+            for cb in current_callbacks:
+                if cb is None:
+                    continue
+                try:
+                    cb(*args, **kwargs, _res_=r)
+                except Exception as e:
+                    _debugger(e)
+        return ensure_sync(function(*args, **kwargs), _callback)
+
+    wrapper.run_after = wrapper.add_callback = lambda fn: callbacks.append((fn, False)) or fn
+    wrapper.add_dynamic_callback = lambda fn: callbacks.append((fn, True)) or fn
+
     return wrapper
+
+
+def force_sync__wait_load(function):
+    wrapper = force_sync(function)
+    wrapper.add_dynamic_callback(pyweb.context.Context.create_onload)
+    return wrapper
+
+
+force_sync.wait_load = force_sync__wait_load
 
 
 delay = js.delay
@@ -307,6 +347,18 @@ class Locker:
 
     def __str__(self):
         return f'Locker<{self.name}>({self.locked})'
+
+
+@force_sync
+async def reload_requirements():
+    get_requirements = __CONFIG__['requirements']
+    if not callable(get_requirements):  # static requirements, must be already loaded
+        return
+
+    await asyncio.gather(*[
+        micropip.install(requirement)
+        for requirement in get_requirements()
+    ])
 
 
 def lazy_import(module_path):
@@ -354,16 +406,5 @@ __all__ = [
     'log10_ceil', 'wraps_with_name', 'get_random_name', 'to_kebab_case',
     'set_timeout', 'clear_timeout', 'set_interval', 'clear_interval', 'add_event_listener', 'remove_event_listener',
     'const_attribute', 'ensure_sync', 'force_sync', 'delay', 'sleep',
-    'lazy_import', 'import_string', 'lazy_import_cls', 'safe_issubclass',
+    'lazy_import', 'import_string', 'lazy_import_cls', 'safe_issubclass', 'reload_requirements',
 ]
-
-# """
-# Example: _p__main_fn (defined below), that calls __pyweb_main__, if it's defined in __init__.py
-#
-# It's available after PyWeb is fully loaded
-# """
-#
-#
-# def _p__main_fn(locals_dict):
-#     if '__pyweb_main__' in locals_dict:
-#         return locals_dict['__pyweb_main__']()

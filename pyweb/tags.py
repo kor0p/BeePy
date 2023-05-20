@@ -21,6 +21,7 @@ class html_tag(Tag, _root=True, content_tag=None):
         if type(self).id is html_tag.id and (
             self.id is AUTO_ID or (__CONFIG__['inputs_auto_id'] and self.id is None)
         ):
+            # TODO: replace 5 and 2 with some log value
             self.id = f'{ref.name or get_random_name(5)}-{get_random_name(2)}'
 
 

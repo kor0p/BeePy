@@ -8,7 +8,6 @@ ul.todos form {
     align-items: center;
 }
 ul.todos form input {
-    border: none;
     outline: none;
     border-radius: .5rem;
     padding: .5rem;

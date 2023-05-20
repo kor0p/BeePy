@@ -16,12 +16,12 @@ from pyweb.listeners import on
 from pyweb.types import safe_html, Renderer, Mounter, WebBase, AttrType, ContentType
 from pyweb.utils import (
     log, NONE_TYPE, _PY_TAG_ATTRIBUTE, __CONFIG__, _current, _debugger, get_random_name, to_kebab_case, IN_BROWSER,
-    remove_event_listener, to_js
+    to_js
 )
 from pyweb.context import OVERWRITE, SUPER, CONTENT, _SPECIAL_CHILD_STRINGS, _MetaContext, Context
 
 
-__CONFIG__['version'] = __version__ = '0.3.3'
+__CONFIG__['version'] = __version__ = '0.4.0'
 
 
 if IN_BROWSER:
@@ -59,7 +59,7 @@ _TAG_INITIALIZED = False
 
 
 class _MetaTag(_MetaContext):
-    _tag_classes: list[Type[Tag], ...] = []
+    _tag_classes: list[Type[Tag]] = []
     __clean_class_attribute_names = ('_content_tag', '_static_children_tag')
 
     def __new__(mcs, _name: str, bases: tuple, namespace: dict, **kwargs):
@@ -235,7 +235,6 @@ class _MetaTag(_MetaContext):
     @_lifecycle_method()
     def __mount(self: Tag, args, kwargs, _original_func):
         self.__class__._tags.append(self)
-        log.debug('[__MOUNT__]', self, args, kwargs, _original_func, *args)
 
         self._mount_finished_ = False
 
@@ -284,7 +283,9 @@ class _MetaTag(_MetaContext):
 
     @_lifecycle_method()
     def __render(self: Tag, args, kwargs, _original_func):
-        if not self._mount_finished_:
+        if not self._mount_finished_ or (
+            not self.mount_element.parentElement and _current['render'][0]['root_element'] != self  # dismounted
+        ):
             return  # Prevent render before mount finished; Could be useful for setting intervals inside mount method
 
         # TODO: maybe function 'render' could return some content, appended to args?
@@ -383,8 +384,6 @@ class _MetaTag(_MetaContext):
         if self in self.__class__._tags:  # But why?
             self.__class__._tags.remove(self)
 
-        log.debug('[__UNMOUNT__]', self, args, kwargs, _original_func, getattr(args[0], _PY_TAG_ATTRIBUTE))
-
         self.unmount()
 
         for child in self.children:
@@ -400,7 +399,7 @@ class _MetaTag(_MetaContext):
         if IN_BROWSER:
             for event, event_listeners in self._event_listeners.items():
                 for event_listener in event_listeners:
-                    remove_event_listener(self.mount_element, event, event_listener)
+                    on._remove_listener(event, self, event_listener)
 
         self.post_unmount()
 
@@ -421,27 +420,27 @@ class Tag(WebBase, Context, metaclass=_MetaTag, _root=True):
     _static_content: ContentType = ''
 
     _content: ContentType
-    _dependents: list[Tag, ...]
+    _dependents: list[Tag]
     _shadow_root: js.HTMLElement
     _ref: Optional[TagRef]
     _force_ref: bool = False
 
     _tag_name_: str
-    _tags: list[Tag, ...]
-    _static_listeners: defaultdict[str, list[on, ...]]
-    _listeners: defaultdict[str, list[on, ...]]
-    _event_listeners: defaultdict[str, list[Callable[[js.Event], None], ...]]
+    _tags: list[Tag]
+    _static_listeners: defaultdict[str, list[on]]
+    _listeners: defaultdict[str, list[on]]
+    _event_listeners: defaultdict[str, list[Callable[[js.Event], None]]]
     mount_element: js.HTMLElement
     mount_parent: js.HTMLElement
     parent: Optional[Tag]
-    _static_children: list[ContentType, ...]
-    _children: list[Mounter, ...]
+    _static_children: list[ContentType]
+    _children: list[Mounter]
     _children_element: js.HTMLElement
     _static_children_tag: Tag
     _children_tag: Tag
     _mount_finished_: bool
-    _handlers: defaultdict[str, list[Callable[[Tag, js.Event, str, Any], None], ...]]
-    _static_onchange_handlers: list[tuple[Callable[[Tag, Any], Any], dict[str, list[state, ...]]]]
+    _handlers: defaultdict[str, list[Callable[[Tag, js.Event, str, Any], None]]]
+    _static_onchange_handlers: list[tuple[Callable[[Tag, Any], Any], dict[str, list[state]]]]
 
     @classmethod
     def __root_declared__(cls):
@@ -594,17 +593,17 @@ class Tag(WebBase, Context, metaclass=_MetaTag, _root=True):
     def unmount(self):
         """empty method for easy override with code for run before unmount"""
 
-    def __unmount__(self, element, parent):
-        if self.mount_parent is not element:
-            return
+    def __unmount__(self, element, parent, _unsafe=False):
+        if not _unsafe and self.mount_parent is not element:
+            log.warn('If you overwrite __mount__, you also should overwrite __unmount__')
 
-        element.safeRemoveChild(self.mount_element)
+        (self.mount_parent or element).safeRemoveChild(self.mount_element)
 
     def post_unmount(self):
         """empty method for easy override with code for run after unmount"""
 
     @property
-    def own_children(self) -> list[Mounter, ...]:
+    def own_children(self) -> list[Mounter]:
         return [child for child in self.children if not isinstance(child, (ChildRef, CustomWrapper))]
 
     @property
@@ -623,7 +622,7 @@ class Tag(WebBase, Context, metaclass=_MetaTag, _root=True):
                 return index
 
     @property
-    def children(self) -> list[Union[Mounter, Renderer, ChildRef, ContentWrapper], ...]:
+    def children(self) -> list[Union[Mounter, Renderer, ChildRef, ContentWrapper]]:
         return self._children
 
     @children.setter
