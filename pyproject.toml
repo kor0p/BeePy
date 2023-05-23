@@ -1,0 +1,5 @@
+[project]
+name = "PyWeb"
+authors = [{name = "kor0p", email = "3.kor0p@gmail.com"}]
+dynamic = ["version", "description"]
+requires-python = ">=3.10.10"
