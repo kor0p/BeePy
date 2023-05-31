@@ -1,4 +1,4 @@
-# PyWeb v0.4.0
+# PyWeb v0.4.1
 
 ## A frontend framework for python, using [pyodide](https://pyodide.org/), that uses [WASM](https://webassembly.org/)
 ### Use Python in browser to build modern frontend via PyWeb!
@@ -14,7 +14,8 @@
 - ### [Dynamic URL](https://pyweb.herokuapp.com/e/dynamic-url)
 - ### [Timer](https://pyweb.herokuapp.com/e/timer)
 - ### [Input's model](https://pyweb.herokuapp.com/e/text-sync)
-- ### [Other page, served by Django](https://pyweb.herokuapp.com/e/custom_url)
+- ### [Multiple apps on one page](https://pyweb.herokuapp.com/multiple-apps)
+- ### [Just the other one example](https://pyweb.herokuapp.com/e/custom_url)
 
 Code (custom_url.py from examples):
 ```python

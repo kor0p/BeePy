@@ -6,9 +6,9 @@ from typing import Optional, Callable, Union, Type, TypeVar, Generic, Iterable
 import js
 
 import pyweb
-from pyweb.types import Tag, WebBase, Children, ContentType
+from pyweb.types import Tag, Renderer, WebBase, Children, ContentType
 from pyweb.context import Context
-from pyweb.utils import log, _PY_TAG_ATTRIBUTE, _current
+from pyweb.utils import log, _PY_TAG_ATTRIBUTE
 
 
 class CustomWrapper(WebBase):
@@ -29,7 +29,7 @@ class StringWrapper(CustomWrapper):
 
 
 class ContentWrapper(CustomWrapper):
-    __slots__ = ('content', 'tag', 'mount_element', 'parent', 'mount_parent', 'children')
+    __slots__ = ('content', 'tag', 'mount_element', '_current_render', 'parent', 'mount_parent', 'children')
 
     SHADOW_ROOTS = (
         'article', 'aside', 'blockquote', 'body', 'div', 'footer', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'header',
@@ -39,11 +39,12 @@ class ContentWrapper(CustomWrapper):
     content: Callable[[], Union[ContentType, Tag]]
     tag: Optional[Tag]
     mount_element: Optional[js.HTMLElement]
+    _current_render: list[Renderer]
     parent: Optional[Tag]
     mount_parent: Optional[js.HTMLElement]
     children: Optional[list[Tag]]
 
-    def __init__(self, content, tag):
+    def __init__(self, content, tag, _current_render):
         self.content = content
         self.tag = tag
         if tag:
@@ -51,6 +52,7 @@ class ContentWrapper(CustomWrapper):
         else:
             self.mount_element = None
 
+        self._current_render = _current_render
         self.parent = None
         self.mount_parent = None
         self.children = None
@@ -104,19 +106,18 @@ class ContentWrapper(CustomWrapper):
         # TODO: handle shadowRoot and documentFragment?
 
     def __render__(self):
-        if current_renderers := _current['render']:
-            for renderer in current_renderers:
-                if self.parent and renderer not in self.parent._dependents and not isinstance(renderer, dict):
-                    self.parent._dependents.append(renderer)
+        for renderer in self._current_render:
+            if self.parent and renderer not in self.parent._dependents:
+                self.parent._dependents.append(renderer)
 
-        _current['render'].append(self)
+        self._current_render.append(self)
 
         if self.children:
             for child in self.children:
                 child.__render__()
 
-            if _current['render'][-1] is self:
-                _current['render'].pop()
+            if self._current_render[-1] is self:
+                self._current_render.pop()
             return
 
         result = self._render(self.content())
@@ -138,8 +139,8 @@ class ContentWrapper(CustomWrapper):
                     )
                 self.mount_parent.innerHTML = result
 
-        if _current['render'][-1] is self:
-            _current['render'].pop()
+        if self._current_render[-1] is self:
+            self._current_render.pop()
 
     def __repr__(self):
         return f'<{self.parent}.{self.content.__name__}()>'

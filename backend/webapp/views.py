@@ -8,3 +8,7 @@ def index(request):
 
 def custom_url(request):
     return render(request, 'custom_url/index.html')
+
+
+def multiple_apps(request):
+    return render(request, 'multiple_apps/index.html')

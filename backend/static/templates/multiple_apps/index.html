@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang='en'>
+    <head>
+        <meta charset='UTF-8'>
+        <title>PyWeb</title>
+        <style>
+            html {
+                background: #333333;
+                color: white;
+            }
+        </style>
+        <script src='https://pyweb.netlify.app/pyweb.js'></script>
+        <script>
+            pyweb.__main__ = async () => {
+                await enterPythonModule('{% static "templates/multiple_apps" %}')
+            }
+        </script>
+    </head>
+    <body>
+        <div id='root'></div>
+    </body>
+</html>

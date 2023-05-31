@@ -67,14 +67,6 @@ if IN_BROWSER:  # TODO: check support for non-browser runs
     merge_configs()
 
 
-_current_render: list['Renderer'] = []
-_current__lifecycle_method: dict[str, dict[int, 'Tag']] = {}
-_current: dict[str, Any] = {
-    'render': _current_render,
-    '_lifecycle_method': _current__lifecycle_method,
-}
-
-
 def _debugger(error=None):
     if isinstance(error, Exception):
         log.warn(traceback.format_exc())
@@ -402,7 +394,7 @@ __pyweb_global_handlers__ = [_default_global_handlers]
 
 __all__ = [
     'IN_BROWSER', 'create_once_callable', 'create_proxy', 'to_js',
-    'log', '_PY_TAG_ATTRIBUTE', 'NONE_TYPE', '__CONFIG__', '_current', '_debugger',
+    'log', '_PY_TAG_ATTRIBUTE', 'NONE_TYPE', '__CONFIG__', '_debugger',
     'log10_ceil', 'wraps_with_name', 'get_random_name', 'to_kebab_case',
     'set_timeout', 'clear_timeout', 'set_interval', 'clear_interval', 'add_event_listener', 'remove_event_listener',
     'const_attribute', 'ensure_sync', 'force_sync', 'delay', 'sleep',

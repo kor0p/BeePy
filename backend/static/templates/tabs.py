@@ -117,7 +117,9 @@ class LinkTabs(tabs):
             NEW_LINE,
             Link('Input\'s model', to='text-sync'),
             NEW_LINE,
-            a_nt('Custom url, hosted by Django', href='/custom_url'),
+            a_nt('Multiple apps on one page', href='/multiple-apps'),
+            NEW_LINE,
+            a_nt('Just the other one example', href='/custom_url'),
             NEW_LINE,
         ),
         p(

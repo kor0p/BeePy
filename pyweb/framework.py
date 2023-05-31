@@ -15,24 +15,24 @@ from pyweb.children import CustomWrapper, StringWrapper, ContentWrapper, ChildRe
 from pyweb.listeners import on
 from pyweb.types import safe_html, Renderer, Mounter, WebBase, AttrType, ContentType
 from pyweb.utils import (
-    log, NONE_TYPE, _PY_TAG_ATTRIBUTE, __CONFIG__, _current, _debugger, get_random_name, to_kebab_case, IN_BROWSER,
-    to_js
+    log, NONE_TYPE, _PY_TAG_ATTRIBUTE, __CONFIG__, _debugger, get_random_name, to_kebab_case, IN_BROWSER, to_js
 )
 from pyweb.context import OVERWRITE, SUPER, CONTENT, _SPECIAL_CHILD_STRINGS, _MetaContext, Context
 
 
-__CONFIG__['version'] = __version__ = '0.4.0'
+__CONFIG__['version'] = __version__ = '0.4.1'
 
 
 if IN_BROWSER:
     js.Element.__str__ = lambda self: f'<{self.tagName.lower()}/>'
+_current__lifecycle_method: dict[str, dict[int, 'Tag']] = {}
 
 
 def _lifecycle_method(*, hash_function=hash):
     def _wrapper(fn):
         name = fn.__name__
         attr_name = f'_wrapper_{name}_calling'
-        _cache = _current['_lifecycle_method'][attr_name] = {}
+        _cache = _current__lifecycle_method[attr_name] = {}
 
         @wraps(fn)
         def lifecycle_method(original_func):
@@ -223,7 +223,11 @@ class _MetaTag(_MetaContext):
             cls.__unmount__ = mcs.__unmount(cls.__unmount__)
 
         if initialized and 'mount' in kwargs:
-            setattr(cls.mount_element, _PY_TAG_ATTRIBUTE, cls())
+            _MetaTag._current_render[None] = {}  # to prevent ValueError
+            _self = cls()
+            del _MetaTag._current_render[None]
+            cls._root_parent = _self
+            setattr(cls.mount_element, _PY_TAG_ATTRIBUTE, _self)
 
         if cls.__ROOT__:
             cls.__root_declared__()
@@ -284,7 +288,7 @@ class _MetaTag(_MetaContext):
     @_lifecycle_method()
     def __render(self: Tag, args, kwargs, _original_func):
         if not self._mount_finished_ or (
-            not self.mount_element.parentElement and _current['render'][0]['root_element'] != self  # dismounted
+            not self.mount_element.parentElement and self._root_parent != self  # dismounted
         ):
             return  # Prevent render before mount finished; Could be useful for setting intervals inside mount method
 
@@ -417,10 +421,12 @@ class Tag(WebBase, Context, metaclass=_MetaTag, _root=True):
         '_handlers',
     )
 
+    _root_parent: Tag = None  # see function mount in the bottom
+
     _static_content: ContentType = ''
 
     _content: ContentType
-    _dependents: list[Tag]
+    _dependents: list[Renderer]
     _shadow_root: js.HTMLElement
     _ref: Optional[TagRef]
     _force_ref: bool = False
@@ -497,7 +503,7 @@ class Tag(WebBase, Context, metaclass=_MetaTag, _root=True):
         """empty method for easy override with code for run before render"""
 
     def __render__(self, attrs: Optional[dict[str, AttrType]] = None):
-        _current['render'].append(self)
+        self._current_render.append(self)
 
         if attrs is None:
             attrs = {}
@@ -525,8 +531,8 @@ class Tag(WebBase, Context, metaclass=_MetaTag, _root=True):
             else:  # string ?
                 self._children_element.append(self._render(child))
 
-        if _current['render'][-1] is self:
-            _current['render'].pop()
+        if self._current_render[-1] is self:
+            self._current_render.pop()
 
     def post_render(self):
         """empty method for easy override with code for run after render"""
@@ -659,7 +665,7 @@ class Tag(WebBase, Context, metaclass=_MetaTag, _root=True):
             elif callable(child):
                 if not isinstance(child, MethodType):
                     child = MethodType(child, self)
-                result[-1] = ContentWrapper(child, self._content_tag)
+                result[-1] = ContentWrapper(child, self._content_tag, self._current_render)
 
         return result
 
@@ -698,6 +704,13 @@ class Tag(WebBase, Context, metaclass=_MetaTag, _root=True):
 
         return wrapper
 
+    @property
+    def _current_render(self):
+        try:
+            return _MetaTag._current_render[self._root_parent]
+        except KeyError as e:
+            raise ValueError('It looks like element is not mounted correctly, please see the docs')
+
 
 _TAG_INITIALIZED = True
 
@@ -707,19 +720,28 @@ def empty_tag(name):
     return _MetaTag(name, (Tag, ), {}, name=name, content_tag=None)
 
 
+def inline_tag(name, content_tag=None, **attributes):
+    return _MetaTag(name, (Tag,), attributes, name=name, content_tag=content_tag)
+
+
 empty_div = empty_tag('div')
 empty_span = empty_tag('span')
 
 
 def mount(element: Tag, root_element: str, clear=False):
-    _MetaTag._pre_top_mount()
     root = js.document.querySelector(root_element)
     if root is None:
         raise NameError('Mount point not found')
     if clear:
         root.innerHTML = ''
-    parent = empty_tag(root.tagName.lower())()
-    setattr(root,  _PY_TAG_ATTRIBUTE, parent)
+
+    parent = inline_tag(root.tagName.lower(), _root_parent=state(type=Tag, move_on=True))()
+    parent._root_parent = parent
+    parent._attrs_defaults['_root_parent'] = parent
+    parent.__class__._root_parent.initial_value = parent
+    element.link_parent_attrs(parent)
+
+    setattr(root, _PY_TAG_ATTRIBUTE, parent)
     _MetaTag._top_mount(element, root, parent)
     _MetaTag._top_render(element)
 

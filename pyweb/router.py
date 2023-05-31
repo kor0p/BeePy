@@ -10,7 +10,7 @@ import js
 from pyweb.framework import Tag, state, on
 from pyweb.tags import a
 from pyweb.types import Children
-from pyweb.utils import lazy_import_cls, _debugger, to_js, _current, reload_requirements
+from pyweb.utils import lazy_import_cls, _debugger, to_js, reload_requirements
 
 
 class WithRouter:
@@ -126,7 +126,7 @@ class Router(Tag):
         self.components.append(self.import_tag_component(tag_cls, match=match))
 
     def _load_children(self):
-        del _current['render'][1:]  # leave root
+        self._current_render.clear()
 
         old_components = list(self.components)
 

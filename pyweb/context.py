@@ -27,10 +27,11 @@ _SPECIAL_CHILD_STRINGS = (OVERWRITE, SUPER, CONTENT)
 
 
 class _MetaContext(ABCMeta):
-    _to_load_before_top_render = []
-    _wait_onload_interval = None
+    _to_load_before_top_render: dict[Context | None, list] = {None: []}
+    _wait_onload_interval: dict[Context, Interval] = {}
     _context_classes = []
     __clean_class_attribute_names = ()
+    _current_render = {}
     _contexts: list[Context]
 
     def __new__(mcs, _name: str, bases: tuple, namespace: dict, **kwargs):
@@ -97,35 +98,20 @@ class _MetaContext(ABCMeta):
         return cls
 
     @classmethod
-    def _resolve_annotations(mcs):
-        # TODO: fix too many calls of get_type_hints
-        # for cls in mcs._context_classes:
-        #     for name, _type in get_type_hints(cls).items():
-        #         if not (attribute := getattr(cls, name, None)) or not isinstance(attribute, attr):
-        #             continue
-        #
-        #         attribute._set_type(_type)
-        """ not working, use attr(type=str) notation """
-
-    @classmethod
-    def _pre_top_mount(mcs):
-        mcs._resolve_annotations()
-
-    @classmethod
     def _top_mount(mcs, element, root, parent):
         pyweb.tags.Body.style = 'display: none'
+        mcs._current_render[parent] = []
         element.__mount__(root, parent)
-        pyweb.utils._current['render'].clear()
 
     @classmethod
     def _top_render(mcs, element):
-        mcs._wait_onload_interval = Interval(mcs.wait_onload, (element,), period=0.2)
+        mcs._wait_onload_interval[element._root_parent] = Interval(mcs.wait_onload, (element,), period=0.2)
 
     @classmethod
     def _top_render_real(mcs, element):
-        pyweb.utils._current['render'].insert(0, {'root_element': element})
         element.__render__()
         pyweb.tags.Body.style = ''
+        # TODO: show spinner for loading requirements
         js.document.getElementById('pyweb-loading').remove()
 
     @classmethod
@@ -146,16 +132,16 @@ class _MetaContext(ABCMeta):
     def create_onload(mcs):
         @create_once_callable
         def onload(*_, **__):
-            mcs._to_load_before_top_render.remove(onload)
+            mcs._to_load_before_top_render[None].remove(onload)
 
-        mcs._to_load_before_top_render.append(onload)
+        mcs._to_load_before_top_render[None].append(onload)
         return onload
 
     @classmethod
     def wait_onload(mcs, element):
-        if not mcs._to_load_before_top_render:
-            if mcs._wait_onload_interval:
-                mcs._wait_onload_interval.clear()
+        if not mcs._to_load_before_top_render[None] and not mcs._to_load_before_top_render.get(element._root_parent):
+            if interval := mcs._wait_onload_interval.get(element._root_parent):
+                interval.clear()
             mcs._top_render_real(element)
 
 

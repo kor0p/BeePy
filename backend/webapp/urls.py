@@ -7,5 +7,6 @@ from . import views
 
 urlpatterns = [
     path('custom_url', views.custom_url),
+    path('multiple-apps', views.multiple_apps),
     re_path('e/.*', views.index),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT, show_indexes=True)

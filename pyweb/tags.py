@@ -12,9 +12,9 @@ AUTO_ID = object()
 
 
 class html_tag(Tag, _root=True, content_tag=None):
-    contenteditable = attr(type=bool)
-    id = attr(type=str)
-    class_ = attr(type=str)
+    contenteditable = html_attr(type=bool)
+    id = html_attr(type=str)
+    class_ = html_attr(type=str)
 
     def __set_ref__(self, parent, ref):
         super().__set_ref__(parent, ref)
