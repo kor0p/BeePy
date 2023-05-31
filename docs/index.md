@@ -1,5 +1,31 @@
-# Welcome to PyWeb's documentation!
+# PyWeb
+### The _frontend_ web framework for Python
 
-# PyWeb v0.4.0
+## How?
+### Thanks for [pyodide](https://pyodide.org/), written in [WASM](https://webassembly.org/).
 
-# A frontend framework for python, using [pyodide](https://pyodide.org/), that uses [WASM](https://webassembly.org/). Use Python in browser to build modern frontend via PyWeb!
+## Why?
+### Use Python in browser to build modern frontend via PyWeb!
+
+## 🚀 Getting started
+<script src='https://pyweb.netlify.app/pyweb.js'></script>
+::::{tab-set}
+
+:::{tab-item} main.py
+(id-getting-started)=
+```{literalinclude} demo/getting-started.py
+:language: python
+```
+:::
+
+:::{tab-item} 🎉 Result
+
+<div id="demo-getting-started"></div>
+<script>
+// <![CDATA[
+pyweb.__main__ = () => apy(document.getElementById('id-getting-started').innerText)
+// ]]>
+</script>
+:::
+
+::::
