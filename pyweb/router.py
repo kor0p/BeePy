@@ -87,8 +87,10 @@ class Link(a, WithRouter):
     @on('click.prevent')
     async def navigate(self, event=None):  # TODO: make possible to create function without `event` argument
         Path.parse(self.router.basename + self.to).push_state()
+        js.pyweb.startLoading(mountPoint=self.router._root_parent.mount_element)
         await reload_requirements()
         self.router._load_children()
+        js.pyweb.stopLoading()
 
 
 class Router(Tag):

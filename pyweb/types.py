@@ -128,6 +128,7 @@ class Children(WebBase, TrackableList):
         if not self.mounted and not self.parent:
             return
 
+        child.link_parent_attrs(self.parent)
         child.__mount__(self.parent._children_element, self.parent, key + self.parent_index)
         if self.parent._mount_finished_:
             child.__render__()
@@ -148,6 +149,7 @@ class Children(WebBase, TrackableList):
         if index is not None:
             index += self.parent_index
         for child in self:
+            child.link_parent_attrs(parent)
             child.__mount__(element, parent, index)
 
     def __unmount__(self, element, parent):

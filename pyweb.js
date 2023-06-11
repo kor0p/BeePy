@@ -139,6 +139,9 @@ pyweb.addElement = function addElement (mountPoint, elementName, options={}) {
     mountPoint.insertChild(element, index)
     return element
 }
+pyweb.addElement(
+    document.head, 'link', {rel: 'stylesheet', type: 'text/css', href: `${pyweb.config.path}/pyweb.css`}
+)
 
 // loading pyodide script
 
@@ -242,12 +245,19 @@ window.enterPythonModule = async function enterPythonModule (module) {
     }
 }
 
-window.__pyweb_load = async () => {
-    if (!document.getElementById('pyweb-loading')) {
-        const loadingEl = pyweb.addElement(document.body, 'div', {id: 'pyweb-loading', _index: 0})
-        pyweb.addElement(loadingEl, 'style', {innerHTML: '#pyweb-loading {display: inline-block; background: none; width: 50px; height: 50px; position: fixed; top: 50%; left: 50%; border: 3px solid rgba(172, 237, 255, 0.5); border-radius: 50%; border-top-color: #fff; animation: spin 1s ease-in-out infinite; -webkit-animation: spin 1s ease-in-out infinite;} @keyframes spin {to {-webkit-transform: rotate(360deg);}} @-webkit-keyframes spin {to {-webkit-transform: rotate(360deg);}'})
-    }
+pyweb.startLoading = function startLoading ({ mountPoint=null, text='Loading...' }={}) {
+    if (!!document.getElementById('pyweb-loading')) return
+    pyweb.addElement(
+        mountPoint || document.body, 'div', {id: 'pyweb-loading', _index: 0, innerHTML: `<span>${text}</span>`}
+    )
+}
+pyweb.stopLoading = function stopLoading () {
+    const loadingEl = document.getElementById('pyweb-loading')
+    if (!!loadingEl) loadingEl.remove()
+}
 
+window.__pyweb_load = async () => {
+    pyweb.startLoading()
     await Promise.all([systemLoad(), pywebLoad()])
     window.removeEventListener('load', window.__pyweb_load)
 }

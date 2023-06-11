@@ -110,6 +110,7 @@ class tabs(Tag, name='tabs', content_tag='ul'):
         for tab_id, tab in self.tabs_list.items():
             title = self.tabs_titles[tab_id]
             title._tab = tab
+            title.link_parent_attrs(self)
             tab.title = title
 
         url = js.URL.new(js.location.href)

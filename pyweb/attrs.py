@@ -1,5 +1,6 @@
 from __future__ import annotations as _
 
+import keyword
 from typing import Optional, Callable, Union, Sequence, Type, get_type_hints, ForwardRef, TypeVar, Any
 from collections import defaultdict
 
@@ -344,16 +345,15 @@ class state(attr):
 class html_attr(attr):
     __slots__ = ()
 
-    _view = False
-
     def __init__(self, *args, name=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.name = name
 
     def __set_name__(self, owner, name):
-        super().__set_name__(owner, name)
         if self.name is None:
-            self.name = name
+            super().__set_name__(owner, name)
+        if self.name in keyword.kwlist:
+            self.name += '_'
 
     def _fget(self, instance):
         if instance is None:
@@ -369,6 +369,8 @@ class html_attr(attr):
                     instance.mount_element.removeAttribute(self.name)
                 else:
                     instance.mount_element.setAttribute(self.name, value)
+            elif self.name.endswith('_'):
+                instance.mount_element.setAttribute(self.name[:-1], value)
             else:
                 setattr(instance.mount_element, self.name, value)
 

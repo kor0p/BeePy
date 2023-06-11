@@ -223,11 +223,8 @@ class _MetaTag(_MetaContext):
             cls.__unmount__ = mcs.__unmount(cls.__unmount__)
 
         if initialized and 'mount' in kwargs:
-            _MetaTag._current_render[None] = {}  # to prevent ValueError
-            _self = cls()
-            del _MetaTag._current_render[None]
-            cls._root_parent = _self
-            setattr(cls.mount_element, _PY_TAG_ATTRIBUTE, _self)
+            cls._root_parent = None
+            setattr(cls.mount_element, _PY_TAG_ATTRIBUTE, cls())
 
         if cls.__ROOT__:
             cls.__root_declared__()
@@ -732,13 +729,17 @@ def mount(element: Tag, root_element: str, clear=False):
     root = js.document.querySelector(root_element)
     if root is None:
         raise NameError('Mount point not found')
+
+    js.pyweb.stopLoading()
     if clear:
         root.innerHTML = ''
+    js.pyweb.startLoading(mountPoint=root)
 
     parent = inline_tag(root.tagName.lower(), _root_parent=state(type=Tag, move_on=True))()
     parent._root_parent = parent
     parent._attrs_defaults['_root_parent'] = parent
     parent.__class__._root_parent.initial_value = parent
+    parent.mount_element = root
     element.link_parent_attrs(parent)
 
     setattr(root, _PY_TAG_ATTRIBUTE, parent)

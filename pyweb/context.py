@@ -5,11 +5,10 @@ from typing import Union, Type, TypeVar
 
 import js
 import pyweb
-import traceback
 
 from pyweb.attrs import attr
 from pyweb.types import AttrType
-from pyweb.utils import log, log10_ceil, get_random_name, const_attribute, Interval, to_kebab_case, create_once_callable
+from pyweb.utils import log10_ceil, get_random_name, const_attribute, Interval, to_kebab_case, create_once_callable
 
 
 __obj = object()
@@ -31,7 +30,7 @@ class _MetaContext(ABCMeta):
     _wait_onload_interval: dict[Context, Interval] = {}
     _context_classes = []
     __clean_class_attribute_names = ()
-    _current_render = {}
+    _current_render = {None: []}  # to prevent ValueError, for now
     _contexts: list[Context]
 
     def __new__(mcs, _name: str, bases: tuple, namespace: dict, **kwargs):
@@ -99,7 +98,7 @@ class _MetaContext(ABCMeta):
 
     @classmethod
     def _top_mount(mcs, element, root, parent):
-        pyweb.tags.Body.style = 'display: none'
+        root.style = 'visibility: hidden'
         mcs._current_render[parent] = []
         element.__mount__(root, parent)
 
@@ -110,9 +109,8 @@ class _MetaContext(ABCMeta):
     @classmethod
     def _top_render_real(mcs, element):
         element.__render__()
-        pyweb.tags.Body.style = ''
-        # TODO: show spinner for loading requirements
-        js.document.getElementById('pyweb-loading').remove()
+        element._root_parent.mount_element.style = ''
+        js.pyweb.stopLoading()
 
     @classmethod
     def _clean_namespace(mcs, namespace):

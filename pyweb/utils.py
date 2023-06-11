@@ -341,7 +341,6 @@ class Locker:
         return f'Locker<{self.name}>({self.locked})'
 
 
-@force_sync
 async def reload_requirements():
     get_requirements = __CONFIG__['requirements']
     if not callable(get_requirements):  # static requirements, must be already loaded
