@@ -1,4 +1,4 @@
-# BeePy
+# 🐝 BeePy
 ### The _frontend_ web framework for Python
 
 ## How?
