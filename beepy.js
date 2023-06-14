@@ -271,7 +271,7 @@ async function systemLoad () {
 
 async function beepyLoad () {
     // load relative modules from beepy/__init__.py
-    const _init = await beepy.loadFile(`${config.path}/beepy/__init__.py`, {_internal: true})
+    const _init = await beepy.loadFile(`${config.path}/beepy/init.py`, {_internal: true})
     const beepyModules = []
     for (const match of _init.matchAll(/from beepy import (?<modules>.+)/g)) {
         for (const module of match.groups.modules.split(/, ?/g)) {
@@ -282,7 +282,7 @@ async function beepyLoad () {
 
     // TODO: create wheel and load beepy modules via pip
     const contents = await Promise.all(
-        config.modules.map(file => beepy.loadFile(`${config.path}/beepy/${file}`, {_internal: true}))
+        config.modules.map(file => beepy.loadFile(`${config.path}/beepy/${file === '__init__.py' ? 'init.py' : file}`, {_internal: true}))
     )
 
     while (beepy.__CONFIG__.__loading === false) {
