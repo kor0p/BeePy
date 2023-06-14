@@ -1,7 +1,7 @@
 import io
 import base64
 
-from pyweb.tags import img
+from beepy.tags import img
 
 
 def get_plot_img(figure, **kwargs):

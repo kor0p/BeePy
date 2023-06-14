@@ -1,5 +1,5 @@
-from pyweb import Tag, mount, state, on
-from pyweb.tags import div
+from beepy import Tag, mount, state, on
+from beepy.tags import div
 
 
 class IncrementButton(Tag, name='button'):

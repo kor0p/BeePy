@@ -1,14 +1,14 @@
-# PyWeb
+# BeePy
 ### The _frontend_ web framework for Python
 
 ## How?
-### Thanks for [pyodide](https://pyodide.org/), written in [WASM](https://webassembly.org/).
+### Thanks for [Pyodide](https://pyodide.org/) - port of Python to [Emscripten](https://emscripten.org/), based on [WASM](https://webassembly.org/).
 
 ## Why?
-### Use Python in browser to build modern frontend via PyWeb!
+### Use Python in browser to build modern frontend via BeePy!
 
 ## 🚀 Getting started
-<script src='https://kor0p.github.io/PyWeb/pyweb.js'></script>
+<script src='https://kor0p.github.io/BeePy/beepy.js'></script>
 ::::{tab-set}
 
 :::{tab-item} main.py
@@ -23,7 +23,7 @@
 <div id="demo-getting-started"></div>
 <script>
 // <![CDATA[
-pyweb.__main__ = () => apy(document.getElementById('id-getting-started').innerText)
+beepy.__main__ = () => apy(document.getElementById('id-getting-started').innerText)
 // ]]>
 </script>
 :::

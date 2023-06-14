@@ -1,5 +1,5 @@
 // TODO: deploy to npm
-// TODO: make pyweb.min.js
+// TODO: make beepy.min.js
 
 window._DEBUGGER = function _DEBUGGER (error=null) {
     const place_breakpoint_here = 'use variable _locals in console to get locals() from python frame';
@@ -87,18 +87,18 @@ Object.defineProperties(
  * available for py0-py9
  */
 
-// pyweb config
+// beepy config
 
-if (!window.pyweb || !window.pyweb.config) {
+if (!window.beepy || !window.beepy.config) {
     console.log(`
-No pyweb config found! Default config will be used
-If you have config, you must define it before loading pyweb script
+No beepy config found! Default config will be used
+If you have config, you must define it before loading beepy script
     `)
-    if (!window.pyweb) {
-        window.pyweb = {}
+    if (!window.beepy) {
+        window.beepy = {}
     }
-    if (!pyweb.config) {
-        pyweb.config = {}
+    if (!beepy.config) {
+        beepy.config = {}
     }
 }
 
@@ -113,16 +113,16 @@ const DEFAULT_CONFIG = {
     requirements: [],  // also could be function
 }
 
-// could be useful in the future, i.e: get attributes of <script src="pyweb" />
-pyweb.script = document.currentScript
-const _src = pyweb.script.src
-if (!pyweb.config.path && _src.indexOf('pyweb.js')) {
-    pyweb.config.path = _src.substring(0, _src.indexOf('pyweb.js') - 1).replace(/\/+$/, '')
+// could be useful in the future, i.e: get attributes of <script src="beepy" />
+beepy.script = document.currentScript
+const _src = beepy.script.src
+if (!beepy.config.path && _src.indexOf('beepy.js')) {
+    beepy.config.path = _src.substring(0, _src.indexOf('beepy.js') - 1).replace(/\/+$/, '')
 }
 
-const config = mergeDeep(DEFAULT_CONFIG, pyweb.config)
-pyweb.__CONFIG__ = config
-pyweb.addElement = function addElement (mountPoint, elementName, options={}) {
+const config = mergeDeep(DEFAULT_CONFIG, beepy.config)
+beepy.__CONFIG__ = config
+beepy.addElement = function addElement (mountPoint, elementName, options={}) {
     const element = document.createElement(elementName, {is: options._is})
     const index = options._index
     delete options._is
@@ -134,33 +134,33 @@ pyweb.addElement = function addElement (mountPoint, elementName, options={}) {
     mountPoint.insertChild(element, index)
     return element
 }
-pyweb.addElement(
-    document.head, 'link', {rel: 'stylesheet', type: 'text/css', href: `${pyweb.config.path}/pyweb.css`}
+beepy.addElement(
+    document.head, 'link', {rel: 'stylesheet', type: 'text/css', href: `${beepy.config.path}/beepy.css`}
 )
 
 // loading pyodide script
 
 const indexURL = `https://cdn.jsdelivr.net/pyodide/v${config.pyodideVersion}/full/`
-pyweb.addElement(document.head, 'script', {type: 'module', src: indexURL + 'pyodide.js'})
+beepy.addElement(document.head, 'script', {type: 'module', src: indexURL + 'pyodide.js'})
 
 
 // defining tools for running python
 
-const rootFolder = '__pyweb_root__'
+const rootFolder = '__beepy_root__'
 
-pyweb.loadFile = async function loadFile (filePath, {_internal=false, checkPathExists=false}={}, _method_head=false) {
-    if (!_internal) pyweb.__CURRENT_LOADING_FILE__ = filePath
+beepy.loadFile = async function loadFile (filePath, {_internal=false, checkPathExists=false}={}, _method_head=false) {
+    if (!_internal) beepy.__CURRENT_LOADING_FILE__ = filePath
     if (!filePath.includes('http')) filePath = `${window.location.origin}/${filePath}`
-    if (checkPathExists && !(await pyweb.loadFile(filePath, {_internal}, true)).ok) return '<'
+    if (checkPathExists && !(await beepy.loadFile(filePath, {_internal}, true)).ok) return '<'
 
     const r = await fetch(filePath, {method: _method_head ? 'HEAD' : 'GET'})
     return _method_head ? r : await r.text()
 }
 
-pyweb.loadFileSync = function loadFileSync (filePath, {_internal=false, checkPathExists=false}={}, _method_head=false) {
-    if (!_internal) pyweb.__CURRENT_LOADING_FILE__ = filePath
+beepy.loadFileSync = function loadFileSync (filePath, {_internal=false, checkPathExists=false}={}, _method_head=false) {
+    if (!_internal) beepy.__CURRENT_LOADING_FILE__ = filePath
     if (!filePath.includes('http')) filePath = `${window.location.origin}/${filePath}`
-    if (checkPathExists && pyweb.loadFileSync(filePath, {_internal}, true).status !== 200) return '<'
+    if (checkPathExists && beepy.loadFileSync(filePath, {_internal}, true).status !== 200) return '<'
 
     const req = new XMLHttpRequest()
     req.open(_method_head ? 'HEAD' : 'GET', filePath, false)
@@ -168,38 +168,38 @@ pyweb.loadFileSync = function loadFileSync (filePath, {_internal=false, checkPat
     return _method_head ? req : req.response
 }
 
-pyweb._writeInternalFile = async function _writeInternalFile (file, content) {
-    if (!content) content = await pyweb.loadFile(`${config.path}/pyweb/${file}`, {_internal: true})
-    pyodide.FS.writeFile(`pyweb/${file}`, content)
+beepy._writeInternalFile = async function _writeInternalFile (file, content) {
+    if (!content) content = await beepy.loadFile(`${config.path}/beepy/${file}`, {_internal: true})
+    pyodide.FS.writeFile(`beepy/${file}`, content)
 }
 
-pyweb._writeInternalFileSync = function _writeInternalFileSync (file, content) {
-    if (!content) content = pyweb.loadFileSync(`${config.path}/pyweb/${file}`, {_internal: true})
-    pyodide.FS.writeFile(`pyweb/${file}`, content)
+beepy._writeInternalFileSync = function _writeInternalFileSync (file, content) {
+    if (!content) content = beepy.loadFileSync(`${config.path}/beepy/${file}`, {_internal: true})
+    pyodide.FS.writeFile(`beepy/${file}`, content)
 }
 
-pyweb._writeLocalFile = async function _writeLocalFile (file, content) {
-    if (file.substring(0, 6) === 'pyweb/') return await pyweb._writeInternalFile(file.substring(6), content)
-    if (!content) content = await pyweb.loadFile(_lstrip(file), {_internal: true})
+beepy._writeLocalFile = async function _writeLocalFile (file, content) {
+    if (file.substring(0, 6) === 'beepy/') return await beepy._writeInternalFile(file.substring(6), content)
+    if (!content) content = await beepy.loadFile(_lstrip(file), {_internal: true})
     pyodide.FS.writeFile(`${rootFolder}/${file}`, content)
 }
 
-pyweb._writeLocalFileSync = function _writeLocalFileSync (file, content) {
-    if (file.substring(0, 6) === 'pyweb/') return pyweb._writeInternalFileSync(file.substring(6), content)
-    if (!content) content = pyweb.loadFileSync(_lstrip(file), {_internal: true})
+beepy._writeLocalFileSync = function _writeLocalFileSync (file, content) {
+    if (file.substring(0, 6) === 'beepy/') return beepy._writeInternalFileSync(file.substring(6), content)
+    if (!content) content = beepy.loadFileSync(_lstrip(file), {_internal: true})
     pyodide.FS.writeFile(`${rootFolder}/${file}`, content)
 }
 
 function _getGlobalsDict (options) {
     if (isObject(options)) {
-        return {globals: options.globals || pyweb.globals}
+        return {globals: options.globals || beepy.globals}
     } else if (options === null) {
-        return {globals: pyweb.globals}
+        return {globals: beepy.globals}
     } else {
         console.warn(
             'DeprecationWarning: The globals argument to runPython and runPythonAsync is now passed as a named argument'
         )
-        return {globals: options || pyweb.globals}
+        return {globals: options || beepy.globals}
     }
 }
 
@@ -232,7 +232,7 @@ window.enterPythonModule = async function enterPythonModule (module) {
             module = _lstrip(module).replace(/\//g, '.')
         }
 
-        pyweb._loadLocalModule(module, {pathToWrite: '__init__.py', addCurrentPath: false})
+        beepy._loadLocalModule(module, {pathToWrite: '__init__.py', addCurrentPath: false})
         py(`import ${rootFolder}`)
     } catch (e) {
         console.error(e)
@@ -240,81 +240,81 @@ window.enterPythonModule = async function enterPythonModule (module) {
     }
 }
 
-pyweb.startLoading = function startLoading ({ mountPoint=null, text='Loading...' }={}) {
-    if (!!document.getElementById('pyweb-loading')) return
-    pyweb.addElement(
-        mountPoint || document.body, 'div', {id: 'pyweb-loading', _index: 0, innerHTML: `<span>${text}</span>`}
+beepy.startLoading = function startLoading ({ mountPoint=null, text='Loading...' }={}) {
+    if (!!document.getElementById('beepy-loading')) return
+    beepy.addElement(
+        mountPoint || document.body, 'div', {id: 'beepy-loading', _index: 0, innerHTML: `<span>${text}</span>`}
     )
 }
-pyweb.stopLoading = function stopLoading () {
-    const loadingEl = document.getElementById('pyweb-loading')
+beepy.stopLoading = function stopLoading () {
+    const loadingEl = document.getElementById('beepy-loading')
     if (!!loadingEl) loadingEl.remove()
 }
 
-window.__pyweb_load = async () => {
-    pyweb.startLoading()
-    await Promise.all([systemLoad(), pywebLoad()])
-    window.removeEventListener('load', window.__pyweb_load)
+window.__beepy_load = async () => {
+    beepy.startLoading()
+    await Promise.all([systemLoad(), beepyLoad()])
+    window.removeEventListener('load', window.__beepy_load)
 }
-window.addEventListener('load', window.__pyweb_load)
+window.addEventListener('load', window.__beepy_load)
 
 async function systemLoad () {
     window.pyodide = await window.loadPyodide({ indexURL })
-    pyweb.globals = pyodide.globals
+    beepy.globals = pyodide.globals
     await pyodide.loadPackage('micropip')
-    let requirements = pyweb.__CONFIG__.requirements
+    let requirements = beepy.__CONFIG__.requirements
     if (!Array.isArray(requirements)) requirements = requirements()
     await Promise.all(requirements.map(requirement => pyodide.loadPackage(requirement)))
-    pyweb.__CONFIG__.__loading = true
+    beepy.__CONFIG__.__loading = true
     console.log(pyodide._api.sys.version)
 }
 
-async function pywebLoad () {
-    // load relative modules from pyweb/__init__.py
-    const _init = await pyweb.loadFile(`${config.path}/pyweb/__init__.py`, {_internal: true})
-    const pywebModules = []
-    for (const match of _init.matchAll(/from pyweb import (?<modules>.+)/g)) {
+async function beepyLoad () {
+    // load relative modules from beepy/__init__.py
+    const _init = await beepy.loadFile(`${config.path}/beepy/__init__.py`, {_internal: true})
+    const beepyModules = []
+    for (const match of _init.matchAll(/from beepy import (?<modules>.+)/g)) {
         for (const module of match.groups.modules.split(/, ?/g)) {
-            pywebModules.push(`${module}.py`)
+            beepyModules.push(`${module}.py`)
         }
     }
-    config.modules.unshift('__init__.py', ...pywebModules)
+    config.modules.unshift('__init__.py', ...beepyModules)
 
-    // TODO: create wheel and load pyweb modules via pip
+    // TODO: create wheel and load beepy modules via pip
     const contents = await Promise.all(
-        config.modules.map(file => pyweb.loadFile(`${config.path}/pyweb/${file}`, {_internal: true}))
+        config.modules.map(file => beepy.loadFile(`${config.path}/beepy/${file}`, {_internal: true}))
     )
 
-    while (pyweb.__CONFIG__.__loading === false) {
+    while (beepy.__CONFIG__.__loading === false) {
         await delay(100)
     }
     // pyodide loaded in systemLoad()
 
     pyodide.FS.mkdir(rootFolder)
-    pyodide.FS.mkdir('pyweb')
-    await Promise.all(config.modules.map((file, i) => pyweb._writeInternalFile(file, contents[i])))
+    pyodide.FS.mkdir('beepy')
+    await Promise.all(config.modules.map((file, i) => beepy._writeInternalFile(file, contents[i])))
 
-    pyweb.globals = py(`
+    beepy.globals = py(`
 import js
-from pyweb import __version__
-from pyweb.utils import merge_configs, _PyWebGlobals
-js.console.log(f'%cPyWeb version: {__version__}', 'color: lightgreen; font-size: 35px')
+from beepy import __version__
+from beepy.utils import merge_configs, _BeePyGlobals
+js.console.log(f'%cBeePy version: {__version__}', 'color: lightgreen; font-size: 35px')
 merge_configs()
 
 del js, merge_configs
-_globals = _PyWebGlobals(globals())
-del _PyWebGlobals
+_globals = _BeePyGlobals(globals())
+del _BeePyGlobals
 _globals # last evaluated value is returned from 'py' function
 `)
 
-    delete pyweb.__CONFIG__.__loading
+    delete beepy.__CONFIG__.__loading
 
-    pyweb.__CURRENT_LOADING_FILE__ = ''
-    if (pyweb.__main__) {
-        await pyweb.__main__()
+    beepy.__CURRENT_LOADING_FILE__ = ''
+    if (beepy.__main__) {
+        await beepy.__main__()
     } else {
         try {
-            pyweb._loadLocalModule('', {checkPathExists: true})
+            beepy._loadLocalModule('', {checkPathExists: true})
             py(`import ${rootFolder}`)
         } catch (e) {
             console.debug(e)
@@ -331,7 +331,7 @@ function mkDirPath(path, removeFileName=false) {
 
     for (let length = 0; length < maxLength; length++) {
         let pathToCreate = pathParts.slice(0, length+1).join('/')
-        if (!pathParts.includes('pyweb')) pathToCreate = rootFolder + '/' + pathToCreate
+        if (!pathParts.includes('beepy')) pathToCreate = rootFolder + '/' + pathToCreate
         if (!pyodide.FS.analyzePath(pathToCreate).exists) pyodide.FS.mkdir(pathToCreate)
     }
 }
@@ -348,7 +348,7 @@ function _parseAndMkDirFile (filePath, addCurrentPath = false, separator='/') {
     }
 
     if (addCurrentPath) {
-        return [pyweb.populateCurrentPath(path), filePath, path]
+        return [beepy.populateCurrentPath(path), filePath, path]
     }
 
     return [path, filePath]
@@ -360,19 +360,19 @@ function _parseAndMkDirModule (module, addCurrentPath) {
 }
 
 
-pyweb.__CURRENT_LOADING_FILE__ = ''
-pyweb.populateCurrentPath = function populateCurrentPath (path) {
-    const currentPath = pyweb.__CURRENT_LOADING_FILE__.replace(/(\/(\w*.py)?)*$/, '')
+beepy.__CURRENT_LOADING_FILE__ = ''
+beepy.populateCurrentPath = function populateCurrentPath (path) {
+    const currentPath = beepy.__CURRENT_LOADING_FILE__.replace(/(\/(\w*.py)?)*$/, '')
     return `${currentPath}${currentPath && path ? '/' : ''}${path.replace(/^\/*/, '')}`
 }
-pyweb.getPathWithCurrentPathAndOrigin = function getPathWithCurrentPathAndOrigin (path) {
-    path = pyweb.populateCurrentPath(path)
+beepy.getPathWithCurrentPathAndOrigin = function getPathWithCurrentPathAndOrigin (path) {
+    path = beepy.populateCurrentPath(path)
     if (!path.includes('http')) path = `${window.location.origin}/${path}`
     return path
 }
 
 
-pyweb._loadLocalModule = function _loadLocalModule (
+beepy._loadLocalModule = function _loadLocalModule (
     module, {pathToWrite='', addCurrentPath=true, checkPathExists=false}={}
 ) {
     let moduleFile = ''
@@ -382,10 +382,10 @@ pyweb._loadLocalModule = function _loadLocalModule (
     let moduleFilePath = fullPath + '.py'
 
     try {
-        moduleFile = moduleFilePath === '.py' ? '<' : pyweb.loadFileSync(_lstrip(moduleFilePath), {checkPathExists})
+        moduleFile = moduleFilePath === '.py' ? '<' : beepy.loadFileSync(_lstrip(moduleFilePath), {checkPathExists})
         if (isHTML(moduleFile)) {
             moduleFilePath = fullPath + (parsedModule ? `/` : '') + '__init__.py'
-            moduleFile = pyweb.loadFileSync(_lstrip(moduleFilePath), {checkPathExists})
+            moduleFile = beepy.loadFileSync(_lstrip(moduleFilePath), {checkPathExists})
             if (isHTML(moduleFile)) {
                 return 'Python file not found'
             }
@@ -398,21 +398,21 @@ pyweb._loadLocalModule = function _loadLocalModule (
     if (!pathToWrite) pathToWrite = moduleFilePath.replace(new RegExp(`^${path}`), fsPath)
     if (pathToWrite.includes('/')) mkDirPath(pathToWrite, true)
 
-    pyweb._writeLocalFileSync(pathToWrite, moduleFile)
+    beepy._writeLocalFileSync(pathToWrite, moduleFile)
 
     return false
 }
 
-pyweb.listenerCheckFunctions = {
+beepy.listenerCheckFunctions = {
     'prevent': 'preventDefault',
     'stop': 'stopPropagation',
     'stop_all': 'stopImmediatePropagation',
 }
 
-pyweb.addAsyncListener = function addAsyncListener (el, eventName, method, modifiers, options={}) {
+beepy.addAsyncListener = function addAsyncListener (el, eventName, method, modifiers, options={}) {
     async function _listener (event) {
         for (const modifier of modifiers) {
-            event[pyweb.listenerCheckFunctions[modifier]]()
+            event[beepy.listenerCheckFunctions[modifier]]()
         }
 
         try {

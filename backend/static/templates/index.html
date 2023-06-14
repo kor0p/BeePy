@@ -3,7 +3,7 @@
 <html lang='en'>
     <head>
         <meta charset='UTF-8'>
-        <title>PyWeb</title>
+        <title>BeePy</title>
         <style>
             * {
                 background: #333333;
@@ -11,7 +11,7 @@
             }
         </style>
         <script>
-            window.pyweb = {
+            window.beepy = {
                 config: {
                     debug: {{ DEBUG|lower }},
                     requirements: () => window.location.href.includes('plot') ? ['numpy', 'matplotlib'] : [],
@@ -19,12 +19,12 @@
             }
         </script>
         {% if IS_DEV %}
-            <script src='../PYWEB/pyweb.js'></script>
+            <script src='../BEEPY/beepy.js'></script>
         {% else %}
-            <script src='https://kor0p.github.io/PyWeb/pyweb.js'></script>
+            <script src='https://kor0p.github.io/BeePy/beepy.js'></script>
         {% endif %}
         <script>
-            pyweb.__main__ = async () => {
+            beepy.__main__ = async () => {
                 await enterPythonModule('{% static "templates" %}')
             }
         </script>

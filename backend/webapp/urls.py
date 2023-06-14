@@ -12,4 +12,4 @@ urlpatterns = [
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT, show_indexes=True)
 
 if settings.IS_DEV:
-    urlpatterns = static('PYWEB/', document_root='../') + urlpatterns
+    urlpatterns = static('BEEPY/', document_root='../') + urlpatterns

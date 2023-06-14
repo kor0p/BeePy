@@ -1,4 +1,4 @@
-from pyweb import Tag, mount, state, on
+from beepy import Tag, mount, state, on
 
 
 class IncrementButton(Tag, name='button'):

@@ -4,14 +4,14 @@ from dataclasses import dataclass
 from typing import Optional
 from datetime import datetime
 
-from pyweb import Tag, Style, SUPER, on
-from pyweb.style import with_style
-from pyweb.attrs import html_attr, state
-from pyweb.tags import button, by__input_id, _input, textarea, option, select, h2, label, Head
-from pyweb.tabs import tabs, tab, tab_title
-from pyweb.table import Table, TableHead, TableBody
-from pyweb.types import AttrValue
-from pyweb.utils import __CONFIG__, request, force_sync, log
+from beepy import Tag, Style, SUPER, on
+from beepy.style import with_style
+from beepy.attrs import html_attr, state
+from beepy.tags import button, by__input_id, _input, textarea, option, select, h2, label, Head
+from beepy.tabs import tabs, tab, tab_title
+from beepy.table import Table, TableHead, TableBody
+from beepy.types import AttrValue
+from beepy.utils import __CONFIG__, request, force_sync, log
 
 
 Head.title = 'Admin panel example'

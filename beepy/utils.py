@@ -18,10 +18,10 @@ from importlib import import_module
 import js
 import micropip
 from pyodide import http as pyodide_http
-import pyweb
+import beepy
 
 
-# TODO: make it a module (could be a quite complicated due to loading pyweb modules as /<file>.py requests)
+# TODO: make it a module (could be a quite complicated due to loading beepy modules as /<file>.py requests)
 
 
 try:
@@ -57,10 +57,13 @@ __CONFIG__ = {
     'modules': [],
 }
 
+if 1 == 1:
+    __CONFIG__['debug'] = True
+
 
 def merge_configs():
-    __CONFIG__.update(js.pyweb.__CONFIG__.to_py())
-    js.pyweb.__CONFIG__ = to_js(__CONFIG__)
+    __CONFIG__.update(js.beepy.__CONFIG__.to_py())
+    js.beepy.__CONFIG__ = to_js(__CONFIG__)
 
 
 if IN_BROWSER:  # TODO: check support for non-browser runs
@@ -117,7 +120,7 @@ def get_random_name(length=6):
 def to_kebab_case(name: str, *, replacer='-'):
     """
     parsing name of tag to html-compatible or name of property to css-compatible
-    >>> class __pyweb__(Tag): ...  # <pyweb></pyweb>
+    >>> class __beepy__(Tag): ...  # <beepy></beepy>
     >>> class myTagName(Tag): ...  # <my-tag-name/>
     >>> Style(font_size='20px')  # font-size: 20px
     >>> Style(backgroundColor='red')  # background-color: red
@@ -130,7 +133,7 @@ def to_kebab_case(name: str, *, replacer='-'):
 
 
 def _need_update(old_func, old_name='', *, version):
-    old_name = old_name or ('pyweb.utils.' + to_kebab_case(old_func.name, replacer='_'))
+    old_name = old_name or ('beepy.utils.' + to_kebab_case(old_func.name, replacer='_'))
 
     @wraps(old_func)
     def _wrapper(*args, **kwargs):
@@ -292,7 +295,7 @@ def force_sync(function):
 
 def force_sync__wait_load(function):
     wrapper = force_sync(function)
-    wrapper.add_dynamic_callback(pyweb.context.Context.create_onload)
+    wrapper.add_dynamic_callback(beepy.context.Context.create_onload)
     return wrapper
 
 
@@ -374,10 +377,10 @@ def lazy_import_cls(cls):
     return cls
 
 
-class _PyWebGlobals(dict):
+class _BeePyGlobals(dict):
     def __getitem__(self, key):
         result = super().__getitem__(key)
-        for handler in __pyweb_global_handlers__:
+        for handler in __beepy_global_handlers__:
             result = handler(self, key, result)
         return result
 
@@ -388,7 +391,7 @@ def _default_global_handlers(locals_dict, key, result):
     return result
 
 
-__pyweb_global_handlers__ = [_default_global_handlers]
+__beepy_global_handlers__ = [_default_global_handlers]
 
 
 __all__ = [

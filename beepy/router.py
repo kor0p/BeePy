@@ -7,10 +7,10 @@ from dataclasses import dataclass
 
 import js
 
-from pyweb.framework import Tag, state, on
-from pyweb.tags import a
-from pyweb.types import Children
-from pyweb.utils import lazy_import_cls, _debugger, to_js, reload_requirements
+from beepy.framework import Tag, state, on
+from beepy.tags import a
+from beepy.types import Children
+from beepy.utils import lazy_import_cls, _debugger, to_js, reload_requirements
 
 
 class WithRouter:
@@ -87,10 +87,10 @@ class Link(a, WithRouter):
     @on('click.prevent')
     async def navigate(self, event=None):  # TODO: make possible to create function without `event` argument
         Path.parse(self.router.basename + self.to).push_state()
-        js.pyweb.startLoading(mountPoint=self.router._root_parent.mount_element)
+        js.beepy.startLoading(mountPoint=self.router._root_parent.mount_element)
         await reload_requirements()
         self.router._load_children()
-        js.pyweb.stopLoading()
+        js.beepy.stopLoading()
 
 
 class Router(Tag):
@@ -145,7 +145,7 @@ class Router(Tag):
                 if fallback := self.fallback_tag_cls:
                     self.add_tag_component(fallback, match=None, path=None)
                 else:
-                    # TODO: maybe create PyWebError?
+                    # TODO: maybe create BeePyError?
                     raise ValueError('No route to use!')
 
             for child in self.components:

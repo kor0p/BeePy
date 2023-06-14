@@ -5,10 +5,10 @@ from typing import Optional, Callable, Union, Type, TypeVar, Generic, Iterable
 
 import js
 
-import pyweb
-from pyweb.types import Tag, Renderer, WebBase, Children, ContentType
-from pyweb.context import Context
-from pyweb.utils import log, _PY_TAG_ATTRIBUTE
+import beepy
+from beepy.types import Tag, Renderer, WebBase, Children, ContentType
+from beepy.context import Context
+from beepy.utils import log, _PY_TAG_ATTRIBUTE
 
 
 class CustomWrapper(WebBase):
@@ -81,12 +81,12 @@ class ContentWrapper(CustomWrapper):
     def _mount_children(self):
         content = self.content()
 
-        if isinstance(content, pyweb.framework.Tag):
+        if isinstance(content, beepy.framework.Tag):
             content = (content,)
         elif isinstance(content, Iterable) and not isinstance(content, str) and content:
             content = list(content)
             for _child in content[:]:
-                if not isinstance(_child, pyweb.framework.Tag):
+                if not isinstance(_child, beepy.framework.Tag):
                     content = None
                     break
         else:
@@ -134,7 +134,7 @@ class ContentWrapper(CustomWrapper):
                 if current_html and not (self.parent and self.parent._raw_html):
                     log.warn(
                         f'This html `{current_html}` will be replaces with this: `{result}`.\n'
-                        'Maybe you must use pyweb.Tag instead of pyweb.tags.div, '
+                        'Maybe you must use beepy.Tag instead of beepy.tags.div, '
                         'or you used incorrect html tags like <br/> instead of <br>',
                     )
                 self.mount_parent.innerHTML = result
@@ -227,7 +227,7 @@ class ChildrenRef(ChildRef):
             current_value[:] = value
 
 
-from pyweb.framework import Tag
+from beepy.framework import Tag
 
 
 __all__ = ['CustomWrapper', 'StringWrapper', 'ContentWrapper', 'TagRef', 'ChildrenRef']

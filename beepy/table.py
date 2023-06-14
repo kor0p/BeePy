@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from typing import TypeVar, Type, Literal, Union
 
-from pyweb.attrs import state
-from pyweb.children import Children
-from pyweb.tags import table, thead, tbody, tr, th, td
-from pyweb.style import Style
-from pyweb.listeners import on
-from pyweb.actions import Action
+from beepy.attrs import state
+from beepy.children import Children
+from beepy.tags import table, thead, tbody, tr, th, td
+from beepy.style import Style
+from beepy.listeners import on
+from beepy.actions import Action
 
 
 T = TypeVar('T')

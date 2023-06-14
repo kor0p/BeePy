@@ -10,14 +10,14 @@ from copy import deepcopy
 
 import js
 
-from pyweb.attrs import attr, state, html_attr
-from pyweb.children import CustomWrapper, StringWrapper, ContentWrapper, ChildRef, TagRef, Children
-from pyweb.listeners import on
-from pyweb.types import safe_html, Renderer, Mounter, WebBase, AttrType, ContentType
-from pyweb.utils import (
+from beepy.attrs import attr, state, html_attr
+from beepy.children import CustomWrapper, StringWrapper, ContentWrapper, ChildRef, TagRef, Children
+from beepy.listeners import on
+from beepy.types import safe_html, Renderer, Mounter, WebBase, AttrType, ContentType
+from beepy.utils import (
     log, NONE_TYPE, _PY_TAG_ATTRIBUTE, __CONFIG__, _debugger, get_random_name, to_kebab_case, IN_BROWSER, to_js
 )
-from pyweb.context import OVERWRITE, SUPER, CONTENT, _SPECIAL_CHILD_STRINGS, _MetaContext, Context
+from beepy.context import OVERWRITE, SUPER, CONTENT, _SPECIAL_CHILD_STRINGS, _MetaContext, Context
 
 
 __CONFIG__['version'] = __version__ = '0.4.1'
@@ -706,6 +706,7 @@ class Tag(WebBase, Context, metaclass=_MetaTag, _root=True):
         try:
             return _MetaTag._current_render[self._root_parent]
         except KeyError as e:
+            _debugger(e)
             raise ValueError('It looks like element is not mounted correctly, please see the docs')
 
 
@@ -730,10 +731,10 @@ def mount(element: Tag, root_element: str, clear=False):
     if root is None:
         raise NameError('Mount point not found')
 
-    js.pyweb.stopLoading()
+    js.beepy.stopLoading()
     if clear:
         root.innerHTML = ''
-    js.pyweb.startLoading(mountPoint=root)
+    js.beepy.startLoading(mountPoint=root)
 
     parent = inline_tag(root.tagName.lower(), _root_parent=state(type=Tag, move_on=True))()
     parent._root_parent = parent
@@ -747,7 +748,7 @@ def mount(element: Tag, root_element: str, clear=False):
     _MetaTag._top_render(element)
 
     if not js.document.title:
-        js.document.title = 'PyWeb'
+        js.document.title = 'BeePy'
         log.warn(f'Document title is not set, use default title: {js.document.title}')
 
 

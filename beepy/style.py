@@ -3,10 +3,10 @@ from typing import Any, Optional, Type
 
 import js
 
-from pyweb.framework import __CONFIG__, Tag, attr, state
-from pyweb.utils import log10_ceil, get_random_name, to_kebab_case, safe_issubclass
-from pyweb.tags import Head
-from pyweb.types import safe_html
+from beepy.framework import __CONFIG__, Tag, attr, state
+from beepy.utils import log10_ceil, get_random_name, to_kebab_case, safe_issubclass
+from beepy.tags import Head
+from beepy.types import safe_html
 
 
 def dict_of_properties_to_css(properties):
@@ -186,10 +186,10 @@ class Style(Tag, name='style', content_tag=None, raw_html=True, force_ref=True):
 
     @classmethod
     def import_file(cls, file_path):
-        return js.pyweb.addElement(
+        return js.beepy.addElement(
             js.document.head,
             'link',
-            href=js.pyweb.getPathWithCurrentPathAndOrigin(file_path),
+            href=js.beepy.getPathWithCurrentPathAndOrigin(file_path),
             onload=cls.create_onload(),
             type='text/css',
             rel='stylesheet',

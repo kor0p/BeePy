@@ -1,5 +1,5 @@
 """
-WSGI config for test_task_django_pyweb project.
+WSGI config for beepy_webapp project.
 
 It exposes the WSGI callable as a module-level variable named ``application``.
 
@@ -11,6 +11,6 @@ import os
 
 from django.core.wsgi import get_wsgi_application
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'test_task_django_pyweb.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'beepy_webapp.settings')
 
 application = get_wsgi_application()

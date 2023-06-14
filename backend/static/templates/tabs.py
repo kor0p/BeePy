@@ -1,9 +1,9 @@
 from functools import partial
 
-from pyweb import Tag, Style, attr, state, __version__
-from pyweb.tags import button, a, p, span, select, Head
-from pyweb.tabs import tab, tab_title, tabs
-from pyweb.router import WithRouter, Link
+from beepy import Tag, Style, attr, state, __version__
+from beepy.tags import button, a, p, i, span, select, Head
+from beepy.tabs import tab, tab_title, tabs
+from beepy.router import WithRouter, Link
 
 
 Head.title = 'Tabs example'
@@ -87,11 +87,15 @@ class LinkTabs(tabs):
 
     tab_text = tab(
         p(
-            span(f'PyWeb (version {__version__})'),
+            span(f'\N{honeybee} BeePy v{__version__}'),
             NEW_LINE,
-            span('A frontend framework for python, using '),
-            a_nt('pyodide', href='https://pyodide.org/'),
+            span('The '),
+            i('frontend'),
+            span(' framework for python, using '),
+            a_nt('Pyodide', href='https://pyodide.org/'),
             span(' via '),
+            a_nt('Emscripten', href='https://emscripten.org/'),
+            span(' and '),
             a_nt('WebAssembly', href='https://webassembly.org/'),
         ),
         p(
@@ -126,12 +130,12 @@ class LinkTabs(tabs):
             span('Made by '),
             a_nt('© kor0p', href='https://t.me/kor0p'),
             NEW_LINE,
-            span('Source code of PyWeb: '),
-            a_nt('GitHub', href='https://github.com/kor0p/PyWeb'),
+            span('Source code of BeePy: '),
+            a_nt('GitHub', href='https://github.com/kor0p/BeePy'),
         ),
     )
     tab_buttons = tab(
-        View(title='PyWeb Test 2'),
+        View(title='BeePy Test 2'),
     )
     tab_selector = tab(
         SelectView(),  # TODO: check why duplicating this view cause problems with <select>

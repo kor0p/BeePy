@@ -1,5 +1,5 @@
-from pyweb import Style, state
-from pyweb.tags import html_tag, div, header, main, footer, nav, h1, ul, li, a, p, button, Head
+from beepy import Style, state
+from beepy.tags import html_tag, div, header, main, footer, nav, h1, ul, li, a, p, button, Head
 
 
 Head.title = 'Техкоректор LaTeX'
@@ -48,7 +48,7 @@ class HighlightLaTeX(html_tag, name='latex'):
             p(
                 'Запрограмовано на ',
                 a(
-                    'PyWeb',
+                    'BeePy',
                     class_='text-link',
                     href='https://beta.drukarnia.com.ua/articles/maibutnye-frontendu-paiton-VAVB2',
                 ),

@@ -4,8 +4,8 @@ import keyword
 from typing import Optional, Callable, Union, Sequence, Type, get_type_hints, ForwardRef, TypeVar, Any
 from collections import defaultdict
 
-from pyweb.types import AttrType, AttrValue
-from pyweb.utils import log, NONE_TYPE, wraps_with_name, to_kebab_case
+from beepy.types import AttrType, AttrValue
+from beepy.utils import log, NONE_TYPE, wraps_with_name, to_kebab_case
 
 
 Context = ForwardRef('Context')

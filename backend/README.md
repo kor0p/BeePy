@@ -1,4 +1,4 @@
-# test-task-django-pyweb
+# test-task-django-beepy
 
 ### app: 
 - dev: `python manage.py runserver`

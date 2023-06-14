@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
-from pyweb import Tag, Style, state
-from pyweb.tags import a, p
-from pyweb.utils import Interval
-from pyweb.types import safe_html
+from beepy import Tag, Style, state
+from beepy.tags import a, p
+from beepy.utils import Interval
+from beepy.types import safe_html
 
 
 Style.import_file('styles/timer.css')

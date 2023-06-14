@@ -1,8 +1,8 @@
 {
-  "name": "PyWeb framework backend example",
+  "name": "BeePy framework backend example",
   "description": "© kor0p",
   "image": "",
-  "repository": "https://github.com/kor0p/PyWeb",
+  "repository": "https://github.com/kor0p/BeePy",
   "keywords": ["python"],
   "addons": []
 }

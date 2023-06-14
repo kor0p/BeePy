@@ -1,5 +1,5 @@
-from pyweb import Tag, Style, CONTENT, state
-from pyweb.tags import button, _input
+from beepy import Tag, Style, CONTENT, state
+from beepy.tags import button, _input
 
 
 class TextSyncExample(Tag, name='example'):

@@ -1,18 +1,18 @@
 [[redirects]]
   from = "/"
-  to = "https://pyweb.herokuapp.com/e/"
+  to = "https://beepy.herokuapp.com/e/"
 
 [[redirects]]
   from = "/examples"
-  to = "https://pyweb.herokuapp.com/e/"
+  to = "https://beepy.herokuapp.com/e/"
 
 [[redirects]]
   from = "/examples/*"
-  to = "https://pyweb.herokuapp.com/e/:splat"
+  to = "https://beepy.herokuapp.com/e/:splat"
 
 [[redirects]]
-  from = "/pyweb.js"
-  to = "https://kor0p.github.io/PyWeb/pyweb.js"
+  from = "/beepy.js"
+  to = "https://kor0p.github.io/BeePy/beepy.js"
 
 [[headers]]
   for = "/*"

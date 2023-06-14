@@ -1,10 +1,10 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from pyweb import Tag, Style
-from pyweb.children import Children
-from pyweb.tags import button
-from pyweb.plot import get_plot_img
+from beepy import Tag, Style
+from beepy.children import Children
+from beepy.tags import button
+from beepy.plot import get_plot_img
 
 
 Style.import_file('styles/plot.css')

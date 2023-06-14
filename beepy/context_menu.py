@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import js
-from pyweb.framework import attr, state, on
-from pyweb.style import Style
-from pyweb.tags import div, hr, ul, li, Body
+from beepy.framework import attr, state, on
+from beepy.style import Style
+from beepy.tags import div, hr, ul, li, Body
 
 
 class MenuDivider(hr):

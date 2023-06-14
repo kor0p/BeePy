@@ -1,4 +1,4 @@
-#pyweb-loading {
+#beepy-loading {
     visibility: visible;
     background: none;
     position: fixed;
@@ -9,7 +9,7 @@
     z-index: 1;
 }
 
-#pyweb-loading::before {
+#beepy-loading::before {
     content: '';
     display: inline-block;
     width: 50px;
@@ -20,7 +20,7 @@
     animation: spin 1s ease-in-out infinite;
 }
 
-#pyweb-loading > span {
+#beepy-loading > span {
     display: block;
     opacity: 0.5;
 }

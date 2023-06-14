@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Type
 
-from pyweb.tags import button
+from beepy.tags import button
 
 
 class Action(button, _root=True):

@@ -1,7 +1,7 @@
 import js
-from pyweb import Tag, Style, attr, on
-from pyweb.tags import p, Head
-from pyweb.utils import delay
+from beepy import Tag, Style, attr, on
+from beepy.tags import p, Head
+from beepy.utils import delay
 
 Head.title = 'Dynamic URL'
 

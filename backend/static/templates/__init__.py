@@ -1,6 +1,6 @@
-from pyweb import Tag, __CONFIG__, safe_html, mount, Style
-from pyweb.tags import Head, div
-from pyweb.router import WithRouter, Router, Link
+from beepy import Tag, __CONFIG__, safe_html, mount, Style
+from beepy.tags import Head, div
+from beepy.router import WithRouter, Router, Link
 
 
 Style.import_file('styles/main.css')

@@ -3,10 +3,10 @@ from __future__ import annotations
 
 import js
 
-from pyweb.framework import Tag, attr, state, on
-from pyweb.style import Style
-from pyweb.tags import div
-from pyweb.utils import to_js
+from beepy.framework import Tag, attr, state, on
+from beepy.style import Style
+from beepy.tags import div
+from beepy.utils import to_js
 
 
 class tab(div, name='tab'):

@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Union, SupportsIndex, Callable
 
-from pyweb.utils import Locker
+from beepy.utils import Locker
 
 
 class Trackable(ABC):

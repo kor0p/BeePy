@@ -2,10 +2,10 @@ from typing import Any, Optional
 
 import js
 
-from pyweb.framework import Tag
-from pyweb.attrs import attr, state, html_attr
-from pyweb.children import Children
-from pyweb.utils import get_random_name, __CONFIG__, AnyOfType
+from beepy.framework import Tag
+from beepy.attrs import attr, state, html_attr
+from beepy.children import Children
+from beepy.utils import get_random_name, __CONFIG__, AnyOfType
 
 
 AUTO_ID = object()
@@ -49,6 +49,14 @@ class a(html_tag, name='a'):
 
 
 class p(html_tag, name='p'):
+    pass
+
+
+class b(html_tag, name='b'):
+    pass
+
+
+class i(html_tag, name='i'):
     pass
 
 
@@ -234,6 +242,6 @@ Body = Body()
 
 
 __all__ = [
-    'html_tag', 'div', 'a', 'p', 'ul', 'li', 'span', 'form', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+    'html_tag', 'div', 'a', 'p', 'b', 'i', 'ul', 'li', 'span', 'form', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
     '_input', 'textarea', 'header', 'main', 'footer', 'nav', 'button', 'option', 'select', 'Head',
 ]

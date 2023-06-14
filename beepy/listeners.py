@@ -8,8 +8,8 @@ from copy import deepcopy
 
 import js
 
-from pyweb.types import Tag
-from pyweb.utils import _PY_TAG_ATTRIBUTE, create_proxy, to_js
+from beepy.types import Tag
+from beepy.utils import _PY_TAG_ATTRIBUTE, create_proxy, to_js
 
 GLOBAL_EVENTS_LIST = ('keyup', 'keypress', 'keydown')
 _key_codes = {
@@ -128,7 +128,7 @@ class on:
             def method(event):
                 return self._call(tag, event)
         is_global = event_name in GLOBAL_EVENTS_LIST  # TODO: check this || what about set global by attr?
-        return js.pyweb.addAsyncListener(
+        return js.beepy.addAsyncListener(
             js.document if is_global else tag.mount_element, event_name, create_proxy(method), to_js(self.js_checks)
         )
 

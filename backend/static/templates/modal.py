@@ -1,6 +1,6 @@
-from pyweb import Style, SUPER
-from pyweb.tags import p, Head
-from pyweb.modal import Modal, ModalHandler
+from beepy import Style, SUPER
+from beepy.tags import p, Head
+from beepy.modal import Modal, ModalHandler
 
 Head.title = 'Modal example'
 

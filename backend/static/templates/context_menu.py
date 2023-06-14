@@ -1,8 +1,8 @@
 import js
 
-from pyweb import Style, __version__
-from pyweb.tags import p, Head
-from pyweb.context_menu import MenuDivider, MenuItem, ContextMenu, ContextMenuHandler
+from beepy import Style, __version__
+from beepy.tags import p, Head
+from beepy.context_menu import MenuDivider, MenuItem, ContextMenu, ContextMenuHandler
 
 Head.title = 'Context Menu example'
 
@@ -23,7 +23,7 @@ class Menu(ContextMenu):
 
     @share_to.on('click')
     def open_share(self, event):
-        js.open(f'https://t.me/share/url?url={js.location.href}&text=Yay! It\'s PyWeb v{__version__}', '_blank')
+        js.open(f'https://t.me/share/url?url={js.location.href}&text=Yay! It\'s BeePy v{__version__}', '_blank')
 
     @refresh.on('click')
     def refresh_page(self, event):

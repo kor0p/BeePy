@@ -1,25 +1,12 @@
-# PyWeb v0.4.1
+# BeePy v0.4.1
 
-## A frontend framework for python, using [pyodide](https://pyodide.org/), that uses [WASM](https://webassembly.org/)
-### Use Python in browser to build modern frontend via PyWeb!
-
-## Static examples:
-- ### [List of examples (with Tabs)](https://pyweb.herokuapp.com/e/)
-- ### [Admin panel](https://pyweb.herokuapp.com/e/admin)
-- ### [Dynamic plot](https://pyweb.herokuapp.com/e/plot)
-- ### [First try](https://pyweb.herokuapp.com/e/buttons)
-- ### [Todo List](https://pyweb.herokuapp.com/e/todos)
-- ### [Modal](https://pyweb.herokuapp.com/e/modal)
-- ### [Context Menu](https://pyweb.herokuapp.com/e/context-menu)
-- ### [Dynamic URL](https://pyweb.herokuapp.com/e/dynamic-url)
-- ### [Timer](https://pyweb.herokuapp.com/e/timer)
-- ### [Input's model](https://pyweb.herokuapp.com/e/text-sync)
-- ### [Multiple apps on one page](https://pyweb.herokuapp.com/multiple-apps)
-- ### [Just the other one example](https://pyweb.herokuapp.com/e/custom_url)
+## The _frontend_ web framework for python 
+## Thanks for [Pyodide](https://pyodide.org/) - port of Python to [Emscripten](https://emscripten.org/), based on [WASM](https://webassembly.org/).
+### Use Python in browser to build modern frontend via BeePy!
 
 Code (custom_url.py from examples):
 ```python
-from pyweb import Tag, mount, state, on
+from beepy import Tag, mount, state, on
 
 class IncrementButton(Tag, name='button'):
     count = state(0)
@@ -43,3 +30,17 @@ will render html as below, and will react on buttons click like native JS
     </div>
 </body>
 ```
+
+## Static examples:
+- ### [List of examples (with Tabs)](https://beepy.herokuapp.com/e/)
+- ### [Admin panel](https://beepy.herokuapp.com/e/admin)
+- ### [Dynamic plot](https://beepy.herokuapp.com/e/plot)
+- ### [First try](https://beepy.herokuapp.com/e/buttons)
+- ### [Todo List](https://beepy.herokuapp.com/e/todos)
+- ### [Modal](https://beepy.herokuapp.com/e/modal)
+- ### [Context Menu](https://beepy.herokuapp.com/e/context-menu)
+- ### [Dynamic URL](https://beepy.herokuapp.com/e/dynamic-url)
+- ### [Timer](https://beepy.herokuapp.com/e/timer)
+- ### [Input's model](https://beepy.herokuapp.com/e/text-sync)
+- ### [Multiple apps on one page](https://beepy.herokuapp.com/multiple-apps)
+- ### [Just the other one example](https://beepy.herokuapp.com/e/custom_url)

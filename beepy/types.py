@@ -6,9 +6,9 @@ from abc import ABC, abstractmethod
 from typing import Optional, Union, Iterable, ForwardRef
 from functools import wraps
 
-import pyweb
-from pyweb.trackable import TrackableList
-from pyweb.utils import __CONFIG__, escape_html
+import beepy
+from beepy.trackable import TrackableList
+from beepy.utils import __CONFIG__, escape_html
 
 
 attr = ForwardRef('attr')
@@ -18,7 +18,7 @@ ChildrenRef = ForwardRef('ChildrenRef')
 
 class AttrValue:
     """
-    Extend this class to be able to use it as value in pyweb.attr and children
+    Extend this class to be able to use it as value in beepy.attr and children
     """
     __slots__ = ('value',)
 
@@ -106,7 +106,7 @@ class Children(WebBase, TrackableList):
                 return self.ref
             else:
                 raise TypeError(f'{self} already is child')
-        ref = pyweb.children.ChildrenRef(self)
+        ref = beepy.children.ChildrenRef(self)
         self.__set_parent__(parent, 0, ref)
         return ref
 

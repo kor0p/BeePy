@@ -1,5 +1,5 @@
-from pyweb import Tag, Style, state, attr, on
-from pyweb.tags import Head
+from beepy import Tag, Style, state, attr, on
+from beepy.tags import Head
 
 Head.title = 'Test 1'
 

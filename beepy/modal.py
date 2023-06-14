@@ -1,8 +1,8 @@
 from typing import Callable
 
-from pyweb.framework import Tag, attr, state, on
-from pyweb.style import Style
-from pyweb.tags import div, button, Body
+from beepy.framework import Tag, attr, state, on
+from beepy.style import Style
+from beepy.tags import div, button, Body
 
 
 class Modal(Tag, name='modal', content_tag='h2', children_tag='modal-content'):
@@ -32,7 +32,7 @@ class Modal(Tag, name='modal', content_tag='h2', children_tag='modal-content'):
             'flex-direction': 'column',
             ('justify-content', 'justify-items', 'align-items'): 'center',
             'background-color': '#333',
-            'box-shadow': '0 0 1.5rem rgb(255 255 255 / 33%)',  # TODO: create pyweb.style.rgb function
+            'box-shadow': '0 0 1.5rem rgb(255 255 255 / 33%)',  # TODO: create beepy.style.rgb function
         },
     })
 

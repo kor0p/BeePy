@@ -6,7 +6,7 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = 'PyWeb'
+project = 'BeePy'
 copyright = '2023, kor0p'
 author = 'kor0p'
 

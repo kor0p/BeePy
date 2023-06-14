@@ -4,11 +4,11 @@ from abc import ABCMeta
 from typing import Union, Type, TypeVar
 
 import js
-import pyweb
+import beepy
 
-from pyweb.attrs import attr
-from pyweb.types import AttrType
-from pyweb.utils import log10_ceil, get_random_name, const_attribute, Interval, to_kebab_case, create_once_callable
+from beepy.attrs import attr
+from beepy.types import AttrType
+from beepy.utils import log10_ceil, get_random_name, const_attribute, Interval, to_kebab_case, create_once_callable
 
 
 __obj = object()
@@ -45,8 +45,8 @@ class _MetaContext(ABCMeta):
         static_attrs = {}
         attrs_defaults = {}
 
-        if initialized and hasattr(pyweb, 'children'):
-            _children = pyweb.children
+        if initialized and hasattr(beepy, 'children'):
+            _children = beepy.children
 
             extra_attrs = []
             for attribute_name, child in mcs._clean_namespace(namespace):
@@ -110,7 +110,7 @@ class _MetaContext(ABCMeta):
     def _top_render_real(mcs, element):
         element.__render__()
         element._root_parent.mount_element.style = ''
-        js.pyweb.stopLoading()
+        js.beepy.stopLoading()
 
     @classmethod
     def _clean_namespace(mcs, namespace):

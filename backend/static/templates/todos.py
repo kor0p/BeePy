@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from pyweb import Style, attr, state, on
-from pyweb.tags import p, _input, button, span, ul, li, form, Head
-from pyweb.children import Children
-from pyweb.local_storage import LocalStorage
+from beepy import Style, attr, state, on
+from beepy.tags import p, _input, button, span, ul, li, form, Head
+from beepy.children import Children
+from beepy.local_storage import LocalStorage
 
 
 Head.title = 'Todo List'
