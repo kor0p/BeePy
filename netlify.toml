@@ -10,6 +10,10 @@
   from = "/examples/*"
   to = "https://pyweb.herokuapp.com/e/:splat"
 
+[[redirects]]
+  from = "/pyweb.js"
+  to = "https://kor0p.github.io/PyWeb/pyweb.js"
+
 [[headers]]
   for = "/*"
     [headers.values]

@@ -11,7 +11,11 @@
                 zoom: 7;
             }
         </style>
-        <script src='https://pyweb.netlify.app/pyweb.js'></script>
+        {% if IS_DEV %}
+            <script src='../PYWEB/pyweb.js'></script>
+        {% else %}
+            <script src='https://kor0p.github.io/PyWeb/pyweb.js'></script>
+        {% endif %}
         <script>
             pyweb.__main__ = async () => {
                 await enterPythonModule('{% static "templates/custom_url" %}')

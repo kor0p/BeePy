@@ -746,9 +746,12 @@ def mount(element: Tag, root_element: str, clear=False):
     _MetaTag._top_mount(element, root, parent)
     _MetaTag._top_render(element)
 
+    if not js.document.title:
+        js.document.title = 'PyWeb'
+        log.warn(f'Document title is not set, use default title: {js.document.title}')
+
 
 __all__ = [
     '__version__', '__CONFIG__', '_debugger', 'attr', 'state', 'html_attr', '_MetaTag', 'Tag', 'on', 'empty_tag',
     'mount', 'safe_html',
 ]
-# TODO: publish mock js.py, that allows to test PyWeb's code outside of browser

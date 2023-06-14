@@ -89,11 +89,6 @@ Object.defineProperties(
 
 // pyweb config
 
-if (!document.title) {
-    // TODO: move to the end, to prevent this warning, if title was set by Head.title = 'Title'
-    document.title = 'PyWeb'
-    console.warn(`Document title is not set, use default title: ${document.title}`)
-}
 if (!window.pyweb || !window.pyweb.config) {
     console.log(`
 No pyweb config found! Default config will be used

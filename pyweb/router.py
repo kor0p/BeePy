@@ -143,7 +143,7 @@ class Router(Tag):
 
             if not self.components:
                 if fallback := self.fallback_tag_cls:
-                    self.add_tag_component(fallback, match=None)
+                    self.add_tag_component(fallback, match=None, path=None)
                 else:
                     # TODO: maybe create PyWebError?
                     raise ValueError('No route to use!')

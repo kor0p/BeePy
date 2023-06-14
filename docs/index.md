@@ -8,7 +8,7 @@
 ### Use Python in browser to build modern frontend via PyWeb!
 
 ## 🚀 Getting started
-<script src='https://pyweb.netlify.app/pyweb.js'></script>
+<script src='https://kor0p.github.io/PyWeb/pyweb.js'></script>
 ::::{tab-set}
 
 :::{tab-item} main.py
