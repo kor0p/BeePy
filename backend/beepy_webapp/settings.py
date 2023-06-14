@@ -27,7 +27,7 @@ DEBUG = True
 ALLOWED_HOSTS = ['*']
 
 # for local development
-IS_DEV = True
+IS_DEV = False
 
 
 # Application definition
