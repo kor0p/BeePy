@@ -10,7 +10,7 @@
 <script src='https://kor0p.github.io/BeePy/beepy.js'></script>
 <script>
 // <![CDATA[
-beepy.__main__ = () => {
+beepy.__main__ = async () => {
     for (const demo_id of ['id-getting-started', 'id-synced-counters']) {
         await apy(document.getElementById(demo_id).innerText)
     }
