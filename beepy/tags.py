@@ -150,6 +150,7 @@ class _input(html_tag, name='input'):
 
 class textarea(html_tag, name='textarea'):
     value = html_attr('', model='change')
+    data_gramm = html_attr(True, type=str)
 
     def clear(self):
         self.value = ''

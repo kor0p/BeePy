@@ -7,8 +7,17 @@
 ## Why?
 ### Use Python in browser to build modern frontend via BeePy!
 
-## 🚀 Getting started
 <script src='https://kor0p.github.io/BeePy/beepy.js'></script>
+<script>
+// <![CDATA[
+beepy.__main__ = () => {
+    for (const demo_id of ['id-getting-started', 'id-synced-counters']) {
+        await apy(document.getElementById(demo_id).innerText)
+    }
+}
+// ]]>
+</script>
+## 🚀 Getting started
 ::::{tab-set}
 
 :::{tab-item} main.py
@@ -21,11 +30,23 @@
 :::{tab-item} 🎉 Result
 
 <div id="demo-getting-started"></div>
-<script>
-// <![CDATA[
-beepy.__main__ = () => apy(document.getElementById('id-getting-started').innerText)
-// ]]>
-</script>
+:::
+
+::::
+
+## Synced Counters
+::::{tab-set}
+
+:::{tab-item} main.py
+(id-synced-counters)=
+```{literalinclude} demo/synced-counters.py
+:language: python
+```
+:::
+
+:::{tab-item} 🎉 Result
+
+<div id="demo-synced-counters"></div>
 :::
 
 ::::

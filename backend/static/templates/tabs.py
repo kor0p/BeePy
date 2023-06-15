@@ -103,6 +103,8 @@ class LinkTabs(tabs):
             NEW_LINE,
             Link('Admin panel (Django)', to='admin'),
             NEW_LINE,
+            a_nt('BeePy Sandbox', href='https://kor0p.github.io/BeePy/examples/sandbox/'),
+            NEW_LINE,
             Link('Dynamic plot', to='plot'),
             NEW_LINE,
             Link('First try', to='buttons'),

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang='en'>
+    <head>
+        <meta charset='UTF-8'>
+        <title>BeePy</title>
+        <style>
+            * {
+                background: #333333;
+                color: white;
+            }
+        </style>
+        <script src='https://kor0p.github.io/BeePy/beepy.js'></script>
+        <script>
+            beepy.__main__ = async () => {
+                await enterPythonModule('examples/sandbox')
+            }
+        </script>
+    </head>
+    <body>
+        <div id='root'></div>
+    </body>
+</html>
