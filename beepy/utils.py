@@ -355,6 +355,14 @@ async def reload_requirements():
     ])
 
 
+def push_url(url, unused='', **url_state):
+    js.history.pushState(to_js({'href': url.href, **url_state}), unused, url.href)
+
+
+def replace_url(url, unused='', **url_state):
+    js.history.replaceState(to_js({'href': url.href, **url_state}), unused, url.href)
+
+
 def lazy_import(module_path):
     if not (
         (module := sys.modules.get(module_path))

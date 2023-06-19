@@ -597,8 +597,13 @@ class Tag(WebBase, Context, metaclass=_MetaTag, _root=True):
         """empty method for easy override with code for run before unmount"""
 
     def __unmount__(self, element, parent, _unsafe=False):
-        if not _unsafe and self.mount_parent is not element:
-            log.warn('If you overwrite __mount__, you also should overwrite __unmount__')
+        if not _unsafe and self.mount_parent is not None and self.mount_parent is not element:
+            log.warn(
+                'Something went wrong!\n'
+                f'Real parent: {self.mount_parent} {self.parent}. Passed parent: {element} {parent} '
+                'If you override __mount__, you also should override __unmount__ too.'
+            )
+            log.warn(''.join(traceback.format_stack()[:-1]))
 
         (self.mount_parent or element).safeRemoveChild(self.mount_element)
 

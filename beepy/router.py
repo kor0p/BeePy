@@ -10,7 +10,7 @@ import js
 from beepy.framework import Tag, state, on
 from beepy.tags import a
 from beepy.types import Children
-from beepy.utils import lazy_import_cls, _debugger, to_js, reload_requirements
+from beepy.utils import lazy_import_cls, _debugger, push_url, reload_requirements, add_event_listener, force_sync
 
 
 class WithRouter:
@@ -68,11 +68,7 @@ class Path:
         for key, value in self.iter_search():
             url.searchParams.set(key, value)  # modifies url.href
 
-        js.history.pushState(
-            to_js({'path': self.__dict__, 'url': str(url), 'href': url.href}),
-            "",
-            url.href,
-        )
+        push_url(url, path=self.__dict__)
 
 
 class Link(a, WithRouter):
@@ -87,10 +83,7 @@ class Link(a, WithRouter):
     @on('click.prevent')
     async def navigate(self, event=None):  # TODO: make possible to create function without `event` argument
         Path.parse(self.router.basename + self.to).push_state()
-        js.beepy.startLoading(mountPoint=self.router._root_parent.mount_element)
-        await reload_requirements()
-        self.router._load_children()
-        js.beepy.stopLoading()
+        self.router._history_refresh()
 
 
 class Router(Tag):
@@ -111,6 +104,14 @@ class Router(Tag):
 
     def pre_mount(self):
         self._load_children()
+        add_event_listener(js.window, 'popstate', self._history_refresh)
+
+    @force_sync
+    async def _history_refresh(self, event=None):
+        js.beepy.startLoading(mountPoint=self._root_parent.mount_element)
+        await reload_requirements()
+        self._load_children()
+        js.beepy.stopLoading()
 
     def import_tag_component(self, tag_cls: str | Type[Tag], match, **kwargs):
         try:

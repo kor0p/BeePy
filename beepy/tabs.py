@@ -6,7 +6,7 @@ import js
 from beepy.framework import Tag, attr, state, on
 from beepy.style import Style
 from beepy.tags import div
-from beepy.utils import to_js
+from beepy.utils import replace_url
 
 
 class tab(div, name='tab'):
@@ -124,6 +124,7 @@ class tabs(Tag, name='tabs', content_tag='ul'):
             selected = self.select_tab(url.searchParams.get(self.name))
         if not selected:
             self.select_tab(tuple(self.tabs_titles.keys())[0])
+        self._update_url()
 
     def select_tab(self, tab_id):
         if not tab_id or not hasattr(self, tab_id):
@@ -139,6 +140,7 @@ class tabs(Tag, name='tabs', content_tag='ul'):
             self.selected.visible = True
             self.tabs_titles[tab_id].selected = True
 
+        self._update_url()
         return self.selected
 
     def _update_url(self):
@@ -152,17 +154,7 @@ class tabs(Tag, name='tabs', content_tag='ul'):
 
         url.searchParams.set(self.name, selected_tab.tab_id)  # modifies url.href
 
-        js.history.pushState(
-            to_js({
-                'name': selected_tab.id,
-                'title': ''.join(selected_tab.title.content()),
-            }),
-            selected_tab.id,
-            url.href,
-        )
-
-    def render(self):
-        self._update_url()
+        replace_url(url, name=selected_tab.id, title=''.join(selected_tab.title.content()))
 
 
 __all__ = ['tab', 'tab_title', 'tabs']

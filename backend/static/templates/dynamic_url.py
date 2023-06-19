@@ -1,7 +1,8 @@
 import js
+
 from beepy import Tag, Style, attr, on
 from beepy.tags import p, Head
-from beepy.utils import delay
+from beepy.utils import delay, replace_url
 
 Head.title = 'Dynamic URL'
 
@@ -10,7 +11,7 @@ def push_hash(hash):
     url = js.URL.new(js.location.href)
     url.hash = hash
 
-    js.history.pushState(hash, hash, url.href)
+    replace_url(url, new_hash=hash)
 
 
 push_hash('/')

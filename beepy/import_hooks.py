@@ -14,6 +14,7 @@ MODULES_NOT_EXISTING_ON_SERVER = [
     *(requirements() if callable(requirements) else requirements),
     '_hashlib',
     '_strptime',
+    'unicodedata',
     'pprint',
 ]
 # some modules must be ignored to prevent load it from local server, when importing modules like micropip or datetime
