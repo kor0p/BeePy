@@ -55,6 +55,7 @@ __CONFIG__ = {
     'inputs_auto_id': True,
     'html_replace_whitespaces': True,
     'modules': [],
+    'requirements': [],
 }
 
 if 1 == 1:

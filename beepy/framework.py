@@ -20,7 +20,8 @@ from beepy.utils import (
 from beepy.context import OVERWRITE, SUPER, CONTENT, _SPECIAL_CHILD_STRINGS, _MetaContext, Context
 
 
-__CONFIG__['version'] = __version__ = '0.5.0'
+__version__ = '0.5.0'
+__CONFIG__['version'] = __version__
 
 
 if IN_BROWSER:

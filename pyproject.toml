@@ -1,5 +1,42 @@
 [project]
 name = "BeePy"
 authors = [{name = "kor0p", email = "3.kor0p@gmail.com"}]
-dynamic = ["version", "description"]
+description = "The modern frontend web framework for Python"
+dynamic = ["version"]
 requires-python = ">=3.10.10"
+readme = "README.md"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+"Homepage" = "https://bit.ly/beepy"
+"Repository" = "https://github.com/kor0p/BeePy"
+"Docs" = "https://bee-py.readthedocs.io/en/latest/"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+path = "beepy/framework.py"
+
+[tool.hatch.build.targets.sdist]
+exclude = [
+    "/.github",
+    "/.idea",
+    "/docs",
+    ".readthedocs.yaml",
+    "/backend",
+    "/examples",
+    "app.json",
+    "Procfile",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["beepy"]
+
+
+
+pypi-AgENdGVzdC5weXBpLm9yZwIkY2ZlYjRhMjktNzdkNi00YWYzLTllNDktNDVmNTU5NWVhMmY1AAIqWzMsIjk3ODY4OTQ1LThlNzctNDVkNC04ZDE2LWU3ODIyYTEzYjE2NyJdAAAGIGisCUawsSEDEbKX4obLxrrenCnJOvJRUPYI5L5dlwGj
