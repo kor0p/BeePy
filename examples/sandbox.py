@@ -52,6 +52,7 @@ class View(Tag, name='view'):
 
     @btn.on('click')
     def run(self, event=None):
+        self.error = ''
         try:
             js.py(self.input.value + '\n\n' + DEMO_MOUNT_CODE)
         except Exception as e:
