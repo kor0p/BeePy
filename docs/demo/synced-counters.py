@@ -22,4 +22,4 @@ class View(Tag, name='view'):
         self.count += 1
 
 
-mount(View(), '#root')
+mount(View(), '#demo-synced-counters')
