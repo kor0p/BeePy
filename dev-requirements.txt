@@ -2,3 +2,4 @@ pyodide==0.19.0a1  # for running BeePy from console, instead of browser
 micropip==0.3.0
 watchdog==3.0.0  # watcher for files that changes for Hot reload
 websockets==11.0.3  # Hot reload is working using simple WebSockets server
+requests==2.31.0  # HTTP synchronous requests lib

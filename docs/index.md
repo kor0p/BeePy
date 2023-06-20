@@ -7,6 +7,16 @@
 ## Why?
 ### Use Python in browser to build modern frontend via BeePy!
 
+## Local development:
+### Firstly, install BeePy
+### `pip install beepy-web[dev]`
+### Then, add index.html and __init__.py to root of project
+### and start local server at same directory
+### `python -m beepy.dev`
+### That's it!
+### Now, click on link in console to visit your server
+### and change code to see updates in browser in no time!
+
 <script src='https://kor0p.github.io/BeePy/beepy.js'></script>
 <script>
 // <![CDATA[

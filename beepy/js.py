@@ -82,9 +82,9 @@ class Element(HTMLElement):
 
 
 class Console:
-    def log(self, *a, **kw):
+    def log(self, *a):
         _ = (self,)
-        return print(*a, kw)
+        return print(*a)
 
     warn = error = debug = info = log
 
