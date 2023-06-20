@@ -1,5 +1,5 @@
 [project]
-name = "BeePy"
+name = "beepy-web"
 authors = [{name = "kor0p", email = "3.kor0p@gmail.com"}]
 description = "The modern frontend web framework for Python"
 dynamic = ["version"]
