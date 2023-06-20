@@ -36,7 +36,3 @@ exclude = [
 
 [tool.hatch.build.targets.wheel]
 packages = ["beepy"]
-
-
-
-pypi-AgENdGVzdC5weXBpLm9yZwIkY2ZlYjRhMjktNzdkNi00YWYzLTllNDktNDVmNTU5NWVhMmY1AAIqWzMsIjk3ODY4OTQ1LThlNzctNDVkNC04ZDE2LWU3ODIyYTEzYjE2NyJdAAAGIGisCUawsSEDEbKX4obLxrrenCnJOvJRUPYI5L5dlwGj
