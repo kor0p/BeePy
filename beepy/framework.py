@@ -20,7 +20,7 @@ from beepy.utils import (
 from beepy.context import OVERWRITE, SUPER, CONTENT, _SPECIAL_CHILD_STRINGS, _MetaContext, Context
 
 
-__version__ = '0.6.0'
+__version__ = '0.6.1'
 __CONFIG__['version'] = __version__
 
 
