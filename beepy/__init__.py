@@ -1,3 +1,10 @@
+# This file is actually not imported in Frontend (due to some restrictions)
+try:
+    import pyodide as _
+except ImportError:
+    print('Did you forget to install optional requirements with `pip install beepy-web[dev]`?')
+    exit(1)
+
 from beepy import local_storage, trackable, utils, types
 from beepy import listeners, attrs, children
 from beepy import context, framework, style, tags, actions, router, import_hooks

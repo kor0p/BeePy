@@ -15,6 +15,9 @@ classifiers = [
 "Repository" = "https://github.com/kor0p/BeePy"
 "Docs" = "https://bee-py.readthedocs.io/en/latest/"
 
+[project.optional-dependencies]
+dev = ["pyodide==0.19.0a1", "micropip", "watchdog", "websockets"]  # see dev-requirements.txt
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"

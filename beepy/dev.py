@@ -1,12 +1,6 @@
 #!/usr/bin/env python3
 import os
 
-try:
-    import websockets as _
-except ImportError:
-    print('Did you forget to install dev-requirements.txt?')
-    exit(1)
-
 import sys
 import time
 import asyncio
