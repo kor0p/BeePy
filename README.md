@@ -1,4 +1,4 @@
-# 🐝 BeePy v0.5.0
+# 🐝 BeePy
 
 ## The _frontend_ web framework for python 
 ### Thanks for [Pyodide](https://pyodide.org/) - port of Python to [Emscripten](https://emscripten.org/), based on [WASM](https://webassembly.org/).
