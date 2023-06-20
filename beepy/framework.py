@@ -738,7 +738,7 @@ def mount(element: Tag, root_element: str, clear=False):
         raise NameError('Mount point not found')
 
     js.beepy.stopLoading()
-    if clear:
+    if clear or js.beepy.DEV__hot_reload:
         root.innerHTML = ''
     js.beepy.startLoading(mountPoint=root)
 

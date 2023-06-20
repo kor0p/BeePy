@@ -266,6 +266,18 @@ async function systemLoad () {
     if (!Array.isArray(requirements)) requirements = requirements()
     await Promise.all(requirements.map(requirement => pyodide.loadPackage(requirement)))
     beepy.__CONFIG__.__loading = true
+
+    try {  // TODO: add flag parameter for this
+        beepy.DEV__hot_reload_ws = new WebSocket('ws://localhost:8998/')
+    } catch (e) {}  // Dev Hot Reload server is not started
+    beepy.DEV__hot_reload = !!beepy.DEV__hot_reload_ws
+    if (beepy.DEV__hot_reload) {
+        beepy.DEV__hot_reload_ws.onmessage = async ({ data }) => {
+            await beepy._writeLocalFile(data)
+            await _main({reload: true})
+        }
+    }
+
     console.log(pyodide._api.sys.version)
 }
 
@@ -308,7 +320,10 @@ _globals # last evaluated value is returned from 'py' function
 `)
 
     delete beepy.__CONFIG__.__loading
+    await _main()
+}
 
+async function _main (options={reload: false}) {
     beepy.__CURRENT_LOADING_FILE__ = ''
     if (beepy.__main__) {
         await beepy.__main__()
@@ -318,6 +333,7 @@ _globals # last evaluated value is returned from 'py' function
             py(`import ${rootFolder}`)
         } catch (e) {
             console.debug(e)
+            if (options.reload) return
             console.info('You can add __init__.py near index.html to auto-load your code')
         }
     }
