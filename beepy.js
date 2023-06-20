@@ -272,8 +272,13 @@ async function systemLoad () {
     } catch (e) {}  // Dev Hot Reload server is not started
     beepy.DEV__hot_reload = !!beepy.DEV__hot_reload_ws
     if (beepy.DEV__hot_reload) {
+        await apy('import importlib as _dev_importlib; import sys as _dev_sys')
         beepy.DEV__hot_reload_ws.onmessage = async ({ data }) => {
-            await beepy._writeLocalFile(data)
+            // TODO: FIX THIS
+            // `data` - filename, that was changed, but due to enterPythonModule,
+            // we cannot be sure where really file must be pushed
+            // await beepy._writeLocalFile(data)
+            await apy(`_dev_importlib.reload(_dev_sys.modules['${rootFolder}'])`)
             await _main({reload: true})
         }
     }
