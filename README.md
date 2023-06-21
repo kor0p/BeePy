@@ -11,7 +11,7 @@
 ## Local development:
 ### Firstly, install BeePy
 ### `pip install beepy-web[dev]`
-### Then, add index.html and __init__.py to root of project
+### Then, add `index.html` and `__init__.py` to root of project
 ### and start local server at same directory
 ### `python -m beepy.dev`
 ### That's it!
