@@ -20,7 +20,7 @@ from beepy.utils import (
 from beepy.context import OVERWRITE, SUPER, CONTENT, _SPECIAL_CHILD_STRINGS, _MetaContext, Context
 
 
-__version__ = '0.6.4'
+__version__ = '0.6.5'
 __CONFIG__['version'] = __version__
 
 
@@ -64,17 +64,6 @@ class _MetaTag(_MetaContext):
     __clean_class_attribute_names = ('_content_tag', '_static_children_tag')
 
     def __new__(mcs, _name: str, bases: tuple, namespace: dict, **kwargs):
-        # TODO: create decorator for functions like this:
-        # @tag
-        # def test_tag(self: Tag, counter: int = 0):
-        #     @self.on
-        #     def click(event):
-        #         self.counter += 1
-        #
-        #     @self.renderer
-        #     def content():
-        #         return f'Counter: {self.counter}'
-
         namespace = namespace.copy()
         namespace.setdefault('__slots__', ())
         if '_content' in namespace:

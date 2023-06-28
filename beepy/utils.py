@@ -27,7 +27,8 @@ try:
     from pyodide.ffi import IN_BROWSER, create_once_callable, create_proxy, to_js as pyodide_to_js
 except ImportError:
     from pyodide import IN_BROWSER, create_once_callable, create_proxy, to_js as pyodide_to_js
-    js.console.log('FutureWarning: You need to upgrade pyodide version to 0.21.0 or higher')
+    if IN_BROWSER:
+        js.console.log('FutureWarning: You need to upgrade pyodide version to 0.21.0 or higher')
 
 
 class UpgradedJSONEncoder(json.JSONEncoder):

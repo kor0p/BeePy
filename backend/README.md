@@ -1,4 +1,4 @@
-# test-task-django-beepy
+# beepy-webapp
 
 ### app: 
 - dev: `python manage.py runserver`

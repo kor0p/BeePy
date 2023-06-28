@@ -273,11 +273,13 @@ async function systemLoad () {
     beepy.DEV__hot_reload = !!beepy.DEV__hot_reload_ws
     if (beepy.DEV__hot_reload) {
         await apy('import importlib as _dev_importlib; import sys as _dev_sys')
-        beepy.DEV__hot_reload_ws.onmessage = async ({ data }) => {
-            // TODO: FIX THIS
-            // `data` - filename, that was changed, but due to enterPythonModule,
-            // we cannot be sure where really file must be pushed
-            // await beepy._writeLocalFile(data)
+        beepy.DEV__hot_reload_ws.onmessage = async ({ data: file }) => {
+            const data = beepy._filePathToModuleAndRealFileCache[file]
+            if (data) {
+                const [fileToWrite, module] = data
+                await beepy._writeLocalFile(fileToWrite, await beepy.loadFile(file))
+                await apy(`_dev_importlib.reload(_dev_sys.modules['${module}'])`)
+            }
             await apy(`_dev_importlib.reload(_dev_sys.modules['${rootFolder}'])`)
             await _main({reload: true})
         }
@@ -382,6 +384,7 @@ function _parseAndMkDirModule (module, addCurrentPath) {
 
 
 beepy.__CURRENT_LOADING_FILE__ = ''
+beepy._filePathToModuleAndRealFileCache = {}
 beepy.populateCurrentPath = function populateCurrentPath (path) {
     const currentPath = beepy.__CURRENT_LOADING_FILE__.replace(/(\/(\w*.py)?)*$/, '')
     return `${currentPath}${currentPath && path ? '/' : ''}${path.replace(/^\/*/, '')}`
@@ -419,6 +422,7 @@ beepy._loadLocalModule = function _loadLocalModule (
     if (!pathToWrite) pathToWrite = moduleFilePath.replace(new RegExp(`^${path}`), fsPath)
     if (pathToWrite.includes('/')) mkDirPath(pathToWrite, true)
 
+    beepy._filePathToModuleAndRealFileCache[moduleFilePath] = [pathToWrite, module]
     beepy._writeLocalFileSync(pathToWrite, moduleFile)
 
     return false

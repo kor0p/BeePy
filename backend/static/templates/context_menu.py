@@ -30,7 +30,7 @@ class Menu(ContextMenu):
         js.location.reload()
 
 
-class TestContext(ContextMenuHandler, name='test-context', content_tag=p()):
+class ContextExample(ContextMenuHandler, name='context-example', content_tag=p()):
     style = Style(
         font_size='48px',
     )

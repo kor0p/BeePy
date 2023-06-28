@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import functools
 import os
 
 import sys
@@ -13,16 +14,23 @@ from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
 
-class Manager:
+class MonitorFolder(FileSystemEventHandler):
+    def __init__(self, server):
+        self.server = server
+
+    def on_any_event(self, event):
+        self.server.handle_file_event(event)
+
+
+class DevServer:
     def __init__(self):
         self.websockets = []
-        self.root_path = ''
+        self.root_path = None
         self.observer = None
 
-    def set_ws(self, websocket):
-        self.websockets.append(websocket)
-
     async def ws_send(self, message):
+        await asyncio.sleep(1)  # Hack for Django autoreload
+
         for ws in self.websockets[:]:
             try:
                 await ws.send(message)
@@ -32,84 +40,83 @@ class Manager:
         if not self.websockets:
             print('No clients connected! Please, restart your page to connect to the dev server')
 
-    def set_root_path(self, path):
-        self.root_path = path
-
-    def set_observer(self, observer):
-        self.observer = observer
-
-
-m = Manager()
-
-
-# File Watcher
-
-
-class MonitorFolder(FileSystemEventHandler):
-    def on_any_event(self, event):
-        if event.is_directory or event.src_path.endswith(('~', '.tmp')) or event.event_type in ('opened', 'closed'):
-            return
-
+    def handle_file_event(self, event):
         path = event.src_path
-        if path.startswith(m.root_path):
-            path = path[len(m.root_path):]
-        if path.startswith('.idea'):
+        if (
+            event.is_directory
+            or event.src_path.endswith(('~', '.tmp'))
+            or '/__pycache__/' in path
+            or '/.idea/' in path
+            or event.event_type in ('opened', 'closed')
+        ):
             return
 
-        asyncio.run(m.ws_send(path))
+        if path.startswith(self.root_path):
+            path = path[len(self.root_path): ]
+        if path.startswith('/'):
+            path = path[1:]
+
+        print(f'Found file change: {path}')
+        asyncio.run(self.ws_send(path))
+
+    def _watcher_start(self):
+
+        event_handler = MonitorFolder(self)
+        observer = Observer()
+        observer.schedule(event_handler, path=self.root_path, recursive=True)
+        print(f'Monitoring started for {self.root_path}')
+        observer.start()
+        self.observer = observer
+        try:
+            while True:
+                time.sleep(1)
+        except KeyboardInterrupt:
+            observer.stop()
+            observer.join()
+
+    async def _ws_echo(self, websocket):
+        self.websockets.append(websocket)
+
+        async for message in websocket:
+            print(f'{websocket=} {message=}')  # We really don't receive messages
+
+    async def _ws_main(self):
+        print('WebSockets started')
+        async with serve(self._ws_echo, 'localhost', 8998):
+            await asyncio.Future()  # run forever
+
+    def _ws_start(self):
+        asyncio.run(self._ws_main())
+
+    def _simple_http_start(self, port=8888):
+        with socketserver.TCPServer(
+            ('', port), functools.partial(http.server.SimpleHTTPRequestHandler, directory=self.root_path)
+        ) as httpd:
+            print(f'Serving at port {port}\nOpen server: http://localhost:{port}')
+            httpd.serve_forever()
+
+    def start(self, start_http=None, root_path=None, wait=False):
+        if self.observer is not None:
+            print('Server is already started')
+            return
+
+        if root_path is None:
+            root_path = sys.argv[1] if len(sys.argv) > 1 else os.getcwd()
+
+        self.root_path = root_path
+
+        Thread(target=self._ws_start, daemon=True).start()
+        Thread(target=self._watcher_start, daemon=True).start()
+        if start_http is not None:
+            Thread(target=start_http, daemon=True).start()
+        if wait:
+            while True:
+                time.sleep(3600)
 
 
-def start_watcher():
-    root_path = sys.argv[1] if len(sys.argv) > 1 else os.getcwd()
-
-    event_handler = MonitorFolder()
-    observer = Observer()
-    observer.schedule(event_handler, path=root_path, recursive=True)
-    print(f'Monitoring started for {root_path}')
-    observer.start()
-    m.set_root_path(root_path)
-    m.set_observer(observer)
-    try:
-        while (True):
-            time.sleep(1)
-
-    except KeyboardInterrupt:
-        observer.stop()
-        observer.join()
+dev_server = DevServer()
+start_simple_dev_server = functools.partial(dev_server.start, start_http=dev_server._simple_http_start, wait=True)
 
 
-# WebSocket Server
-
-
-async def echo(websocket):
-    m.set_ws(websocket)
-
-    async for message in websocket:
-        print(f'{websocket=} {message=}')  # We really don't receive messages
-
-
-async def main_ws():
-    print('WebSockets started')
-    async with serve(echo, 'localhost', 8998):
-        await asyncio.Future()  # run forever
-
-
-def start_websockets():
-    asyncio.run(main_ws())
-
-
-HTTP_PORT = 8888
-Handler = http.server.SimpleHTTPRequestHandler
-
-
-def start_http():
-    with socketserver.TCPServer(('', HTTP_PORT), Handler) as httpd:
-        print(f'Serving at port {HTTP_PORT}\nOpen server: http://localhost:{HTTP_PORT}')
-        httpd.serve_forever()
-
-
-Thread(target=start_watcher, daemon=True).start()
-Thread(target=start_websockets, daemon=True).start()
-Thread(target=start_http, daemon=True).start()
-while True:
-    time.sleep(60)
+if __name__ == '__main__':
+    start_simple_dev_server()

@@ -33,12 +33,12 @@ class BottomNavbar(div, WithRouter):
 class AppRouter(Router):
     basename = '/e/'
     routes = {
-        '$': 'tabs.test_tabs',
-        'list-examples': 'tabs.test_tabs',
+        '$': 'tabs.View',
+        'list-examples': 'tabs.View',
         'admin': 'admin.Admin',
-        'context-menu': 'context_menu.TestContext',
+        'context-menu': 'context_menu.ContextExample',
         'dynamic-url': 'dynamic_url.DynamicURL',
-        'modal': 'modal.Test',
+        'modal': 'modal.View',
         'buttons': 'buttons.View',
         'todos': 'todos.TodoList',
         'timer': 'timer.App',

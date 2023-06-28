@@ -1,13 +1,13 @@
 from beepy import Tag, Style, state, attr, on
 from beepy.tags import Head
 
-Head.title = 'Test 1'
+Head.title = 'Colored Increment Buttons'
 
 
-class PyButton(Tag, name='button'):
+class ColoredButton(Tag, name='button'):
     parent: 'View'
 
-    test = attr(True)
+    some_attr = attr(True)
 
     title = state('')
     increment = state(1)
@@ -40,8 +40,8 @@ class View(Tag, name='view'):
     )
 
     children = [
-        PyButton(title='+', color='red'),
-        PyButton(title='–', increment=-1),
+        ColoredButton(title='+', color='red'),
+        ColoredButton(title='–', increment=-1),
     ]
 
     def content(self):

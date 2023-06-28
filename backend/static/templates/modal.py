@@ -5,7 +5,7 @@ from beepy.modal import Modal, ModalHandler
 Head.title = 'Modal example'
 
 
-class TestModal(Modal):
+class ModalExample(Modal):
     children = [
         p('Click button below or Esc to close modal window'),
         p('Some text'),
@@ -16,13 +16,11 @@ class TestModal(Modal):
     ]
 
 
-class Test(ModalHandler):
+class View(ModalHandler):
     style = Style(
         font_size='48px',
     )
 
-    modal = TestModal()
-
     children = [
-        modal,
+        modal := ModalExample(),
     ]

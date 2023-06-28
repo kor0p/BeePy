@@ -9,7 +9,7 @@ Head.title = 'Sandbox'
 
 
 DEMO_CODE = safe_html(
-    '''from beepy import Tag, mount, state, on
+    '''from beepy import Tag, state, on
 
 class Main(Tag, name='button'):
     count = state(0)
@@ -22,7 +22,10 @@ class Main(Tag, name='button'):
         return f'Count: {self.count}'
 '''
 )
-DEMO_MOUNT_CODE = "mount(Main(), '#demo', clear=True)"
+DEMO_MOUNT_CODE = '''
+from beepy import mount
+mount(Main(), '#demo', clear=True)
+'''
 
 pre = empty_tag('pre')
 

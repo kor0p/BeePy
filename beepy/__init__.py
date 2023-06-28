@@ -1,9 +1,20 @@
 # This file is actually not imported in Frontend (due to some restrictions)
+
 try:
-    import pyodide as _
+    from pyodide.ffi import IN_BROWSER
 except ImportError:
-    print('Did you forget to install optional requirements with `pip install beepy-web[dev]`?')
-    exit(1)
+    try:
+        from pyodide import IN_BROWSER
+    except ImportError:
+        print('Did you forget to install optional requirements with `pip install -U beepy-web[dev]`?')
+        exit(1)
+
+if not IN_BROWSER:
+    import sys
+    from . import js
+
+    sys.modules['js'] = js
+    del sys
 
 from beepy import local_storage, trackable, utils, types
 from beepy import listeners, attrs, children
