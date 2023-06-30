@@ -642,10 +642,7 @@ class Tag(WebBase, Context, metaclass=_MetaTag, _root=True):
                 child = self.content
 
             if isinstance(child, attr):
-                _attr_name = child.name
-
-                def child(s):
-                    return getattr(s, _attr_name)
+                child = lambda s, _n=child.name: getattr(s, _n)
 
             if isinstance(child, Tag) and child in self._children and child._ref is not None:
                 # using Tag as descriptor/just child; this allows save reference from parent to new copy of child
