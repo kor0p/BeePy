@@ -277,8 +277,10 @@ async function systemLoad () {
             const data = beepy._filePathToModuleAndRealFileCache[file]
             if (data) {
                 const [fileToWrite, module] = data
-                await beepy._writeLocalFile(fileToWrite, await beepy.loadFile(file))
-                await apy(`_dev_importlib.reload(_dev_sys.modules['${module}'])`)
+                if (module) {
+                    await beepy._writeLocalFile(fileToWrite, await beepy.loadFile(file))
+                    await apy(`_dev_importlib.reload(_dev_sys.modules['${module}'])`)
+                }
             }
             await apy(`_dev_importlib.reload(_dev_sys.modules['${rootFolder}'])`)
             await _main({reload: true})
@@ -434,8 +436,8 @@ beepy.listenerCheckFunctions = {
     'stop_all': 'stopImmediatePropagation',
 }
 
-beepy.addAsyncListener = function addAsyncListener (el, eventName, method, modifiers, options={}) {
-    async function _listener (event) {
+function _handleAsyncListener (method, modifiers) {
+    return async function (event) {
         for (const modifier of modifiers) {
             event[beepy.listenerCheckFunctions[modifier]]()
         }
@@ -446,6 +448,9 @@ beepy.addAsyncListener = function addAsyncListener (el, eventName, method, modif
             _DEBUGGER(err)
         }
     }
+}
+beepy.addAsyncListener = function addAsyncListener (el, eventName, method, modifiers, options={}) {
+    _listener = _handleAsyncListener(method, modifiers)  // should freeze parameters
     el.addEventListener(eventName, _listener, options)
     return _listener
 }
