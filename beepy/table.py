@@ -48,12 +48,10 @@ class TD(td):
 class TR(tr):
     data = state(type=list[dict[str, str]])
 
-    _data = Children()
-
     parent: Union[TableHead, TableBody]
 
     children = [
-        _data,
+        _data := Children(),  # TODO: add auto-reload data, instead of `sync` functions
     ]
 
     @property
@@ -80,12 +78,10 @@ class TableHead(thead, children_tag=TR(), force_ref=True):
     # TODO: maybe use 'name' instead of 'id'
     #       add 'hidden' option (availability to hide some columns)
 
-    _columns = Children()
-
     parent: Table
 
     children = [
-        _columns,
+        _columns := Children(),
     ]
 
     def mount(self):
@@ -107,12 +103,10 @@ class TableHead(thead, children_tag=TR(), force_ref=True):
 class TableBody(tbody, force_ref=True):
     rows = state(type=list[list[str]])
 
-    _rows = Children()
-
     parent: Table
 
     children = [
-        _rows,
+        _rows := Children(),
     ]
 
     def mount(self):

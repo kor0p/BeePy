@@ -133,7 +133,7 @@ class h6(html_tag, name='h6'):
     pass
 
 
-class _input(html_tag, name='input'):
+class input_(html_tag, name='input'):
     type = attr(
         'text',
         enum={
@@ -186,10 +186,8 @@ class option(html_tag, name='option'):
 class select(html_tag, name='select'):
     value = html_attr(model='change')
 
-    options = Children()
-
     children = [
-        options,
+        options := Children(),
     ]
 
     def select(self, value):
@@ -244,5 +242,5 @@ Body = Body()
 
 __all__ = [
     'html_tag', 'div', 'a', 'p', 'b', 'i', 'ul', 'li', 'span', 'form', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-    '_input', 'textarea', 'header', 'main', 'footer', 'nav', 'button', 'option', 'select', 'Head',
+    'input_', 'textarea', 'header', 'main', 'footer', 'nav', 'button', 'option', 'select', 'Head',
 ]

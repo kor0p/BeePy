@@ -51,10 +51,8 @@ class SelectView(Tag, name='div', content_tag='span'):
 
     items = {'0': 'first', '1': 'second', '2': 'third'}
 
-    select = select.with_items(items, value=selected)
-
     children = [
-        select,
+        select := select.with_items(items, value=selected),
     ]
 
     def content(self):

@@ -7,7 +7,7 @@ from datetime import datetime
 from beepy import Tag, Style, SUPER, on
 from beepy.style import with_style
 from beepy.attrs import html_attr, state
-from beepy.tags import button, by__input_id, _input, textarea, option, select, h2, label, Head
+from beepy.tags import button, by__input_id, input_, textarea, option, select, h2, label, Head
 from beepy.tabs import tabs, tab, tab_title
 from beepy.table import Table, TableHead, TableBody
 from beepy.types import AttrValue
@@ -60,7 +60,6 @@ def sync_groups(__from_tag, new_groups):
 
 
 class BaseForm(Tag, name='form', content_tag=h2()):
-    error = state('')
     visible = html_attr(False)
 
     style = Style(styles={
@@ -73,11 +72,9 @@ class BaseForm(Tag, name='form', content_tag=h2()):
         },
     })
 
-    save_btn = button('Save', type='submit')
-
     children = [
-        save_btn,
-        error,
+        save_btn := button('Save', type='submit'),
+        error := state(''),
     ]
 
     def show(self):
@@ -126,7 +123,7 @@ class UserForm(BaseForm):
 
     parent: UsersTab
 
-    username = _input(value=user)
+    username = input_(value=user)
     group = select(value=user)
 
     children = [
@@ -167,7 +164,6 @@ class UserForm(BaseForm):
 
 
 class UsersTab(tab, name='users'):
-    error = state('')
     users: Users = users
 
     style = Style(
@@ -179,15 +175,11 @@ class UsersTab(tab, name='users'):
         },
     )
 
-    table = UsersTable()
-    add_btn = styled_button('Add User')
-    form = UserForm()
-
     children = [
-        error,
-        table,
-        add_btn,
-        form,
+        error := state(''),
+        table := UsersTable(),
+        add_btn := styled_button('Add User'),
+        form := UserForm(),
     ]
 
     @add_btn.on('click')
@@ -250,7 +242,7 @@ class GroupForm(BaseForm):
 
     parent: GroupsTab
 
-    name = _input(value=group)
+    name = input_(value=group)
     description = textarea(value=group)
 
     children = [
@@ -280,7 +272,6 @@ class GroupForm(BaseForm):
 
 
 class GroupsTab(tab, name='groups'):
-    error = state('')
     groups: Groups = groups
 
     style = Style(
@@ -292,15 +283,11 @@ class GroupsTab(tab, name='groups'):
         },
     )
 
-    table = GroupsTable()
-    add_btn = styled_button('Add Group')
-    form = GroupForm()
-
     children = [
-        error,
-        table,
-        add_btn,
-        form,
+        error := state(''),
+        table := GroupsTable(),
+        add_btn := styled_button('Add Group'),
+        form := GroupForm(),
     ]
 
     @add_btn.on('click')
@@ -339,12 +326,9 @@ class Admin(tabs, name='app'):
         'groups': tab_title('Groups'),
     }
 
-    users = UsersTab()
-    groups = GroupsTab()
-
     children = [
-        users,
-        groups,
+        users := UsersTab(),
+        groups := GroupsTab(),
     ]
 
     def pre_mount(self):

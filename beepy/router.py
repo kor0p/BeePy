@@ -96,10 +96,8 @@ class Router(Tag):
     fallback_tag_cls = None
     single_tag = True
 
-    components = Children()
-
     children = [
-        components,
+        components := Children(),
     ]
 
     def pre_mount(self):

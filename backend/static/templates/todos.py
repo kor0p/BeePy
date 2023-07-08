@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from beepy import Style, attr, state, on
-from beepy.tags import p, _input, button, span, ul, li, form, Head
+from beepy.tags import p, input_, button, span, ul, li, form, Head
 from beepy.children import Children
 from beepy.local_storage import LocalStorage
 
@@ -16,10 +16,8 @@ class TodoList(ul, content_tag=p()):
 
         parent: TodoList
 
-        remove = span('×')
-
         children = [
-            remove,
+            remove := span('×'),
         ]
 
         @on('click')
@@ -36,17 +34,14 @@ class TodoList(ul, content_tag=p()):
     count_completed = state(0)
     class_ = 'todos'
 
-    todos = Children([
-        Todo('Create Todo List', completed=True),
-    ])
-    add = form(
-        input=_input(),
-        btn=button('+', type='submit'),
-    )
-
     children = [
-        add,
-        todos,
+        add := form(
+            input=input_(),
+            btn=button('+', type='submit'),
+        ),
+        todos := Children([
+            Todo('Create Todo List', completed=True),
+        ]),
     ]
 
     local_storage = LocalStorage('todos-')

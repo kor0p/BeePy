@@ -74,10 +74,8 @@ class CountUpTimer(Tag, name='timer', children_tag=a()):
 
 
 class App(Tag, name='app', content_tag=p()):
-    timer = CountUpTimer(start=datetime(2022, 2, 24, 3, 40, 0))
-
     _content = 'The full-scale invasion of Ukraine has been going on for'
 
     children = [
-        timer,
+        CountUpTimer(start=datetime(2022, 2, 24, 3, 40, 0)),
     ]

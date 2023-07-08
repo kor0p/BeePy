@@ -105,7 +105,7 @@ If you have config, you must define it before loading beepy script
 const DEFAULT_CONFIG = {
     // user can specify version of pyodide
     // TODO: check supporting versions of pyodide
-    pyodideVersion: '0.23.3',
+    pyodideVersion: '0.23.4',
     // could be useful for some internal checks
     __loading: false,
     // extra modules in base dir to load

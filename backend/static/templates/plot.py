@@ -28,12 +28,9 @@ def create_plot():
 
 
 class App(Tag, name='app'):
-    reload_btn = button('Reload', class_='reload')
-    plot = Children([])
-
     children = [
-        reload_btn,
-        plot,
+        reload_btn := button('Reload', class_='reload'),
+        plot := Children([]),
     ]
 
     def mount(self):

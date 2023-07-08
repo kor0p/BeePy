@@ -36,10 +36,8 @@ class Modal(Tag, name='modal', content_tag='h2', children_tag='modal-content'):
         },
     })
 
-    button_close = button('Close')
-
     children = [
-        button_close,
+        button_close := button('Close'),
     ]
 
     def show(self):
@@ -64,10 +62,8 @@ class ModalHandler(div, content_tag=div()):
 
     default_style = Style()
 
-    button_show = button('Show Modal')
-
     children = [
-        button_show,
+        button_show := button('Show Modal'),
     ]
 
     @button_show.on('click')

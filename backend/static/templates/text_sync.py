@@ -1,5 +1,5 @@
 from beepy import Tag, Style, CONTENT, state
-from beepy.tags import button, _input
+from beepy.tags import button, input_
 
 
 class TextSyncExample(Tag, name='example'):
@@ -13,13 +13,10 @@ class TextSyncExample(Tag, name='example'):
 
     value = state('')
 
-    clear_btn = button('Clear')
-    input = _input(value=value)
-
     children = [
-        clear_btn,
+        clear_btn := button('Clear'),
         '\n',
-        input,
+        input := input_(value=value),
         CONTENT,
     ]
 

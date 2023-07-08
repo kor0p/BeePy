@@ -9,17 +9,14 @@ Head.title = 'Context Menu example'
 
 class Menu(ContextMenu):
     children = [
-        MenuItem('Share To...'),
+        share_to := MenuItem('Share To...'),
         MenuItem('Cut'),
         MenuItem('Copy'),
         MenuItem('Paste'),
         MenuDivider(),
-        MenuItem('Refresh'),
+        refresh := MenuItem('Refresh'),
         MenuItem('Exit'),
     ]
-
-    # get as references
-    share_to, _, _, _, _, refresh, _ = children
 
     @share_to.on('click')
     def open_share(self, event):
@@ -35,10 +32,8 @@ class ContextExample(ContextMenuHandler, name='context-example', content_tag=p()
         font_size='48px',
     )
 
-    menu = Menu()
-
     children = [
-        menu,
+        menu := Menu(),
     ]
 
     _content = 'Right click somewhere on the page...'
