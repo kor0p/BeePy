@@ -7,7 +7,7 @@ from datetime import datetime
 from beepy import Tag, Style, SUPER, on
 from beepy.style import with_style
 from beepy.attrs import html_attr, state
-from beepy.tags import button, by__input_id, input_, textarea, option, select, h2, label, Head
+from beepy.tags import button, by__ref, input_, textarea, option, select, h2, label, Head, ul
 from beepy.tabs import tabs, tab, tab_title
 from beepy.table import Table, TableHead, TableBody
 from beepy.types import AttrValue
@@ -74,13 +74,15 @@ class BaseForm(Tag, name='form', content_tag=h2()):
 
     children = [
         save_btn := button('Save', type='submit'),
+        hide_btn := button('Cancel'),
         error := state(''),
     ]
 
     def show(self):
         self.visible = True
 
-    def hide(self):
+    @hide_btn.on('click')
+    def hide(self, _):
         self.visible = False
 
 
@@ -112,7 +114,7 @@ class UserForm(BaseForm):
     user = state(
         User.default(),
         type=User,
-        model_options={'attribute': by__input_id},
+        model_options={'attribute': by__ref},
     )
 
     def title(self):
@@ -231,7 +233,7 @@ class GroupForm(BaseForm):
     group = state(
         Group.default(),
         type=Group,
-        model_options={'attribute': by__input_id},
+        model_options={'attribute': by__ref},
     )
 
     def title(self):
@@ -321,12 +323,11 @@ class Admin(tabs, name='app'):
     dark_theme = True
     name = 'admin'
 
-    tabs_titles = {
-        'users': tab_title('Users'),
-        'groups': tab_title('Groups'),
-    }
-
     children = [
+        tabs_titles := ul(
+            users=tab_title('Users'),
+            groups=tab_title('Groups'),
+        ),
         users := UsersTab(),
         groups := GroupsTab(),
     ]

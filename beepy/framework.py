@@ -10,7 +10,7 @@ from copy import deepcopy
 
 import js
 
-from beepy.attrs import attr, state, html_attr
+from beepy.attrs import attr, set_html_attribute, state, html_attr
 from beepy.children import CustomWrapper, StringWrapper, ContentWrapper, ChildRef, TagRef, Children
 from beepy.listeners import on
 from beepy.types import safe_html, Renderer, Mounter, WebBase, AttrType, ContentType
@@ -497,10 +497,12 @@ class Tag(WebBase, Context, metaclass=_MetaTag, _root=True):
 
         for name, value in {**self.__attrs__, **attrs}.items():
             # TODO: optimize this - set only changed attributes
-            if getattr(self.mount_element.attributes, name, None) and value is None:
-                self.mount_element.removeAttribute(name)
-            elif value is not None:
-                self.mount_element.setAttribute(name, value)
+
+            if _attr := self.attrs.get(name):
+                type = _attr.type
+            else:
+                type = NONE_TYPE
+            set_html_attribute(self.mount_element, name, value, type=type)
 
         content_index = self.get_content_index()
         if content_index is not None:

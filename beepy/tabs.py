@@ -3,15 +3,16 @@ from __future__ import annotations
 
 import js
 
-from beepy.framework import Tag, attr, state, on
+from beepy.framework import Tag, attr, state
 from beepy.style import Style
-from beepy.tags import div
+from beepy.attrs import html_attr
+from beepy.tags import div, ul
 from beepy.utils import replace_url
 
 
 class tab(div, name='tab'):
     tab_id = state(type=str)
-    visible = attr(False)
+    visible = html_attr(False)
     title: tab_title = state()
 
     default_style = Style(styles={
@@ -38,20 +39,13 @@ class tab_title(Tag, name='li', content_tag=None):
     _tab: tab = state(type=tab)
     selected = attr(False)
 
-    @on
-    def click(self, event):
-        self._tab.parent.select_tab(self._tab.tab_id)
 
-
-class tabs(Tag, name='tabs', content_tag='ul'):
+class tabs(Tag, name='tabs'):
     dark_theme = attr(False)
     selected_id = attr(type=str)
     selected: tab = state(type=tab)
 
     name: str = 'Unknown'
-    tabs_titles: dict = {
-        # id: tab_title(text),
-    }
 
     default_style = Style(styles={
         'a': {
@@ -98,20 +92,24 @@ class tabs(Tag, name='tabs', content_tag='ul'):
         },
     })
 
+    children = [
+        tabs_titles := ul(),
+        # tab_titles = ul(id=tab_title('Text'))
+    ]
+
     @property
     def tabs_list(self) -> dict[str, tab]:
         # TODO: make tabs_list one-time calculated attribute
         return {name: _tab for name, _tab in self.ref_children.items() if isinstance(_tab, tab)}
 
-    def content(self):
-        return [title for title in self.tabs_titles.values()]
+    @classmethod
+    def __class_declared__(cls):
+        for tab_id, _tab_title in cls.tabs_titles.child.ref_children.items():
+            _tab_title.on('click')(lambda _ul, _e, _tab_id=tab_id: _ul.parent.select_tab(_tab_id))
 
     def mount(self):
         for tab_id, tab in self.tabs_list.items():
-            title = self.tabs_titles[tab_id]
-            title._tab = tab
-            title.link_parent_attrs(self)
-            tab.title = title
+            getattr(self.tabs_titles, tab_id).link_parent_attrs(self)
 
         url = js.URL.new(js.location.href)
 
@@ -123,7 +121,7 @@ class tabs(Tag, name='tabs', content_tag='ul'):
         if not selected:
             selected = self.select_tab(url.searchParams.get(self.name))
         if not selected:
-            self.select_tab(tuple(self.tabs_titles.keys())[0])
+            self.select_tab(tuple(self.tabs_titles.ref_children.keys())[0])
         self._update_url()
 
     def select_tab(self, tab_id):
@@ -134,11 +132,11 @@ class tabs(Tag, name='tabs', content_tag='ul'):
         if not self.selected or self.selected.tab_id != tab_id:
             for child in self.tabs_list.values():
                 child.visible = False
-            for title in self.tabs_titles.values():
+            for title in self.tabs_titles.ref_children.values():
                 title.selected = False
             self.selected = getattr(self, tab_id)
             self.selected.visible = True
-            self.tabs_titles[tab_id].selected = True
+            getattr(self.tabs_titles, tab_id).selected = True
 
         self._update_url()
         return self.selected
@@ -154,7 +152,7 @@ class tabs(Tag, name='tabs', content_tag='ul'):
 
         url.searchParams.set(self.name, selected_tab.tab_id)  # modifies url.href
 
-        replace_url(url, name=selected_tab.id, title=''.join(selected_tab.title.content()))
+        replace_url(url, name=selected_tab.id, title=''.join(getattr(self.tabs_titles, selected_tab.tab_id).content()))
 
 
 __all__ = ['tab', 'tab_title', 'tabs']

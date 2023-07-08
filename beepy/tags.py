@@ -25,10 +25,13 @@ class html_tag(Tag, _root=True, content_tag=None):
             self.id = f'{ref.name or get_random_name(5)}-{get_random_name(2)}'
 
 
-def by__input_id(input_tag, value):
-    if value is None:
-        return False
+def by__input_id(input_tag):
     return input_tag.id.rsplit('-', 1)[0]
+
+
+def by__ref(tag):
+    if ref := tag._ref:
+        return ref.name
 
 
 class div(html_tag, name='div', content_tag=None):

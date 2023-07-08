@@ -205,11 +205,19 @@ class Context(metaclass=_MetaContext, _root=True):
             setattr(self, key, kwargs[key])
 
     @property
-    def __attrs__(self) -> dict[str, AttrType]:
+    def __view_attrs__(self) -> dict[str, AttrType]:
         return {
             _attr.name: _attr._get_view_value(self)
             for _attr in self.attrs.values()
             if _attr._view
+        }
+
+    @property
+    def __attrs__(self) -> dict[str, AttrType]:
+        return {
+            _attr.name: _attr._get_view_value(self)
+            for _attr in self.attrs.values()
+            if _attr._view and not _attr._set_on_render
         }
 
     @property

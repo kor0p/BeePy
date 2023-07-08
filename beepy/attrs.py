@@ -1,5 +1,6 @@
 from __future__ import annotations as _
 
+import builtins
 import keyword
 from typing import Optional, Callable, Union, Sequence, Type, get_type_hints, ForwardRef, TypeVar, Any
 from collections import defaultdict
@@ -22,6 +23,21 @@ def convert_boolean_attribute_value(value):
     return '' if value else None
 
 
+_MISSING = object()
+
+
+def set_html_attribute(el, name: str, value, *, type: builtins.type = NONE_TYPE):
+    existing_attribute = getattr(el, name, _MISSING)
+    if value is None:
+        el.removeAttribute(name)
+    elif name.endswith('_'):
+        el.setAttribute(name[:-1], value)
+    elif existing_attribute is _MISSING or issubclass(type, bool):
+        el.setAttribute(name, value)
+    else:
+        setattr(el, name, value)
+
+
 class attr:
     __slots__ = (
         'name', 'initial_value', 'type',
@@ -35,6 +51,7 @@ class attr:
     )
 
     _view = True
+    _set_on_render = False
 
     name: Optional[str]
     initial_value: T
@@ -207,10 +224,10 @@ class attr:
         except Exception as e:
             log.debug(f'Got error when trying to empty-args constructor of {self.type}: {e}\n' + error_text)
 
-    def _prepare_attribute_for_model(self, instance, value):
+    def _prepare_attribute_for_model(self, instance):
         if attribute := self.model_options['attribute']:
             if callable(attribute):
-                return attribute(instance, value)
+                return attribute(instance)
             return attribute
 
     def _set_model_value(self, instance, attr_, ctx: Context):
@@ -223,7 +240,7 @@ class attr:
                 __value = self._get_type_instance(error_text=f'Will be better to set {self.name} not to None')
                 if __value is not None:
                     value = __value
-        if attribute_ := self._prepare_attribute_for_model(instance, value):
+        if attribute_ := self._prepare_attribute_for_model(instance):
             value = getattr(value, attribute_)
         if value is None:
             value = ''
@@ -249,25 +266,24 @@ class attr:
 
             @instance.on(attr_.model)
             @wraps_with_name(f'@attr[to:{attr_}->model{_attribute_str}->{self}]')
-            def __handler_to_model(parent_instance, _event, current_instance=instance):
+            def __handler_to_model(parent_instance, _event, current_attribute=attribute_):
                 _value = _event.target.value
-                if attribute := self._prepare_attribute_for_model(current_instance, _value):
-                    setattr(self.__get__(parent_instance), attribute, _value)
+                if current_attribute:
+                    setattr(self.__get__(parent_instance), current_attribute, _value)
                 else:
                     self.__set__(parent_instance, _value, _prevent_model=True)
 
             @self.on('change')
             @wraps_with_name(f'@attr[from:{attr_}->model{_attribute_str}->{self}]')
-            def __handler_from_model(parent_instance, _value, current_instance=instance, current_attribute=attribute_):
-                if current_attribute is None:
-                    instance_ = current_instance
-                else:
-                    instance_ = getattr(parent_instance, current_attribute)
+            def __handler_from_model(
+                parent_instance, _value, current_instance=instance, _attr_=attr_, current_attribute=attribute_
+            ):
+                instance_ = getattr(parent_instance, current_attribute) if current_attribute else current_instance
 
-                if attribute := self._prepare_attribute_for_model(current_instance, _value):
-                    _value = getattr(_value, attribute)
+                if _value is not None and current_attribute:
+                    _value = getattr(_value, current_attribute)
 
-                attr_.__set__(instance_, _value, _prevent_model=True)
+                _attr_.__set__(instance_, _value, _prevent_model=True)
 
         for index in reversed(to_remove_indexes):
             self._from_model_cache.pop(index)
@@ -345,6 +361,8 @@ class state(attr):
 class html_attr(attr):
     __slots__ = ()
 
+    _set_on_render = True
+
     def __init__(self, *args, name=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.name = name
@@ -364,15 +382,7 @@ class html_attr(attr):
     def _fset(self, instance, value):
         if hasattr(instance, 'mount_element'):
             value = self._get_view_value(value=value)
-            if issubclass(self.type, bool):
-                if value is None:
-                    instance.mount_element.removeAttribute(self.name)
-                else:
-                    instance.mount_element.setAttribute(self.name, value)
-            elif self.name.endswith('_'):
-                instance.mount_element.setAttribute(self.name[:-1], value)
-            else:
-                setattr(instance.mount_element, self.name, value)
+            set_html_attribute(instance.mount_element, self.name, value, type=self.type)
 
     def _fdel(self, instance):
         delattr(instance.mount_element, self.name)

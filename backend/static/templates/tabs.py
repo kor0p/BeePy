@@ -1,7 +1,7 @@
 from functools import partial
 
 from beepy import Tag, Style, attr, state, __version__
-from beepy.tags import button, a, p, i, span, select, Head
+from beepy.tags import button, a, p, i, span, select, Head, ul
 from beepy.tabs import tab, tab_title, tabs
 from beepy.router import WithRouter, Link
 
@@ -67,13 +67,13 @@ class SelectView(Tag, name='div', content_tag='span'):
 class ExamplesTabs(tabs):
     dark_theme = True
     name = 'ex'
-    tabs_titles = {
-        'main': tab_title('Examples'),
-        'buttons': tab_title('Increment Buttons'),
-        'selector': tab_title('Selector 10'),
-    }
 
     children = [
+        tabs_titles := ul(
+            main=tab_title('Examples'),
+            buttons=tab_title('Increment Buttons'),
+            selector=tab_title('Selector '),
+        ),
         main := tab(
             p(
                 span(f'\N{honeybee} BeePy v{__version__}'),
