@@ -293,6 +293,7 @@ async function _loadBeePyModule () {
             }
         } else {
             console.warn('No version specified in BeePy source! The latest will be used')
+            version = ''
         }
     }
     await beepy.pip.install(`beepy_web${version}`)
