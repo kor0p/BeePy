@@ -5,12 +5,13 @@ from re import Match
 from typing import Union, Type
 from dataclasses import dataclass
 
-import js
-
 from beepy.framework import Tag, state, on
 from beepy.tags import a
 from beepy.types import Children
-from beepy.utils import lazy_import_cls, _debugger, push_url, reload_requirements, add_event_listener, force_sync
+from beepy.utils import js, force_sync
+from beepy.utils.js_py import add_event_listener, push_url
+from beepy.utils.dev import _debugger
+from beepy.utils.internal import lazy_import_cls, reload_requirements
 
 
 class WithRouter:

@@ -1,5 +1,3 @@
-# This file is actually not imported in Frontend (due to some restrictions)
-
 try:
     from pyodide.ffi import IN_BROWSER
 except ImportError:
@@ -11,14 +9,13 @@ except ImportError:
 
 if not IN_BROWSER:
     import sys
-    from . import js
+    from beepy.utils import js
 
     sys.modules['js'] = js
     del sys
 
-from beepy import local_storage, trackable, utils, types
-from beepy import listeners, attrs, children
-from beepy import context, framework, style, tags, actions, router, import_hooks
+import beepy.children  # must be loaded before .framework due to circular import
+import beepy.utils.import_hooks  # allows to use `import` for local files
 from beepy.tags import Head, Body
 from beepy.style import Style
 from beepy.context import *
@@ -27,10 +24,9 @@ from beepy.framework import *
 from beepy.framework import __version__, __all__ as __framework_all__
 
 __all__ = [
-    'local_storage', 'trackable', 'utils', 'types',
-    'listeners', 'attrs', 'children',
-    'context', 'framework', 'style', 'tags', 'actions', 'router', 'import_hooks',
-    'Head', 'Body', 'Style',
+    'Head',
+    'Body',
+    'Style',
     *__context_all__,
     *__framework_all__,
 ]

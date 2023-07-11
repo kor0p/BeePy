@@ -6,10 +6,11 @@ from types import MethodType
 from functools import partial, wraps
 from copy import deepcopy
 
-import js
-
 from beepy.types import Tag
-from beepy.utils import _PY_TAG_ATTRIBUTE, create_proxy, to_js
+from beepy.utils import js, to_js
+from beepy.utils.js_py import create_proxy
+from beepy.utils.internal import _PY_TAG_ATTRIBUTE
+
 
 GLOBAL_EVENTS_LIST = ('keyup', 'keypress', 'keydown')
 _key_codes = {

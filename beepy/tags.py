@@ -1,11 +1,10 @@
 from typing import Any, Optional
 
-import js
-
 from beepy.framework import Tag
 from beepy.attrs import attr, state, html_attr
 from beepy.children import Children
-from beepy.utils import get_random_name, __CONFIG__, AnyOfType
+from beepy.utils import js, __CONFIG__
+from beepy.utils.common import get_random_name, AnyOfType
 
 
 AUTO_ID = object()

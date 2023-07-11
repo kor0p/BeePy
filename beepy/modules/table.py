@@ -7,7 +7,7 @@ from beepy.children import Children
 from beepy.tags import table, thead, tbody, tr, th, td
 from beepy.style import Style
 from beepy.listeners import on
-from beepy.actions import Action
+from beepy.modules.actions import Action
 
 
 T = TypeVar('T')

@@ -1,10 +1,9 @@
 import re
 from typing import Any, Optional, Type
 
-import js
-
 from beepy.framework import __CONFIG__, Tag, attr, state
-from beepy.utils import log10_ceil, get_random_name, to_kebab_case, safe_issubclass
+from beepy.utils import js
+from beepy.utils.common import log10_ceil, get_random_name, to_kebab_case, safe_issubclass
 from beepy.tags import Head
 from beepy.types import safe_html
 

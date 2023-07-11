@@ -3,12 +3,14 @@ from __future__ import annotations
 from abc import ABCMeta
 from typing import Union, Type, TypeVar
 
-import js
 import beepy
 
 from beepy.attrs import attr
 from beepy.types import AttrType
-from beepy.utils import log10_ceil, get_random_name, const_attribute, Interval, to_kebab_case, create_once_callable
+from beepy.utils import js
+from beepy.utils.dev import const_attribute
+from beepy.utils.common import log10_ceil, get_random_name, to_kebab_case
+from beepy.utils.js_py import create_once_callable, Interval
 
 
 __obj = object()

@@ -1,8 +1,7 @@
-import js
-
 from beepy import Tag, mount, state, Head, Style, empty_tag
 from beepy.tags import button, p, div, textarea
 from beepy.types import safe_html
+from beepy.utils import js
 
 
 Head.title = 'Sandbox'

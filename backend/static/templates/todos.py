@@ -3,7 +3,7 @@ from __future__ import annotations
 from beepy import Style, attr, state, on
 from beepy.tags import p, input_, button, span, ul, li, form, Head
 from beepy.children import Children
-from beepy.local_storage import LocalStorage
+from beepy.modules.local_storage import LocalStorage
 
 
 Head.title = 'Todo List'

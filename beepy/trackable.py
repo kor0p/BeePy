@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Union, SupportsIndex, Callable
 
-from beepy.utils import Locker
+from beepy.utils.common import Locker
 
 
 class Trackable(ABC):

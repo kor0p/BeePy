@@ -288,20 +288,22 @@ async function _loadBeePyModule () {
         if (version) {
             if (version === 'latest') {
                 version = ''
-            } else {
-                version = `==${version}`
             }
         } else {
             console.warn('No version specified in BeePy source! The latest will be used')
             version = ''
         }
     }
-    await beepy.pip.install(`beepy_web${version}`)
+    try {
+        await beepy.pip.install(`beepy_web${(version ? '==' : '') + version}`)
+    } catch {
+        await beepy.pip.install(`${beepy.config.path}/dist/beepy_web-${version}-py3-none-any.whl`)
+    }
 
     beepy.globals = py(`
 import js
 from beepy import __version__
-from beepy.utils import merge_configs, _BeePyGlobals
+from beepy.utils.internal import merge_configs, _BeePyGlobals
 js.console.log(f'%cBeePy version: {__version__}', 'color: lightgreen; font-size: 35px')
 merge_configs()
 

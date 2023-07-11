@@ -1,15 +1,13 @@
 from __future__ import annotations
 
-import js
-
 from abc import ABC, abstractmethod
 from typing import Optional, Union, Iterable, ForwardRef
 from functools import wraps
 
 import beepy
 from beepy.trackable import TrackableList
-from beepy.utils import __CONFIG__, escape_html
-
+from beepy.utils import js, __CONFIG__
+from beepy.utils.common import escape_html
 
 attr = ForwardRef('attr')
 Tag = ForwardRef('Tag')

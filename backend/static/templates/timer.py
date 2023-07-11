@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 
 from beepy import Tag, Style, state
 from beepy.tags import a, p
-from beepy.utils import Interval
+from beepy.utils.js_py import Interval
 from beepy.types import safe_html
 
 

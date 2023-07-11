@@ -3,8 +3,9 @@ import sys
 from importlib.abc import MetaPathFinder
 from importlib.util import spec_from_file_location
 
-import js
-from beepy.utils import IN_BROWSER, __CONFIG__, _debugger
+from beepy.utils.js_py import js, IN_BROWSER
+from beepy.utils.internal import __CONFIG__
+from beepy.utils.dev import _debugger
 
 
 BEEPY_ROOT_PACKAGE = '__beepy_root__'
@@ -18,7 +19,6 @@ MODULES_NOT_EXISTING_ON_SERVER = [
     'pprint',
 ]
 # some modules must be ignored to prevent load it from local server, when importing modules like micropip or datetime
-# TODO: move this hook higher to support importing `beepy/__init__.py` natively
 
 
 class ServerFinder(MetaPathFinder):

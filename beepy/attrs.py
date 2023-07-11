@@ -6,7 +6,8 @@ from typing import Optional, Callable, Union, Sequence, Type, get_type_hints, Fo
 from collections import defaultdict
 
 from beepy.types import AttrType, AttrValue
-from beepy.utils import log, NONE_TYPE, wraps_with_name, to_kebab_case
+from beepy.utils.common import NONE_TYPE, wraps_with_name, to_kebab_case
+from beepy.utils import log
 
 
 Context = ForwardRef('Context')

@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-
-import js
-
 from beepy.framework import Tag, attr, state
 from beepy.style import Style
 from beepy.attrs import html_attr
 from beepy.tags import div, ul
-from beepy.utils import replace_url
+from beepy.utils import js
+from beepy.utils.js_py import replace_url
 
 
 class tab(div, name='tab'):
@@ -153,6 +151,7 @@ class tabs(Tag, name='tabs'):
         url.searchParams.set(self.name, selected_tab.tab_id)  # modifies url.href
 
         replace_url(url, name=selected_tab.id, title=''.join(getattr(self.tabs_titles, selected_tab.tab_id).content()))
+        print(f'URL replaced to {url} for {selected_tab} [3]')
 
 
 __all__ = ['tab', 'tab_title', 'tabs']

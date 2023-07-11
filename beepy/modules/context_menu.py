@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import js
+from beepy.utils import js
 from beepy.framework import attr, state, on
 from beepy.style import Style
 from beepy.tags import div, hr, ul, li, Body

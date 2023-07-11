@@ -38,7 +38,7 @@ class DevServer:
                 self.websockets.remove(ws)
 
         if not self.websockets:
-            print('No clients connected! Please, restart your page to connect to the dev server')
+            print('[BeePy] No clients connected! Please, restart your page to connect to the dev server')
 
     def handle_file_event(self, event):
         path = event.src_path
@@ -56,7 +56,7 @@ class DevServer:
         if path.startswith('/'):
             path = path[1:]
 
-        print(f'Found file change: {path}')
+        print(f'[BeePy] Found file change: {path}')
         asyncio.run(self.ws_send(path))
 
     def _watcher_start(self):
@@ -64,7 +64,7 @@ class DevServer:
         event_handler = MonitorFolder(self)
         observer = Observer()
         observer.schedule(event_handler, path=self.root_path, recursive=True)
-        print(f'Monitoring started for {self.root_path}')
+        print(f'[BeePy] Monitoring started for {self.root_path}')
         observer.start()
         self.observer = observer
         try:
@@ -81,7 +81,7 @@ class DevServer:
             print(f'{websocket=} {message=}')  # We really don't receive messages
 
     async def _ws_main(self):
-        print('WebSockets started')
+        print('[BeePy] WebSockets started')
         async with serve(self._ws_echo, 'localhost', 8998):
             await asyncio.Future()  # run forever
 
@@ -92,12 +92,12 @@ class DevServer:
         with socketserver.TCPServer(
             ('', port), functools.partial(http.server.SimpleHTTPRequestHandler, directory=self.root_path)
         ) as httpd:
-            print(f'Serving at port {port}\nOpen server: http://localhost:{port}')
+            print(f'[BeePy] Serving at port {port}\nOpen server: http://localhost:{port}')
             httpd.serve_forever()
 
     def start(self, start_http=None, root_path=None, wait=False):
         if self.observer is not None:
-            print('Server is already started')
+            print('[BeePy] Server is already started')
             return
 
         if root_path is None:

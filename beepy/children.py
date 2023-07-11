@@ -3,12 +3,11 @@ from __future__ import annotations
 from abc import abstractmethod
 from typing import Optional, Callable, Union, Type, TypeVar, Generic, Iterable
 
-import js
-
 import beepy
 from beepy.types import Tag, Renderer, WebBase, Children, ContentType
 from beepy.context import Context
-from beepy.utils import log, _PY_TAG_ATTRIBUTE
+from beepy.utils import js, log
+from beepy.utils.internal import _PY_TAG_ATTRIBUTE
 
 
 class CustomWrapper(WebBase):

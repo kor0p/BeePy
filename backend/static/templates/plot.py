@@ -4,7 +4,7 @@ import numpy as np
 from beepy import Tag, Style
 from beepy.children import Children
 from beepy.tags import button
-from beepy.plot import get_plot_img
+from beepy.modules.plot import get_plot_img
 
 
 Style.import_file('styles/plot.css')

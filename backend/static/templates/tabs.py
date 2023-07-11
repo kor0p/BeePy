@@ -2,7 +2,7 @@ from functools import partial
 
 from beepy import Tag, Style, attr, state, __version__
 from beepy.tags import button, a, p, i, span, select, Head, ul
-from beepy.tabs import tab, tab_title, tabs
+from beepy.modules.tabs import tab, tab_title, tabs
 from beepy.router import WithRouter, Link
 
 

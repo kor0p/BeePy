@@ -8,10 +8,11 @@ from beepy import Tag, Style, SUPER, on
 from beepy.style import with_style
 from beepy.attrs import html_attr, state
 from beepy.tags import button, by__ref, input_, textarea, option, select, h2, label, Head, ul
-from beepy.tabs import tabs, tab, tab_title
-from beepy.table import Table, TableHead, TableBody
+from beepy.modules.tabs import tabs, tab, tab_title
+from beepy.modules.table import Table, TableHead, TableBody
 from beepy.types import AttrValue
-from beepy.utils import __CONFIG__, request, force_sync, log
+from beepy.utils import __CONFIG__, force_sync
+from beepy.utils.api import request
 
 
 Head.title = 'Admin panel example'

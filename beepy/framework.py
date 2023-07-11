@@ -8,19 +8,18 @@ from types import MethodType
 from functools import wraps, partial, cache
 from copy import deepcopy
 
-import js
-
 from beepy.attrs import attr, set_html_attribute, state, html_attr
 from beepy.children import CustomWrapper, StringWrapper, ContentWrapper, ChildRef, TagRef, Children
 from beepy.listeners import on
 from beepy.types import safe_html, Renderer, Mounter, WebBase, AttrType, ContentType
-from beepy.utils import (
-    log, NONE_TYPE, _PY_TAG_ATTRIBUTE, __CONFIG__, _debugger, get_random_name, to_kebab_case, IN_BROWSER, to_js
-)
+from beepy.utils import js, log, to_js, IN_BROWSER, __CONFIG__
+from beepy.utils.internal import _PY_TAG_ATTRIBUTE
+from beepy.utils.common import NONE_TYPE, get_random_name, to_kebab_case
+from beepy.utils.dev import _debugger
 from beepy.context import OVERWRITE, SUPER, CONTENT, _SPECIAL_CHILD_STRINGS, _MetaContext, Context
 
 
-__version__ = '0.6.6'
+__version__ = '0.7.1'
 __CONFIG__['version'] = __version__
 
 

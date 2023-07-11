@@ -1,8 +1,7 @@
-import js
-
 from beepy import Style, __version__
 from beepy.tags import p, Head
-from beepy.context_menu import MenuDivider, MenuItem, ContextMenu, ContextMenuHandler
+from beepy.utils import js
+from beepy.modules.context_menu import MenuDivider, MenuItem, ContextMenu, ContextMenuHandler
 
 Head.title = 'Context Menu example'
 

@@ -1,8 +1,8 @@
-import js
-
 from beepy import Tag, Style, attr, on
 from beepy.tags import p, Head
-from beepy.utils import delay, replace_url
+from beepy.utils import js
+from beepy.utils.js_py import replace_url
+from beepy.utils.asyncio import delay
 
 Head.title = 'Dynamic URL'
 
