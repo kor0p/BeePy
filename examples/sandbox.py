@@ -1,7 +1,7 @@
 from beepy import Tag, mount, state, Head, Style, empty_tag
 from beepy.tags import button, p, div, textarea
 from beepy.types import safe_html
-from beepy.utils import js
+from beepy.utils import ensure_sync, js
 
 
 Head.title = 'Sandbox'
@@ -53,10 +53,10 @@ class View(Tag, name='view'):
     ]
 
     @btn.on('click')
-    def run(self, event=None):
+    async def run(self, event=None):
         self.error = ''
         try:
-            js.py(self.input.value + '\n\n' + DEMO_MOUNT_CODE)
+            await js.apy(self.input.value + '\n\n' + DEMO_MOUNT_CODE)
         except Exception as e:
             self.error = str(e)
 
@@ -65,7 +65,7 @@ class View(Tag, name='view'):
         self.input.value = DEMO_CODE
 
     def mount(self):
-        self.run()
+        ensure_sync(self.run())
 
 
 mount(View(), '#root')
