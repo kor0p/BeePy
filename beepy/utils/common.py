@@ -18,6 +18,12 @@ def wraps_with_name(name):
     return wrapper
 
 
+def _internal_to_kebab_case(name: str, *, replacer='-'):
+    return re.sub(
+        r'(?P<upper>[A-Z])', lambda m: replacer + m.group('upper').lower(), re.sub('[_ ]', replacer, name.strip('_ '))
+    ).strip(replacer)
+
+
 def to_kebab_case(name: str, *, replacer='-'):
     """
     Converts name of tag to html-compatible or name of property to css-compatible
@@ -27,9 +33,9 @@ def to_kebab_case(name: str, *, replacer='-'):
     >>> Style(font_size='20px')  # font-size: 20px
     >>> Style(backgroundColor='red')  # background-color: red
     """
-    return re.sub(
-        r'(?P<upper>[A-Z])', lambda m: replacer + m.group('upper').lower(), re.sub('[_ ]', replacer, name)
-    ).strip(replacer)
+    if hasattr(name, '__html__'):
+        return name.__html__()
+    return _internal_to_kebab_case(name, replacer=replacer)
 
 
 def escape_html(s, quote=False, whitespace=False):

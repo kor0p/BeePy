@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from beepy.framework import Tag, attr, state
+from beepy import Tag
 from beepy.style import Style
-from beepy.attrs import html_attr
+from beepy.attrs import attr, state, html_attr
 from beepy.tags import div, ul
 from beepy.utils import js
 from beepy.utils.js_py import replace_url

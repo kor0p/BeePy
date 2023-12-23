@@ -1,6 +1,8 @@
 from django.urls import re_path, path
 from django.conf import settings
 from django.conf.urls.static import static
+from django.views.decorators.cache import never_cache
+from django.views.static import serve
 
 from . import views
 
@@ -12,4 +14,4 @@ urlpatterns = [
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT, show_indexes=True)
 
 if settings.IS_DEV:
-    urlpatterns = static('BEEPY/', document_root='../') + urlpatterns
+    urlpatterns = static('BEEPY/', view=never_cache(serve), document_root='../') + urlpatterns

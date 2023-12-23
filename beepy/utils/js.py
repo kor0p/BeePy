@@ -29,7 +29,7 @@ class HTMLElement:
         self.attributes[name] = value
 
     def removeAttribute(self, name):
-        del self.attributes[name]
+        self.attributes.pop(name, None)
 
     def append(self, string: str):
         self.data.append(string)
@@ -74,6 +74,10 @@ class HTMLElement:
         for key, value in self.attributes.items():
             attrs += f'{key}="{value}" '
         attrs = attrs.strip(' ')
+        if attrs:
+            attrs = ' ' + attrs
+        if not self.data:
+            return f"<{self.tagName}{attrs}/>"
         return f"<{self.tagName}{attrs}>{''.join(map(str, self.data))}</{self.tagName}>"
 
 
@@ -261,6 +265,7 @@ if 0 and 1:  # never called, but type hinter is ok with that
 
 class BeePyModule:
     __CURRENT_LOADING_FILE__ = ''
+    DEV__hot_reload = True
 
     def getPathWithCurrentPathAndOrigin(self, path):
         return path

@@ -47,6 +47,7 @@ class DevServer:
             or event.src_path.endswith(('~', '.tmp'))
             or '/__pycache__/' in path
             or '/.idea/' in path
+            or 'dist' in path
             or event.event_type in ('opened', 'closed')
         ):
             return

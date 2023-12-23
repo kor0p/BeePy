@@ -23,8 +23,11 @@ class AttrValue:
     def __init__(self, value):
         self.value = value
 
-    def __str__(self):
+    def __repr__(self):
         return f'AttrValue[{self.value}]'
+
+    def __str__(self):
+        return repr(self)
 
     @abstractmethod
     def __view_value__(self):
@@ -35,13 +38,13 @@ class safe_html(str):
     def __html__(self) -> str:
         return self
 
-    @classmethod
-    def content(cls, function):
-        @wraps(function)
-        def content_wrapper(*args, **kwargs):
-            return cls(function(*args, **kwargs))
 
-        return content_wrapper
+def safe_html_content(function):
+    @wraps(function)
+    def content_wrapper(*args, **kwargs):
+        return safe_html(function(*args, **kwargs))
+
+    return content_wrapper
 
 
 class Renderer:
@@ -160,4 +163,4 @@ class Children(WebBase, TrackableList):
 AttrType = Union[None, str, int, bool, Iterable['AttrType'], dict[str, 'AttrType'], AttrValue, Tag, attr]
 ContentType = Union[str, Iterable, Renderer]
 
-__all__ = ['AttrType', 'ContentType', 'AttrValue', 'Renderer', 'Mounter', 'Children']
+__all__ = ['AttrType', 'ContentType', 'AttrValue', 'Renderer', 'Mounter', 'Children', 'safe_html', 'safe_html_content']

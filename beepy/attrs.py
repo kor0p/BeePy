@@ -158,10 +158,11 @@ class attr:
 
         (self.fset or self._fset)(instance, value)
 
-        for trigger in self.handlers['change']:
-            if _prevent_model and trigger.__name__.startswith('@attr'):
-                continue
-            trigger(instance, value)
+        if instance.parent_defined:
+            for trigger in self.handlers['change']:
+                if _prevent_model and trigger.__name__.startswith('@attr'):
+                    continue
+                trigger(instance, value)
 
         if self.notify:
             instance.__notify__(self.name, self, value)

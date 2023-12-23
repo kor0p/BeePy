@@ -5,7 +5,7 @@ from beepy.framework import __CONFIG__, Tag, attr, state
 from beepy.utils import js
 from beepy.utils.common import log10_ceil, get_random_name, to_kebab_case, safe_issubclass
 from beepy.tags import Head
-from beepy.types import safe_html
+from beepy.types import safe_html_content
 
 
 def dict_of_properties_to_css(properties):
@@ -15,6 +15,8 @@ def dict_of_properties_to_css(properties):
             continue
         if not isinstance(prop, (tuple, set)):
             prop = (prop,)
+        if value == '':
+            value = '""'
         result = ''
         for _property in prop:
             _property = to_kebab_case(_property)
@@ -22,8 +24,6 @@ def dict_of_properties_to_css(properties):
             if isinstance(value, (list, tuple)):  # handle raw css
                 result += ' ' + (_property + ' ').join(x for x in value if x)
             else:
-                if value == '':
-                    value = '""'
                 result += f': {value};'
         yield result
 
@@ -38,13 +38,13 @@ def dict_of_parents_to_css(children, parent, braces):
             child = re.sub('&', parent, child)
         else:
             child = parent + ' ' + child
-        for inner in dict_to_css(value, child, braces):
+        for inner in dict_to_css_iter(value, child, braces):
             if child.startswith('@') and not parent:
                 inner = f' {braces[0]} {inner.strip()} {braces[1]}'
             yield inner
 
 
-def dict_to_css(selectors: dict, parent: str = '', braces=('{', '}')):
+def dict_to_css_iter(selectors: dict, parent: str = '', braces=('{', '}')):
     """
     parses nested dict to css
 
@@ -100,6 +100,10 @@ def dict_to_css(selectors: dict, parent: str = '', braces=('{', '}')):
     yield from dict_of_parents_to_css(children, parent, braces)
 
 
+def dict_to_css(*args, separator='\n', **kwargs):
+    return separator.join(dict_to_css_iter(*args, **kwargs))
+
+
 def get_reference(tag: Tag):
     return f'[style-id="{tag.style_id}"]'
 
@@ -147,10 +151,11 @@ class Style(Tag, name='style', content_tag=None, raw_html=True, force_ref=True):
         return super().__unmount__(element, parent, _unsafe=True)
 
     def mount(self):
+        styles = self.styles
         parent = self.real_parent
 
         if self.options['global']:  # TODO: add example
-            self._content = '\n'.join(list(dict_to_css(self.styles, parent._tag_name_)))
+            self._content = dict_to_css(styles, parent._tag_name_)
             return
 
         if hasattr(parent, 'style_id'):  # support multiple style children
@@ -161,11 +166,9 @@ class Style(Tag, name='style', content_tag=None, raw_html=True, force_ref=True):
             attr(style_id, type=str)._link_ctx('style_id', parent)
 
         # TODO: is [style-id=] slow? If so, maybe use classes?
-        self._content = '\n'.join(
-            list(dict_to_css(self.styles, f'{parent._tag_name_}[style-id="{style_id}"]', braces=('{{', '}}')))
-        )
+        self._content = dict_to_css(styles, f'{parent._tag_name_}[style-id="{style_id}"]', braces=('{{', '}}'))
 
-    @safe_html.content
+    @safe_html_content
     def content(self):
         if self.options['global'] or not self._content:
             return self._content
@@ -175,8 +178,10 @@ class Style(Tag, name='style', content_tag=None, raw_html=True, force_ref=True):
         params: dict[str, Any] = {}
         if self.options['render_states']:
             params.update(parent.__states__)
+
         if self.options['render_children']:
             params.update(parent.ref_children)
+
         if get_vars := self.options['get_vars_callback']:
             params.update(get_vars(self=parent, ref=get_reference, **params))
 
@@ -214,4 +219,4 @@ def with_style(style_or_tag_cls: Optional[Style | Type[Tag]] = None):
     return wrapper
 
 
-__all__ = ['dict_to_css', 'Style', 'with_style']
+__all__ = ['dict_to_css_iter', 'dict_to_css', 'Style', 'with_style']

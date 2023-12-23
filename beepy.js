@@ -6,7 +6,7 @@ window._DEBUGGER = function _DEBUGGER (error=null) {
 }
 
 // utils
-Node.prototype.insertChild = function (child, index) {
+Element.prototype.insertChild = function (child, index) {
     if (index == null || index >= this.children.length) {
         if (typeof child === 'string') {
             this.insertAdjacentHTML('beforeend', child)
@@ -22,10 +22,14 @@ Node.prototype.insertChild = function (child, index) {
     }
 }
 
-Node.prototype.safeRemoveChild = function (child) {
+Element.prototype.safeRemoveChild = function (child) {
     if (this.contains(child)) {
         return this.removeChild(child)
     }
+}
+
+Element.prototype.__str__ = function () {
+    return `<${this.tagName.toLowerCase()}/>`
 }
 
 function isObject (obj) {
@@ -105,7 +109,7 @@ If you have config, you must define it before loading beepy script
 const DEFAULT_CONFIG = {
     // user can specify version of pyodide
     // TODO: check supporting versions of pyodide
-    pyodideVersion: '0.23.4',
+    pyodideVersion: '0.24.1',
     requirements: [],  // also could be function
 }
 

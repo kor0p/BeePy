@@ -25,6 +25,7 @@ SECRET_KEY = '%y^4xv#+pw49-@ry_e#g+s^o^wl*^3hu&7b2og3ft6nb5^7306'
 DEBUG = True
 
 ALLOWED_HOSTS = ['*']
+CACHE_MIDDLEWARE_SECONDS = 10
 
 # for local development
 IS_DEV = False
@@ -45,6 +46,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'django.middleware.cache.UpdateCacheMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -53,6 +55,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'django.middleware.cache.FetchFromCacheMiddleware',
 ]
 
 ROOT_URLCONF = 'beepy_webapp.urls'

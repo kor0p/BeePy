@@ -5,7 +5,9 @@ from re import Match
 from typing import Union, Type
 from dataclasses import dataclass
 
-from beepy.framework import Tag, state, on
+from beepy import Tag
+from beepy.attrs import state
+from beepy.listeners import on
 from beepy.tags import a
 from beepy.types import Children
 from beepy.utils import js, force_sync

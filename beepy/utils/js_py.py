@@ -4,8 +4,9 @@ try:
     import js  # reference to window (globalThis), made by pyodide module
 except ModuleNotFoundError:
     from . import js
+    js.window = js.globalThis = js
 
-from beepy.utils.common import to_kebab_case
+from beepy.utils.common import _internal_to_kebab_case
 
 
 log = js.console
@@ -21,7 +22,7 @@ except ImportError:
 
 
 def _need_update(old_func, old_name='', *, version):
-    old_name = old_name or ('beepy.utils.js_py.' + to_kebab_case(old_func.name, replacer='_'))
+    old_name = old_name or ('beepy.utils.js_py.' + _internal_to_kebab_case(old_func.name, replacer='_'))
 
     @wraps(old_func)
     def _wrapper(*args, **kwargs):

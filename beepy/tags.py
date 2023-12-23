@@ -145,9 +145,14 @@ class input_(html_tag, name='input'):
     )
     hidden = attr(False)
     value = html_attr('', model='input')
+    placeholder = html_attr(None, type=str)
 
     def clear(self):
         self.value = ''
+
+
+class change(input_):
+    value = html_attr('', model='change')
 
 
 class textarea(html_tag, name='textarea'):

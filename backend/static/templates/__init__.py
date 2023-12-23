@@ -1,4 +1,4 @@
-from beepy import Tag, __CONFIG__, safe_html, mount, Style
+from beepy import Tag, __CONFIG__, safe_html_content, mount, Style
 from beepy.tags import Head, div
 from beepy.router import WithRouter, Router, Link
 
@@ -12,7 +12,7 @@ class PageNotFound(Tag, WithRouter, name='error'):
 <p>Page Not Found!</p>
 '''
 
-    @safe_html.content
+    @safe_html_content
     def content(self):
         if not __CONFIG__['debug']:
             return self._base_content

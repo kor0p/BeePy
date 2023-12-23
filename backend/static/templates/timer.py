@@ -5,8 +5,7 @@ from datetime import datetime, timedelta, timezone
 from beepy import Tag, Style, state
 from beepy.tags import a, p
 from beepy.utils.js_py import Interval
-from beepy.types import safe_html
-
+from beepy.types import safe_html_content
 
 Style.import_file('styles/timer.css')
 _EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
@@ -20,7 +19,7 @@ class DateTimeDisplay(Tag, name='date-time-display'):
         enum=('days', 'hours', 'minutes', 'seconds'),
     )
 
-    @safe_html.content
+    @safe_html_content
     def content(self):
         return f'''
 <p>{self.parent[self.type]}</p>

@@ -12,7 +12,6 @@ from beepy.utils.dev import const_attribute
 from beepy.utils.common import log10_ceil, get_random_name, to_kebab_case
 from beepy.utils.js_py import create_once_callable, Interval
 
-
 __obj = object()
 _base_obj_dir = tuple(dir(__obj)) + ('__abstractmethods__',)
 
@@ -110,9 +109,9 @@ class _MetaContext(ABCMeta):
 
     @classmethod
     def _top_render_real(mcs, element):
-        element.__render__()
         element._root_parent.mount_element.style = ''
         js.beepy.stopLoading()
+        element.__render__()
 
     @classmethod
     def _clean_namespace(mcs, namespace):

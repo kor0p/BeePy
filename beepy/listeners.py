@@ -12,7 +12,6 @@ from beepy.utils.js_py import create_proxy
 from beepy.utils.internal import _PY_TAG_ATTRIBUTE
 
 
-GLOBAL_EVENTS_LIST = ('keyup', 'keypress', 'keydown')
 _key_codes = {
     'esc': (27,),
     'tab': (9,),
@@ -128,16 +127,13 @@ class on:
             @wraps(self.callback)
             def method(event):
                 return self._call(tag, event)
-        is_global = event_name in GLOBAL_EVENTS_LIST  # TODO: check this || what about set global by attr?
         return js.beepy.addAsyncListener(
-            js.document if is_global else tag.mount_element, event_name, create_proxy(method), to_js(self.js_checks)
+            tag.mount_element, event_name, create_proxy(method), to_js(self.js_checks)
         )
 
     @classmethod
     def _remove_listener(cls, event_name: str, tag: Tag, event_listener: Callable):
-        is_global = event_name in GLOBAL_EVENTS_LIST
-
-        (js.document if is_global else tag.mount_element).removeEventListener(event_name, event_listener)
+        tag.mount_element.removeEventListener(event_name, event_listener)
 
     def __set__(self, instance, value):
         raise AttributeError(f'Cannot set on_{self.name} event handler')

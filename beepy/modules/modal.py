@@ -1,6 +1,8 @@
 from typing import Callable
 
-from beepy.framework import Tag, attr, state, on
+from beepy import Tag
+from beepy.attrs import attr, state
+from beepy.listeners import on
 from beepy.style import Style
 from beepy.tags import div, button, Body
 

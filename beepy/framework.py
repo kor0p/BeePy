@@ -19,12 +19,10 @@ from beepy.utils.dev import _debugger
 from beepy.context import OVERWRITE, SUPER, CONTENT, _SPECIAL_CHILD_STRINGS, _MetaContext, Context
 
 
-__version__ = '0.7.1'
+__version__ = '0.7.3'
 __CONFIG__['version'] = __version__
 
 
-if IN_BROWSER:
-    js.Element.__str__ = lambda self: f'<{self.tagName.lower()}/>'
 _current__lifecycle_method: dict[str, dict[int, 'Tag']] = {}
 
 
