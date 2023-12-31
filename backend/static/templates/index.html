@@ -14,6 +14,7 @@
             window.beepy = {
                 config: {
                     debug: {{ DEBUG|lower }},
+                    developer: {{ IS_DEV|lower }},
                     requirements: () => window.location.href.includes('plot') ? ['numpy', 'matplotlib'] : [],
                 },
             }

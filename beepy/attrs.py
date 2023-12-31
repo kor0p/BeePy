@@ -160,7 +160,7 @@ class attr:
 
         if instance.parent_defined:
             for trigger in self.handlers['change']:
-                if _prevent_model and trigger.__name__.startswith('@attr'):
+                if _prevent_model and _prevent_model in (True, self) and trigger.__name__.startswith('@attr'):
                     continue
                 trigger(instance, value)
 
@@ -247,7 +247,7 @@ class attr:
         if value is None:
             value = ''
 
-        attr_.__set__(instance, value, _prevent_model=True)
+        attr_.__set__(instance, value, _prevent_model=attribute_)
 
         return attribute_
 
@@ -285,17 +285,23 @@ class attr:
                 if _value is not None and current_attribute:
                     _value = getattr(_value, current_attribute)
 
-                _attr_.__set__(instance_, _value, _prevent_model=True)
+                _attr_.__set__(instance_, _value, _prevent_model=current_attribute)
 
         for index in reversed(to_remove_indexes):
             self._from_model_cache.pop(index)
 
-    def __mount_tag__(self, ctx: Context):
+    def __init_ctx__(self, ctx: Context, value):
+        for handler in self.handlers['init']:
+            handler(ctx, value)
+
+    def __mount_ctx__(self, ctx: Context):
         self._handle_model_listeners(ctx)
 
-    def __post_mount_tag__(self, ctx: Context):
+    def __post_mount_ctx__(self, ctx: Context):
         for instance, attr_, _ in self._from_model_cache:
             self._set_model_value(instance, attr_, ctx)
+        for handler in self.handlers['mount']:
+            handler(ctx, self.__get__(ctx))
 
     def __delete__(self, instance):
         return (self.fdel or self._fdel)(instance)
@@ -321,16 +327,19 @@ class attr:
     def __str__(self):
         return f'{self.name}({self.initial_value!r})'
 
-    def on(self, trigger):
+    def on(self, *triggers):
         def wrapper(handler):
             if self.static or self._from_model_cache:  # check if _from_model_cache is required
                 if not hasattr(handler, '_attrs_static_'):
                     handler._attrs_static_ = defaultdict(list)
-                handler._attrs_static_[trigger].append(self)
+                for trigger in triggers:
+                    handler._attrs_static_[trigger].append(self)
 
-            if handler in self.handlers[trigger]:
-                raise AttributeError(f'This @on(\'{trigger}\') handler is already set')
-            self.handlers[trigger].append(handler)
+            for trigger in triggers:
+                if handler in self.handlers[trigger]:
+                    raise AttributeError(f'This @on(\'{trigger}\') handler is already set')
+            for trigger in triggers:
+                self.handlers[trigger].append(handler)
             return handler
 
         return wrapper
@@ -398,7 +407,7 @@ class listen_state(state):
         self.provider = None
         self.subscribers = []
 
-    def __mount_tag__(self, ctx: Context):
+    def __mount_ctx__(self, ctx: Context):
         if self.provider is None:
             self.provider = ctx
         else:

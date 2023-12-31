@@ -17,7 +17,7 @@
 ### Now, click on link in console to visit your server
 ### and change code to see updates in browser in no time!
 
-<script src='https://kor0p.github.io/BeePy/beepy.js?v=0.7.3'></script>
+<script src='https://kor0p.github.io/BeePy/beepy.js?v=0.7.4'></script>
 <script>
 // <![CDATA[
 beepy.__main__ = async () => {

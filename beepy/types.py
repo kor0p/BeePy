@@ -11,6 +11,7 @@ from beepy.utils.common import escape_html
 
 attr = ForwardRef('attr')
 Tag = ForwardRef('Tag')
+Component = ForwardRef('Component')  # Future update
 ChildrenRef = ForwardRef('ChildrenRef')
 
 

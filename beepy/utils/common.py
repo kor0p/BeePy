@@ -3,7 +3,10 @@ import re
 import math
 import string
 
+from boltons.typeutils import make_sentinel
+
 NONE_TYPE = type(None)
+MISSING = make_sentinel(var_name='MISSING')
 
 
 def log10_ceil(num):

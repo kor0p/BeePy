@@ -49,13 +49,9 @@ class _MetaContext(ABCMeta):
         if initialized and hasattr(beepy, 'children'):
             _children = beepy.children
 
-            extra_attrs = []
-            for attribute_name, child in mcs._clean_namespace(namespace):
-                if isinstance(child, _children.ChildRef) and (
-                    cls_extra_attrs := getattr(child.child, '__extra_attrs__', None)
-                ):
-                    extra_attrs.extend(cls_extra_attrs)
+            mcs._update_namespace_with_extra_attributes(namespace)
 
+            for attribute_name, child in mcs._clean_namespace(namespace):
                 if isinstance(child, attr):
                     static_attrs[attribute_name] = child
 
@@ -69,8 +65,6 @@ class _MetaContext(ABCMeta):
                     (isinstance(child, _children.ChildrenRef) and not isinstance(new_attr, _children.ChildrenRef))
                 ):
                     attrs_defaults[attribute_name] = namespace.pop(attribute_name)
-
-            namespace['__slots__'] = (*extra_attrs, *namespace['__slots__'])
 
         is_root = kwargs.get('_root')
         if is_root:
@@ -98,6 +92,18 @@ class _MetaContext(ABCMeta):
         return cls
 
     @classmethod
+    def _update_namespace_with_extra_attributes(mcs, namespace):
+        if not hasattr(beepy, 'children'):
+            return
+
+        for attribute_name, child in mcs._clean_namespace(namespace):
+            if isinstance(child, (beepy.children.ChildRef, Context)) and (
+                extra := getattr((child if isinstance(child, Context) else child.child), '__extra_attributes__', None)
+            ):
+                extra = {key: value for key, value in extra.items() if key not in namespace}
+                namespace.update(extra)
+
+    @classmethod
     def _top_mount(mcs, element, root, parent):
         root.style = 'visibility: hidden'
         mcs._current_render[parent] = []
@@ -116,7 +122,7 @@ class _MetaContext(ABCMeta):
     @classmethod
     def _clean_namespace(mcs, namespace):
         base_obj_dir = _base_obj_dir + mcs.__clean_class_attribute_names
-        for key, value in namespace.items():
+        for key, value in tuple(namespace.items()):
             if key not in base_obj_dir:
                 yield key, value
 
@@ -141,6 +147,7 @@ class _MetaContext(ABCMeta):
         if not mcs._to_load_before_top_render[None] and not mcs._to_load_before_top_render.get(element._root_parent):
             if interval := mcs._wait_onload_interval.get(element._root_parent):
                 interval.clear()
+                mcs._wait_onload_interval.pop(element._root_parent)
             mcs._top_render_real(element)
 
 
@@ -197,13 +204,20 @@ class Context(metaclass=_MetaContext, _root=True):
         self.init(*args, **data)
 
     def init(self, *args, **kwargs):
-        for key, _attr in self.attrs.items():
+        for key, attr_ in self.attrs.items():
             if key not in kwargs:
-                if _attr.required:
-                    raise TypeError(f'Attribute {_attr.name!r} is required')
+                if attr_.required:
+                    raise TypeError(f'Attribute {attr_.name!r} is required')
                 continue
 
-            setattr(self, key, kwargs[key])
+            value = kwargs[key]
+            setattr(self, key, value)
+            attr_.__init_ctx__(self, value)
+
+        self.post_init()
+
+    def post_init(self):
+        pass
 
     @property
     def __view_attrs__(self) -> dict[str, AttrType]:

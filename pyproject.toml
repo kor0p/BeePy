@@ -9,6 +9,9 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent",
 ]
+dependencies = [
+    "boltons==23.1.1",  # Better builtins
+]
 
 [project.urls]
 "Homepage" = "https://bit.ly/beepy"

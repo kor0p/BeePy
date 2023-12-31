@@ -6,7 +6,7 @@ from typing import Union, Type
 from dataclasses import dataclass
 
 from beepy import Tag
-from beepy.attrs import state
+from beepy.attrs import html_attr, state
 from beepy.listeners import on
 from beepy.tags import a
 from beepy.types import Children
@@ -76,8 +76,9 @@ class Path:
 
 class Link(a, WithRouter):
     to = state(type=str, required=True)
+    href = html_attr(type=str)
 
-    @to.on('change')
+    @to.on('init', 'change')
     def to_changed(self, value):
         if self.router:
             value = self.router.basename + value

@@ -8,10 +8,10 @@ from types import MethodType
 from functools import wraps, partial, cache
 from copy import deepcopy
 
-from beepy.attrs import attr, set_html_attribute, state, html_attr
+from beepy.attrs import attr, set_html_attribute, state
 from beepy.children import CustomWrapper, StringWrapper, ContentWrapper, ChildRef, TagRef, Children
 from beepy.listeners import on
-from beepy.types import safe_html, Renderer, Mounter, WebBase, AttrType, ContentType
+from beepy.types import Renderer, Mounter, WebBase, AttrType, ContentType
 from beepy.utils import js, log, to_js, IN_BROWSER, __CONFIG__
 from beepy.utils.internal import _PY_TAG_ATTRIBUTE
 from beepy.utils.common import NONE_TYPE, get_random_name, to_kebab_case
@@ -19,7 +19,7 @@ from beepy.utils.dev import _debugger
 from beepy.context import OVERWRITE, SUPER, CONTENT, _SPECIAL_CHILD_STRINGS, _MetaContext, Context
 
 
-__version__ = '0.7.3'
+__version__ = '0.7.4'
 __CONFIG__['version'] = __version__
 
 
@@ -68,9 +68,9 @@ class _MetaTag(_MetaContext):
 
         # used for checking inheritance: attributes, methods, etc.
         # for example: extending classes Tag and WithRouter must produce correct state 'router'
-        base_cls: Union[Type[Tag], type] = type.__new__(mcs, _name, bases, {})
+        mock_cls: Union[Type[Tag], type] = type.__new__(mcs, _name, bases, {})
 
-        initialized = _TAG_INITIALIZED  # if class Tag is already defined
+        initialized = _TAG_INITIALIZED  # As base classes is also declared here, we must be sure base class exists
 
         is_root = kwargs.get('_root')
         if is_root:
@@ -79,7 +79,7 @@ class _MetaTag(_MetaContext):
             tag_name = kwargs.get('name')
         namespace['__ROOT__'] = is_root
 
-        if tag_name or (initialized and not hasattr(base_cls, '_tag_name_')):
+        if tag_name or (initialized and not hasattr(mock_cls, '_tag_name_')):
             namespace['_tag_name_'] = to_kebab_case(tag_name or _name)
 
         if 'raw_html' in kwargs:
@@ -111,7 +111,6 @@ class _MetaTag(_MetaContext):
         to_remove_children = []
         static_onchange_handlers = []
 
-        super_children_index = -1
         children_arg = namespace.get('children', [])
         if isinstance(children_arg, property):
             children_arg = []
@@ -119,15 +118,15 @@ class _MetaTag(_MetaContext):
         if children_arg:
             namespace.pop('children')
             children_arg = list(children_arg)
-            if OVERWRITE not in children_arg:
-                if SUPER not in children_arg:
-                    children_arg.insert(0, SUPER)
-                super_children_index = children_arg.index(SUPER)
+            if OVERWRITE not in children_arg and SUPER not in children_arg:
+                children_arg.insert(0, SUPER)
         elif children_arg not in (None, False, []):
             namespace['_static_children'] = namespace.pop('children')
             children_arg = []
 
         if initialized:
+            mcs._update_namespace_with_extra_attributes(namespace)
+
             for attribute_name, child in tuple(mcs._clean_namespace(namespace)):
                 if callable(child) and hasattr(child, '_attrs_static_'):
                     _states_with_static_handler = defaultdict(list)
@@ -142,14 +141,20 @@ class _MetaTag(_MetaContext):
                     if child in children_arg:
                         ref_children.append(child)
                         # TODO: make possible inherit without replacement?
-                        if (old_child := getattr(base_cls, attribute_name, None)) and isinstance(old_child, ChildRef):
+                        if (old_child := getattr(mock_cls, attribute_name, None)) and isinstance(old_child, ChildRef):
                             to_remove_children.append(old_child)
                         if isinstance(child, (Tag, Children)):
                             children_arg[children_arg.index(child)] = namespace[attribute_name] = child.as_child(None)
     
                     if isinstance(child, Tag) and child._force_ref:  # TODO: add support '_force_ref' for Children too
-                        namespace[attribute_name] = child.as_child(None)
-                        children_arg.append(namespace[attribute_name])
+                        namespace[attribute_name] = _ref = child.as_child(None)
+                        _ref.__set_name__(None, attribute_name)
+                        children_arg.insert(0, _ref)
+                        ref_children.append(_ref)
+
+                    if isinstance(child, ChildRef) and child.child._force_ref:
+                        children_arg.insert(0, child)
+                        ref_children.append(child)
 
             for _index, child in enumerate(children_arg):
                 if isinstance(child, str) and child not in _SPECIAL_CHILD_STRINGS:
@@ -181,7 +186,11 @@ class _MetaTag(_MetaContext):
             if children_arg:
                 if CONTENT in children_arg and CONTENT in cls._static_children:
                     cls._static_children.remove(CONTENT)
-                children_arg[super_children_index: super_children_index + 1] = cls._static_children
+                if SUPER in children_arg:
+                    super_children_index = children_arg.index(SUPER)
+                    children_arg[super_children_index: super_children_index + 1] = cls._static_children
+                else:
+                    children_arg.extend(cls._static_children)
                 cls._static_children = children_arg
         else:
             cls._static_children = [CONTENT]
@@ -294,7 +303,7 @@ class _MetaTag(_MetaContext):
 
         children_argument: Union[Callable, ContentType] = kwargs.get('children') or args
         if children_argument and (not isinstance(children_argument, Iterable) or isinstance(children_argument, str)):
-            children_argument = (children_argument,)
+            children_argument = [children_argument]
         children_argument = list(children_argument)
 
         if children_argument:
@@ -454,7 +463,7 @@ class Tag(WebBase, Context, metaclass=_MetaTag, _root=True):
         return self
 
     def __repr__(self):
-        return f'{type(self).__name__}(<{self._tag_name_}/>)'
+        return f'{type(self).__name__}(<{self._tag_name_}/>, id#{self._id_})'
 
     def __hash__(self):
         # TODO: make force immutable this attributes
@@ -528,18 +537,16 @@ class Tag(WebBase, Context, metaclass=_MetaTag, _root=True):
 
     def _mount_attrs(self):
         for attribute in self.attrs.values():
-            attribute.__mount_tag__(self)
+            attribute.__mount_ctx__(self)
 
     def _post_mount_attrs(self):
         for attribute in self.attrs.values():
-            attribute.__post_mount_tag__(self)
+            attribute.__post_mount_ctx__(self)
 
     def pre_mount(self):
         """empty method for easy override with code for run before mount"""
 
     def init(self, *args, _load_children=True, **kwargs):
-        super().init(*args, **kwargs)
-
         if _load_children:
             self.children = self.children.copy()
 
@@ -549,6 +556,8 @@ class Tag(WebBase, Context, metaclass=_MetaTag, _root=True):
 
             if isinstance(value, Children):
                 getattr(self, name)[:] = kwargs[name]
+
+        super().init(*args, **kwargs)
 
     def __mount__(self, element, parent: Tag, index=None):
         self.parent = parent
@@ -645,7 +654,7 @@ class Tag(WebBase, Context, metaclass=_MetaTag, _root=True):
 
             if isinstance(child, Tag) and child in self._children and child._ref is not None:
                 # using Tag as descriptor/just child; this allows save reference from parent to new copy of child
-                child._ref._update_child(self, self._children.index(child))
+                result[-1] = child._ref._update_child(self, self._children.index(child))
             elif isinstance(child, ChildRef) and child in self._children:
                 child._update_child(self, self._children.index(child))
             # TODO: make ContentWrapper descriptor, here call .clone()
@@ -743,7 +752,4 @@ def mount(element: Tag, root_element: str, clear=False):
         log.warn(f'Document title is not set, use default title: {js.document.title}')
 
 
-__all__ = [
-    '__version__', '__CONFIG__', '_debugger', 'attr', 'state', 'html_attr', '_MetaTag', 'Tag', 'on', 'empty_tag',
-    'mount', 'safe_html',
-]
+__all__ = ['__version__', '_MetaTag', 'Tag', 'empty_tag', 'mount']

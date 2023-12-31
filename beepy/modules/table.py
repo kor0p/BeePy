@@ -62,10 +62,7 @@ class TR(tr):
     def view_data(self):
         return [(line['view'] if isinstance(line, dict) else line) for line in self.data]
 
-    def mount(self):
-        self.sync()
-
-    @data.on('change')
+    @data.on('mount', 'change')
     def sync(self, value=None):
         self._data[:] = [
             (TD(str(line['view'])) if isinstance(line, dict) else TD(*line))
@@ -84,10 +81,7 @@ class TableHead(thead, children_tag=TR(), force_ref=True):
         _columns := Children(),
     ]
 
-    def mount(self):
-        self.sync()
-
-    @columns.on('change')
+    @columns.on('mount', 'change')
     def sync(self, value=None):
         if not self.parent_defined:
             return
@@ -109,10 +103,7 @@ class TableBody(tbody, force_ref=True):
         _rows := Children(),
     ]
 
-    def mount(self):
-        self.sync()
-
-    @rows.on('change')
+    @rows.on('mount', 'change')
     def sync(self, value=None):
         if not self.parent_defined:
             return

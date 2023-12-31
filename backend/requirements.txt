@@ -3,3 +3,4 @@ djangorestframework==3.14.0
 gunicorn==21.2.0  # serve production server
 whitenoise==6.6.0  # static files
 pyodide-py==0.24.1  # Pyodide package
+boltons==23.1.1  # Better builtins

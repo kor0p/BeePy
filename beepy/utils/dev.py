@@ -16,7 +16,7 @@ class const_attribute(property):
 def _debugger(error=None):
     if isinstance(error, Exception):
         log.warn(traceback.format_exc())
-        error_frame = list(traceback.walk_tb(error.__traceback__))[-1][0]
+        error_frame = tuple(traceback.walk_tb(error.__traceback__))[-1][0]
     else:
         log.warn(''.join(traceback.format_stack()[:-1]))
         log.warn(error)

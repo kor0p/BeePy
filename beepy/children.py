@@ -4,7 +4,7 @@ from abc import abstractmethod
 from typing import Optional, Callable, Union, Type, TypeVar, Generic, Iterable
 
 import beepy
-from beepy.types import Tag, Renderer, WebBase, Children, ContentType
+from beepy.types import Tag, Component, Renderer, WebBase, Children, ContentType
 from beepy.context import Context
 from beepy.utils import js, log
 from beepy.utils.internal import _PY_TAG_ATTRIBUTE
@@ -83,7 +83,7 @@ class ContentWrapper(CustomWrapper):
         if isinstance(content, beepy.framework.Tag):
             content = (content,)
         elif isinstance(content, Iterable) and not isinstance(content, str) and content:
-            content = list(content)
+            content = tuple(content)
             for _child in content[:]:
                 if not isinstance(_child, beepy.framework.Tag):
                     content = None
@@ -197,15 +197,22 @@ class ChildRef(WebBase, Generic[C]):
         self.__get__(parent).__unmount__(element, parent)
 
 
-class TagRef(ChildRef[Tag]):
+class ComponentRef(ChildRef[Component]):
     __slots__ = ()
 
-    child: Tag
+    child: Component
 
-    def _update_child(self, parent, index):
+    def _update_child(self, parent: Tag, index):
         clone = self.__get__(parent).clone(parent)
         clone.__set_ref__(parent, self)
         self.__set__(parent, clone)
+        return clone
+
+
+class TagRef(ComponentRef, ChildRef[Tag]):
+    __slots__ = ()
+
+    child: Tag
 
 
 class ChildrenRef(ChildRef):
@@ -217,6 +224,7 @@ class ChildrenRef(ChildRef):
         copy = self.__get__(parent).copy()
         copy.__set_parent__(parent, index, self)
         self.__set__(parent, copy)
+        return copy
 
     def __set__(self, instance, value):
         if isinstance(value, Children):

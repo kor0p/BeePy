@@ -67,7 +67,7 @@ class TrackableList(Trackable, list):
 
     def _notify_remove(self, key: Union[SupportsIndex, slice], to_remove: Union[tuple, list]):
         if isinstance(key, slice):
-            for index, value in reversed(list(
+            for index, value in reversed(tuple(
                 zip(range(key.start or 0, key.stop or len(self), key.step or 1), to_remove)
             )):
                 if index < 0:
