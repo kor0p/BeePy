@@ -103,7 +103,7 @@ class tabs(Tag, name='tabs'):
     @classmethod
     def __class_declared__(cls):
         for tab_id, _tab_title in cls.tabs_titles.child.ref_children.items():
-            _tab_title.on('click')(lambda _ul, _e, _tab_id=tab_id: _ul.parent.select_tab(_tab_id))
+            _tab_title.on('click')(lambda _ul, _tab_id=tab_id: _ul.parent.select_tab(_tab_id))
 
     def mount(self):
         for tab_id, tab in self.tabs_list.items():

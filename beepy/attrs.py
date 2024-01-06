@@ -268,12 +268,12 @@ class attr:
 
             @instance.on(attr_.model)
             @wraps_with_name(f'@attr[to:{attr_}->model{_attribute_str}->{self}]')
-            def __handler_to_model(parent_instance, _event, current_attribute=attribute_):
-                _value = _event.target.value
+            def __handler_to_model(parent_instance, event, current_attribute=attribute_):
+                _value = event.target.value
                 if current_attribute:
                     setattr(self.__get__(parent_instance), current_attribute, _value)
                 else:
-                    self.__set__(parent_instance, _value, _prevent_model=True)
+                    self.__set__(parent_instance, _value, _prevent_model=current_attribute)
 
             @self.on('change')
             @wraps_with_name(f'@attr[from:{attr_}->model{_attribute_str}->{self}]')

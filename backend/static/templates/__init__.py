@@ -40,6 +40,8 @@ class AppRouter(Router):
         'dynamic-url': 'dynamic_url.DynamicURL',
         'modal': 'modal.View',
         'buttons': 'buttons.View',
+        'focus': 'focus.App',
+        'highlight': 'highlight.App',
         'todos': 'todos.TodoList',
         'timer': 'timer.App',
         'text-sync': 'text_sync.TextSyncExample',

@@ -24,5 +24,5 @@ class TextSyncExample(Tag, name='example'):
         return f'Value: {self.value}'
 
     @clear_btn.on('click')
-    def clear(self, _event):
+    def clear(self):
         self.value = ''

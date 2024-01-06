@@ -101,7 +101,7 @@ class ContextMenuHandler(div):
     )
 
     @on
-    def click(self, event):
+    def click(self):
         self.menu.hide()
 
     @on('contextmenu.prevent')

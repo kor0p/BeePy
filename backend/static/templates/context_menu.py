@@ -18,11 +18,11 @@ class Menu(ContextMenu):
     ]
 
     @share_to.on('click')
-    def open_share(self, event):
+    def open_share(self):
         js.open(f'https://t.me/share/url?url={js.location.href}&text=Yay! It\'s BeePy v{__version__}', '_blank')
 
     @refresh.on('click')
-    def refresh_page(self, event):
+    def refresh_page(self):
         js.location.reload()
 
 

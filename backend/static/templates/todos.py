@@ -21,12 +21,12 @@ class TodoList(ul, content_tag=p()):
         ]
 
         @on('click')
-        def toggle(self, event):
+        def toggle(self):
             self.completed = not self.completed
             self.parent.sync_to_local_storage()
 
         @remove.on('click')
-        def delete(self, event):
+        def delete(self):
             self.parent.todos.remove(self)
 
     ####

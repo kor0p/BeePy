@@ -14,7 +14,7 @@ class Main(Tag, name='button'):
     count = state(0)
 
     @on
-    def click(self, event):
+    def click(self):
         self.count += 1
 
     def content(self):
@@ -53,7 +53,7 @@ class View(Tag, name='view'):
     ]
 
     @btn.on('click')
-    async def run(self, event=None):
+    async def run(self):
         self.error = ''
         try:
             await js.apy(self.input.value + '\n\n' + DEMO_MOUNT_CODE)
@@ -61,7 +61,7 @@ class View(Tag, name='view'):
             self.error = str(e)
 
     @reset.on('click')
-    def reset_to_demo(self, event=None):
+    def reset_to_demo(self):
         self.input.value = DEMO_CODE
 
     def mount(self):

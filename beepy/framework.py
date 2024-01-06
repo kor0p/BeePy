@@ -1,62 +1,29 @@
 from __future__ import annotations
 
-import inspect
 import traceback
-from collections import defaultdict
-from typing import Union, Callable, Type, Any, Iterable, Optional
+from typing import Union, Callable, Type, Iterable, Optional
 from types import MethodType
-from functools import wraps, partial, cache
-from copy import deepcopy
+from functools import cache
 
 from beepy.attrs import attr, set_html_attribute, state
 from beepy.children import CustomWrapper, StringWrapper, ContentWrapper, ChildRef, TagRef, Children
-from beepy.listeners import on
-from beepy.types import Renderer, Mounter, WebBase, AttrType, ContentType
-from beepy.utils import js, log, to_js, IN_BROWSER, __CONFIG__
+from beepy.components import _MetaComponent, Component
+from beepy.types import Renderer, Mounter, AttrType, ContentType
+from beepy.utils import js, log, __CONFIG__
 from beepy.utils.internal import _PY_TAG_ATTRIBUTE
 from beepy.utils.common import NONE_TYPE, get_random_name, to_kebab_case
 from beepy.utils.dev import _debugger
-from beepy.context import OVERWRITE, SUPER, CONTENT, _SPECIAL_CHILD_STRINGS, _MetaContext, Context
+from beepy.context import OVERWRITE, SUPER, CONTENT, _SPECIAL_CHILD_STRINGS
 
 
-__version__ = '0.7.4'
+__version__ = '0.8.0'  # For internal development set to 0.0a0
 __CONFIG__['version'] = __version__
-
-
-_current__lifecycle_method: dict[str, dict[int, 'Tag']] = {}
-
-
-def _lifecycle_method(*, hash_function=hash):
-    def _wrapper(fn):
-        name = fn.__name__
-        attr_name = f'_wrapper_{name}_calling'
-        _cache = _current__lifecycle_method[attr_name] = {}
-
-        @wraps(fn)
-        def lifecycle_method(original_func):
-            @wraps(original_func)
-            def original_method_wrapper(self, *args, **kwargs):
-                # prevent calling super() calls extra code twice
-                _hash = hash_function(self)
-                not_in_super_call = _hash not in _cache
-
-                if not_in_super_call:
-                    _cache[_hash] = self
-                    result = fn(self, args, kwargs, _original_func=original_func)
-                    del _cache[_hash]
-                else:
-                    result = original_func(self, *args, **kwargs)
-
-                return result
-            return original_method_wrapper
-        return lifecycle_method
-    return _wrapper
 
 
 _TAG_INITIALIZED = False
 
 
-class _MetaTag(_MetaContext):
+class _MetaTag(_MetaComponent):
     _tag_classes: list[Type[Tag]] = []
     __clean_class_attribute_names = ('_content_tag', '_static_children_tag')
 
@@ -109,7 +76,6 @@ class _MetaTag(_MetaContext):
 
         ref_children = []
         to_remove_children = []
-        static_onchange_handlers = []
 
         children_arg = namespace.get('children', [])
         if isinstance(children_arg, property):
@@ -129,24 +95,18 @@ class _MetaTag(_MetaContext):
 
             for attribute_name, child in tuple(mcs._clean_namespace(namespace)):
                 if callable(child) and hasattr(child, '_attrs_static_'):
-                    _states_with_static_handler = defaultdict(list)
-                    for trigger, _states in child._attrs_static_.items():
-                        for _state in _states:
-                            _states_with_static_handler[trigger].append(_state)
-                            _state.handlers[trigger].remove(child)
-                    static_onchange_handlers.append((child, _states_with_static_handler))
                     continue
 
-                if isinstance(child, (Tag, Children, ChildRef)):
+                if isinstance(child, (Component, Children, ChildRef)):
                     if child in children_arg:
                         ref_children.append(child)
                         # TODO: make possible inherit without replacement?
                         if (old_child := getattr(mock_cls, attribute_name, None)) and isinstance(old_child, ChildRef):
                             to_remove_children.append(old_child)
-                        if isinstance(child, (Tag, Children)):
+                        if isinstance(child, (Component, Children)):
                             children_arg[children_arg.index(child)] = namespace[attribute_name] = child.as_child(None)
     
-                    if isinstance(child, Tag) and child._force_ref:  # TODO: add support '_force_ref' for Children too
+                    if isinstance(child, Component) and child._force_ref:  # TODO: add support '_force_ref' for Children too
                         namespace[attribute_name] = _ref = child.as_child(None)
                         _ref.__set_name__(None, attribute_name)
                         children_arg.insert(0, _ref)
@@ -160,7 +120,7 @@ class _MetaTag(_MetaContext):
                 if isinstance(child, str) and child not in _SPECIAL_CHILD_STRINGS:
                     children_arg[_index] = StringWrapper(child)
 
-                if isinstance(child, Tag) and child not in ref_children:
+                if isinstance(child, Component) and child not in ref_children:
                     # TODO: replace 5 in get_random_name(5) with some log
                     children_arg[_index] = namespace[f'_{get_random_name(5)}_'] = child.as_child(None)
 
@@ -195,28 +155,9 @@ class _MetaTag(_MetaContext):
         else:
             cls._static_children = [CONTENT]
 
-        if initialized:
-            cls._static_listeners = deepcopy(cls._static_listeners)
-            cls._static_onchange_handlers = cls._static_onchange_handlers.copy() + static_onchange_handlers
-        else:
-            cls._static_listeners = defaultdict(list)
-            cls._static_onchange_handlers = []
-
         cls._tags = []
 
         mcs._tag_classes.append(cls)
-
-        if '__mount__' in namespace:
-            cls.__mount__ = mcs.__mount(cls.__mount__)
-
-        if '__render__' in namespace:
-            cls.__render__ = mcs.__render(cls.__render__)
-
-        if '__init__' in namespace:
-            cls.__init__ = mcs.__init(cls.__init__)
-
-        if '__unmount__' in namespace:
-            cls.__unmount__ = mcs.__unmount(cls.__unmount__)
 
         if initialized and 'mount' in kwargs:
             cls._root_parent = None
@@ -229,8 +170,8 @@ class _MetaTag(_MetaContext):
 
         return cls
 
-    @_lifecycle_method()
-    def __mount(self: Tag, args, kwargs, _original_func):
+    @classmethod
+    def __META_mount__(cls, self: Tag, args, kwargs, _original_func):
         self.__class__._tags.append(self)
 
         self._mount_finished_ = False
@@ -254,46 +195,23 @@ class _MetaTag(_MetaContext):
         else:
             self.content_child._mount_children()
 
-        for name, attribute in self.__states__.items():
-            if callable(attribute) and not isinstance(attribute, MethodType):
-                setattr(self, name, MethodType(attribute, self.parent))
-
-        self._post_mount_attrs()
-
-        for event, listeners in self._listeners.items():
-            for listener in listeners:
-                self._event_listeners[event].append(
-                    listener._make_listener(event, self)
-                )
-
-        for onchange_handler, _states_with_static_handler in self._static_onchange_handlers:
-            for trigger, _states in _states_with_static_handler.items():
-                for _state in _states:
-                    # TODO: can we save order of triggers' call?
-                    _state.handlers[trigger].append(MethodType(onchange_handler, self))
-
-        self.mount()
+        super().__META_mount__(self, args, kwargs, None, _mount_attrs=False)
 
         self._mount_finished_ = True
 
         return result
 
-    @_lifecycle_method()
-    def __render(self: Tag, args, kwargs, _original_func):
+    @classmethod
+    def __META_render__(cls, self: Tag, args, kwargs, _original_func):
         if not self._mount_finished_ or (
             not self.mount_element.parentElement and self._root_parent != self  # dismounted
         ):
             return  # Prevent render before mount finished; Could be useful for setting intervals inside mount method
 
-        # TODO: maybe function 'render' could return some content, appended to args?
-        self.render()
+        return super().__META_render__(self, args, kwargs, _original_func)
 
-        _original_func(self, *args, **kwargs)
-
-        self.post_render()
-
-    @_lifecycle_method(hash_function=id)
-    def __init(self: Tag, args, kwargs, _original_func):
+    @classmethod
+    def __META_init__(cls, self: Tag, args, kwargs, _original_func):
         called_from_clone = kwargs.pop('__parent__', None)
         if hasattr(getattr(self, 'mount_element', None), _PY_TAG_ATTRIBUTE):
             return
@@ -341,16 +259,15 @@ class _MetaTag(_MetaContext):
                 self._children = self._children.copy() + [*children_argument]
 
         for key, value in kwargs.items():
-            if not isinstance(value, (Tag, Children)) or key in self.attrs:
+            if not isinstance(value, (Component, Children)) or key in self.attrs:
                 continue
+            value: Component | Children
             child = value.as_child(self, exists_ok=True)
             child.__set_name__(self, key)
             setattr(type(self), key, child)
             self._children.append(child)
 
-        self._dependents = []
         self._shadow_root = None
-        self._parent_ = None
         self.mount_parent = None
         self._mount_finished_ = False
 
@@ -368,20 +285,14 @@ class _MetaTag(_MetaContext):
             self._children_tag = None
             self._children_element = self.mount_element
 
-        self._listeners = deepcopy(self._static_listeners)
+        super().__META_init__(self, args, kwargs, _original_func)
 
-        self._event_listeners = defaultdict(list)
-        self._handlers = defaultdict(list)
-        self._ref = None
-
-        _original_func(self, *args, **kwargs)
-
-    @_lifecycle_method()
-    def __unmount(self: Tag, args, kwargs, _original_func):
+    @classmethod
+    def __META_unmount__(cls, self: Tag, args, kwargs, _original_func):
         if self in self.__class__._tags:  # But why?
             self.__class__._tags.remove(self)
 
-        self.unmount()
+        super().__META_unmount__(self, args, kwargs, None, _post_mount=False)
 
         for child in self.children:
             if isinstance(child, CustomWrapper):
@@ -393,25 +304,23 @@ class _MetaTag(_MetaContext):
 
         result = _original_func(self, *args, **kwargs)
 
-        if IN_BROWSER:
-            for event, event_listeners in self._event_listeners.items():
-                for event_listener in event_listeners:
-                    on._remove_listener(event, self, event_listener)
-
         self.post_unmount()
 
         return result
 
 
-class Tag(WebBase, Context, metaclass=_MetaTag, _root=True):
+class Tag(Component, metaclass=_MetaTag, _root=True):
     # TODO: add docstrings
 
     __slots__ = (
-        '_content', '_dependents', '_shadow_root', '_ref',
-        '_listeners', '_event_listeners',
-        'mount_parent', '_parent_', '_mount_finished_',
-        'mount_element', '_children', '_children_element', '_children_tag',
-        '_handlers',
+        '_content',
+        '_shadow_root',
+        'mount_parent',
+        '_mount_finished_',
+        'mount_element',
+        '_children',
+        '_children_element',
+        '_children_tag',
     )
 
     _root_parent: Tag = None  # see function mount in the bottom
@@ -419,27 +328,20 @@ class Tag(WebBase, Context, metaclass=_MetaTag, _root=True):
     _static_content: ContentType = ''
 
     _content: ContentType
-    _dependents: list[Renderer]
     _shadow_root: js.HTMLElement
     _ref: Optional[TagRef]
     _force_ref: bool = False
 
     _tag_name_: str
     _tags: list[Tag]
-    _static_listeners: defaultdict[str, list[on]]
-    _listeners: defaultdict[str, list[on]]
-    _event_listeners: defaultdict[str, list[Callable[[js.Event], None]]]
     mount_element: js.HTMLElement
     mount_parent: js.HTMLElement
-    parent: Optional[Tag]
     _static_children: list[ContentType]
     _children: list[Mounter]
     _children_element: js.HTMLElement
     _static_children_tag: Tag
     _children_tag: Tag
     _mount_finished_: bool
-    _handlers: defaultdict[str, list[Callable[[Tag, js.Event, str, Any], None]]]
-    _static_onchange_handlers: list[tuple[Callable[[Tag, Any], Any], dict[str, list[state]]]]
 
     @classmethod
     def __root_declared__(cls):
@@ -450,7 +352,6 @@ class Tag(WebBase, Context, metaclass=_MetaTag, _root=True):
         """ This method is called, when common Tag is defined """
 
     def __init__(self, *args, **kwargs: AttrType):
-        # DO NOT DELETE; This method must be wrapped by _MetaTag.__init
         kwargs.setdefault('_load_children', False)
         super().__init__(*args, **kwargs)
 
@@ -488,12 +389,9 @@ class Tag(WebBase, Context, metaclass=_MetaTag, _root=True):
         self.__render__()
 
     def __set_ref__(self, parent: Optional[Tag], ref: TagRef):
-        self._ref = ref
+        super().__set_ref__(parent, ref)
         if ref.inline_def:
             setattr(type(parent), ref.name, self)
-
-    def render(self):
-        """empty method for easy override with code for run before render"""
 
     def __render__(self, attrs: Optional[dict[str, AttrType]] = None):
         self._current_render.append(self)
@@ -529,22 +427,8 @@ class Tag(WebBase, Context, metaclass=_MetaTag, _root=True):
         if self._current_render[-1] is self:
             self._current_render.pop()
 
-    def post_render(self):
-        """empty method for easy override with code for run after render"""
-
     def content(self) -> ContentType:
         return self._content() if callable(self._content) else self._content
-
-    def _mount_attrs(self):
-        for attribute in self.attrs.values():
-            attribute.__mount_ctx__(self)
-
-    def _post_mount_attrs(self):
-        for attribute in self.attrs.values():
-            attribute.__post_mount_ctx__(self)
-
-    def pre_mount(self):
-        """empty method for easy override with code for run before mount"""
 
     def init(self, *args, _load_children=True, **kwargs):
         if _load_children:
@@ -560,39 +444,11 @@ class Tag(WebBase, Context, metaclass=_MetaTag, _root=True):
         super().init(*args, **kwargs)
 
     def __mount__(self, element, parent: Tag, index=None):
-        self.parent = parent
         self.mount_parent = element
-        self.pre_mount()
 
-        args, kwargs = self.args_kwargs
-        kwargs = self._attrs_defaults | kwargs
-        self.init(*args, **kwargs)
+        super().__mount__(element, parent, index=index)
 
         self.mount_parent.insertChild(self.mount_element, index)
-
-    def mount(self):
-        """empty method for easy override with code for run after mount"""
-
-    @property
-    def parent_defined(self):
-        return self._parent_ is not None
-
-    @property
-    def parent(self):
-        if self._parent_ is None:
-            try:
-                raise ValueError
-            except ValueError:
-                frame = inspect.currentframe().f_back
-                log.warn(traceback.format_exc(), inspect.getsourcefile(frame), frame.f_lineno, to_js(frame.f_locals))
-        return self._parent_
-
-    @parent.setter
-    def parent(self, v):
-        self._parent_ = v
-
-    def unmount(self):
-        """empty method for easy override with code for run before unmount"""
 
     def __unmount__(self, element, parent, _unsafe=False):
         if not _unsafe and self.mount_parent is not None and self.mount_parent is not element:
@@ -604,9 +460,6 @@ class Tag(WebBase, Context, metaclass=_MetaTag, _root=True):
             log.warn(''.join(traceback.format_stack()[:-1]))
 
         (self.mount_parent or element).safeRemoveChild(self.mount_element)
-
-    def post_unmount(self):
-        """empty method for easy override with code for run after unmount"""
 
     @property
     def own_children(self) -> list[Mounter]:
@@ -652,8 +505,8 @@ class Tag(WebBase, Context, metaclass=_MetaTag, _root=True):
             if isinstance(child, attr):
                 child = lambda s, _n=child.name: getattr(s, _n)
 
-            if isinstance(child, Tag) and child in self._children and child._ref is not None:
-                # using Tag as descriptor/just child; this allows save reference from parent to new copy of child
+            if isinstance(child, Component) and child in self._children and child._ref is not None:
+                # using Component as descriptor/just child; this allows save reference from parent to new copy of child
                 result[-1] = child._ref._update_child(self, self._children.index(child))
             elif isinstance(child, ChildRef) and child in self._children:
                 child._update_child(self, self._children.index(child))
@@ -669,37 +522,7 @@ class Tag(WebBase, Context, metaclass=_MetaTag, _root=True):
     def clone(self, parent=None) -> Tag:
         clone = super().clone(parent=parent)
         clone._children = self.children
-        clone._listeners = deepcopy(self._listeners)
-        clone._handlers = deepcopy(self._handlers)
         return clone
-
-    def on(self, method: Union[Tag, str]):
-        if isinstance(method, str) and method.startswith(':'):  # TODO: maybe it could be useful in `class on()`?
-            action = method[1:]
-
-            def wrapper(handler, action_name=None):
-                if action_name is None:
-                    action_name = handler.__name__
-
-                self._handlers[action_name].append(handler)
-                return handler
-
-            if action:
-                return partial(wrapper, action_name=action)
-
-            return wrapper
-
-        def wrapper(callback):
-            event_listener = on(method)(callback, get_parent=True)
-            event_name = event_listener.name or callback.__name__
-            event_listener.__set_name__(self, event_name, set_static_listeners=False)
-            self._listeners[event_name] = self._listeners[event_name].copy() + [event_listener]
-            return event_listener.__get__(self)
-
-        if not isinstance(method, str):
-            return wrapper(method)
-
-        return wrapper
 
     @property
     def _current_render(self):

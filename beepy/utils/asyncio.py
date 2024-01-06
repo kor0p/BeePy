@@ -7,14 +7,37 @@ from beepy.utils.js_py import js
 from beepy.utils.dev import _debugger
 
 
-def ensure_sync(to_await, callback=lambda x: x):
+def ensure_sync(to_await, callback=None):
     if inspect.iscoroutine(to_await):
         task = asyncio.get_event_loop().run_until_complete(to_await)
-        task.add_done_callback(callback)
+        if callback:
+            task.add_done_callback(callback)
         return task
 
-    callback(to_await)
+    if callback:
+        callback(to_await)
     return to_await
+
+
+def ensure_sync_many(to_awaits, callback=None):
+    tasks = []
+    raw_results = []
+
+    for to_await in to_awaits:
+        if inspect.iscoroutine(to_await):
+            tasks.append(to_await)
+        else:
+            raw_results.append(to_await)
+
+    if not tasks:
+        if callback:
+            callback(tasks, raw_results)
+        return tasks, raw_results
+
+    task = asyncio.get_event_loop().run_until_complete(asyncio.gather(*tasks))
+    if callback:
+        task.add_done_callback(lambda r: callback(r, raw_results))
+    return task, raw_results
 
 
 def force_sync(function):

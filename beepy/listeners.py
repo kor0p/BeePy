@@ -37,10 +37,11 @@ RAW_JS_CHECKS = ('prevent', 'stop', 'stop_all')
 
 
 class on:
-    __slots__ = ('name', 'callback', 'get_parent', 'modifiers', 'checks', 'js_checks')
+    __slots__ = ('name', 'callback', 'pass_event', 'get_parent', 'modifiers', 'checks', 'js_checks')
 
     name: Optional[str]
     callback: Callable[[Tag, ...], Any]
+    pass_event: bool
     get_parent: bool
     modifiers: list[str]
     checks: list[Callable[[js.Event], bool]]
@@ -48,6 +49,7 @@ class on:
 
     def __init__(self, method):
         self.get_parent = False
+        self.pass_event = True
         self.modifiers = []
         self.checks = []
         self.js_checks = []
@@ -73,6 +75,9 @@ class on:
     def __call__(self, method, get_parent=None):
         self.callback = method
         self.get_parent = get_parent
+
+        sig = inspect.signature(method)
+        self.pass_event = 'event' in sig.parameters
         return self
 
     def __get__(self, instance, owner=None):
@@ -99,7 +104,8 @@ class on:
 
         fn, tag = prepare
 
-        data = await fn(event)
+        args = (event,) if self.pass_event else ()
+        data = await fn(*args)
         self._after_call(tag, event)
         return data
 
@@ -108,15 +114,18 @@ class on:
             return
 
         fn, tag = prepare
-        data = fn(event)
+        args = (event,) if self.pass_event else ()
+        data = fn(*args)
         self._after_call(tag, event)
         return data
 
     def _after_call(self, tag, event):
         for dependent in tag._dependents:
             # TODO: move to other place
+            print(f'DEPENDENT CALL {dependent} {tag} {event}')
             dependent.__render__()
 
+        print(f'AFTER CALL {tag} {event}')
         getattr(event.currentTarget, _PY_TAG_ATTRIBUTE, tag).__render__()
 
     def _make_listener(self, event_name: str, tag: Tag):

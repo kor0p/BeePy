@@ -9,8 +9,11 @@ https://docs.djangoproject.com/en/3.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.1/ref/settings/
 '''
-
+import os
+import dotenv
 from pathlib import Path
+
+dotenv.load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -22,13 +25,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = '%y^4xv#+pw49-@ry_e#g+s^o^wl*^3hu&7b2og3ft6nb5^7306'
 
-DEBUG = True
+DEBUG = 'DEBUG' in os.environ
 
 ALLOWED_HOSTS = ['*']
 CACHE_MIDDLEWARE_SECONDS = 10
 
 # for local development
-IS_DEV = False
+IS_DEV = 'DEVELOPMENT' in os.environ
 
 
 # Application definition

@@ -7,7 +7,7 @@ class IncrementButton(Tag, name='button'):
     count = state(0)
 
     @on
-    def click(self, event):
+    def click(self):
         self.count += 1
 
     def content(self):

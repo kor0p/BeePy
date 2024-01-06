@@ -37,5 +37,5 @@ class App(Tag, name='app'):
         self.reload_plot()
 
     @reload_btn.on('click')
-    def reload_plot(self, event=None):
+    def reload_plot(self):
         self.plot[:] = [create_plot()]

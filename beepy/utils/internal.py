@@ -1,16 +1,23 @@
+import os
 import sys
 import asyncio
 from typing import Callable
 from importlib import import_module
 
+import dotenv
 import micropip
 
 from beepy.utils.js_py import js, IN_BROWSER, to_js
 
 
+BEEPY_ROOT_PACKAGE = '__beepy_root__'
 _PY_TAG_ATTRIBUTE = '__PYTHON_TAG__'
+
+dotenv.load_dotenv(f'{BEEPY_ROOT_PACKAGE}/.env' if IN_BROWSER else '.env')
+
 __CONFIG__ = {
-    'debug': True,
+    'debug': 'DEBUG' in os.environ,
+    'development': 'DEVELOPMENT' in os.environ,
     'style_head': True,
     'api_url': '/',
     'default_datetime_format': '%Y-%m-%dT%H:%M:%S.%f%Z',
@@ -57,6 +64,12 @@ def lazy_import_cls(cls):
     if isinstance(cls, str):
         return import_string(cls)
     return cls
+
+
+def _init_js():
+    from beepy import __version__
+    js.console.log(f'%cBeePy version: {__version__}', 'color: lightgreen; font-size: 35px')
+    merge_configs()
 
 
 class _BeePyGlobals(dict):

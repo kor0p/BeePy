@@ -35,11 +35,11 @@ class ButtonsView(Tag):
     ]
 
     @button_inc.on('click')
-    def increment(self, event):
+    def increment(self):
         self.count += 1
 
     @button_dec.on('click')
-    def decrement(self, event):
+    def decrement(self):
         self.count -= 1
 
     def content(self):
@@ -97,6 +97,10 @@ class ExamplesTabs(tabs):
                 Link('Dynamic plot', to='plot'),
                 NEW_LINE,
                 Link('First try', to='buttons'),
+                NEW_LINE,
+                Link('Focus directive', to='focus'),
+                NEW_LINE,
+                Link('Highlight directive', to='highlight'),
                 NEW_LINE,
                 Link('Tabs (this one)', to=''),
                 NEW_LINE,

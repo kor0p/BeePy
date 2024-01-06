@@ -35,7 +35,7 @@ class Item(Tag, name='item', content_tag=p()):
     url = attr(type=str)
 
     @on('click')
-    async def go(self, event):
+    async def go(self):
         current_hash = js.location.hash[1:]
         for i in range(len(current_hash) + 1, -1, -1):
             push_hash(current_hash[:i] + emojis['break'] + emojis['worker'])

@@ -18,7 +18,7 @@ class View(Tag, name='view'):
 
     @btn_1.on
     @btn_2.on
-    def click(self, event):
+    def click(self):
         self.count += 1
 
 

@@ -23,7 +23,7 @@ class ColoredButton(Tag, name='button'):
     })
 
     @on
-    def click(self, event):
+    def click(self):
         self.parent.count += self.increment
 
     def content(self):

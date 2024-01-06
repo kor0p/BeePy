@@ -1,7 +1,7 @@
 // TODO: deploy to npm
 // TODO: make beepy.min.js
 
-window._DEBUGGER = function _DEBUGGER (error=null) {
+window._DEBUGGER = function (error=null) {
     const place_breakpoint_here = 'use variable _locals in console to get locals() from python frame';
 }
 
@@ -33,29 +33,29 @@ Element.prototype.__str__ = function () {
 }
 
 function isObject (obj) {
-  return obj && typeof obj === 'object'
+    return obj && typeof obj === 'object'
 }
 
 function mergeDeep(...objects) {
-  return objects.reduce((acc, obj) => {
-    Object.entries(obj).forEach(([key, objValue]) => {
-      const accValue = acc[key]
+    return objects.reduce((acc, obj) => {
+        Object.entries(obj).forEach(([key, objValue]) => {
+            const accValue = acc[key]
 
-      if (Array.isArray(accValue) && Array.isArray(objValue)) {
-        acc[key] = accValue.concat(...objValue)
-      } else if (isObject(accValue) && isObject(objValue)) {
-        acc[key] = mergeDeep(accValue, objValue)
-      } else {
-        acc[key] = objValue
-      }
-    })
+            if (Array.isArray(accValue) && Array.isArray(objValue)) {
+                acc[key] = accValue.concat(...objValue)
+            } else if (isObject(accValue) && isObject(objValue)) {
+                acc[key] = mergeDeep(accValue, objValue)
+            } else {
+                acc[key] = objValue
+            }
+        })
 
-    return acc
-  }, {})
+        return acc
+    }, {})
 }
 
 async function delay(ms) {
-  return new Promise(r => setTimeout(r, ms))
+    return new Promise(r => setTimeout(r, ms))
 }
 
 window.delay = delay
@@ -63,10 +63,6 @@ window.delay = delay
 
 function _lstrip (text) {
     return text.replace(/^\/+/, '')
-}
-
-function isHTML (text) {
-    return text.replace(/^\s+/, '').substring(0, 1) === '<'
 }
 
 const _PY_TAG_ATTRIBUTE = '__PYTHON_TAG__'
@@ -109,6 +105,7 @@ If you have config, you must define it before loading beepy script
 const DEFAULT_CONFIG = {
     // user can specify version of pyodide
     // TODO: check supporting versions of pyodide
+    include: ['.env'],
     pyodideVersion: '0.24.1',
     requirements: [],  // also could be function
 }
@@ -120,9 +117,8 @@ if (!beepy.config.path && _src.indexOf('beepy.js') !== -1) {
     beepy.config.path = _src.substring(0, _src.indexOf('beepy.js') - 1).replace(/\/+$/, '')
 }
 
-const config = mergeDeep(DEFAULT_CONFIG, beepy.config)
-beepy.__CONFIG__ = config
-beepy.addElement = function addElement (mountPoint, elementName, options={}) {
+beepy.__CONFIG__ = mergeDeep(DEFAULT_CONFIG, beepy.config)
+beepy.addElement = function (mountPoint, elementName, options={}) {
     const element = document.createElement(elementName, {is: options._is})
     const index = options._index
     delete options._is
@@ -135,12 +131,12 @@ beepy.addElement = function addElement (mountPoint, elementName, options={}) {
     return element
 }
 beepy.addElement(
-    document.head, 'link', {rel: 'stylesheet', type: 'text/css', href: `${beepy.config.path}/beepy.css`}
+    document.head, 'link', {rel: 'stylesheet', type: 'text/css', href: `${beepy.__CONFIG__.path}/beepy.css`}
 )
 
 // loading pyodide script
 
-const indexURL = `https://cdn.jsdelivr.net/pyodide/v${config.pyodideVersion}/full/`
+const indexURL = `https://cdn.jsdelivr.net/pyodide/v${beepy.__CONFIG__.pyodideVersion}/full/`
 beepy.addElement(document.head, 'script', {type: 'module', src: indexURL + 'pyodide.js'})
 
 
@@ -148,32 +144,36 @@ beepy.addElement(document.head, 'script', {type: 'module', src: indexURL + 'pyod
 
 const rootFolder = '__beepy_root__'
 
-beepy.loadFile = async function loadFile (filePath, {checkPathExists=false}={}, _method_head=false) {
+beepy.loadFile = async function (filePath) {
     beepy.__CURRENT_LOADING_FILE__ = filePath
     if (!filePath.includes('http')) filePath = `${window.location.origin}/${filePath}`
-    if (checkPathExists && !(await beepy.loadFile(filePath, {}, true)).ok) return '<'
 
-    const r = await fetch(filePath, {method: _method_head ? 'HEAD' : 'GET'})
-    return _method_head ? r : await r.text()
+    const r = await fetch(filePath, {method: 'GET'})
+    if (r.status >= 400 && r.status < 500) {
+        throw new Error('File not found')
+    }
+    return await r.text()
 }
 
-beepy.loadFileSync = function loadFileSync (filePath, {checkPathExists=false}={}, _method_head=false) {
+beepy.loadFileSync = function (filePath) {
     beepy.__CURRENT_LOADING_FILE__ = filePath
     if (!filePath.includes('http')) filePath = `${window.location.origin}/${filePath}`
-    if (checkPathExists && beepy.loadFileSync(filePath, {}, true).status !== 200) return '<'
 
     const req = new XMLHttpRequest()
-    req.open(_method_head ? 'HEAD' : 'GET', filePath, false)
+    req.open('GET', filePath, false)
     req.send(null)
-    return _method_head ? req : req.response
+    if (req.status >= 400 && req.status < 500) {
+        throw new Error('File not found')
+    }
+    return req.response
 }
 
-beepy._writeLocalFile = async function _writeLocalFile (file, content) {
+beepy._writeLocalFile = async function (file, content) {
     if (!content) content = await beepy.loadFile(_lstrip(file))
     pyodide.FS.writeFile(`${rootFolder}/${file}`, content)
 }
 
-beepy._writeLocalFileSync = function _writeLocalFileSync (file, content) {
+beepy._writeLocalFileSync = function (file, content) {
     if (!content) content = beepy.loadFileSync(_lstrip(file))
     pyodide.FS.writeFile(`${rootFolder}/${file}`, content)
 }
@@ -191,7 +191,7 @@ function _getGlobalsDict (options) {
     }
 }
 
-window.py = function runPython (code, options=null) {
+window.py = function (code, options=null) {
     try {
         return pyodide.runPython(code, _getGlobalsDict(options))
     } catch (e) {
@@ -201,7 +201,7 @@ window.py = function runPython (code, options=null) {
     }
 }
 
-window.apy = async function runPythonAsync (code, options=null) {
+window.apy = async function (code, options=null) {
     if (options && !options.skipImports) {
         await pyodide.loadPackagesFromImports(code)
     }
@@ -214,7 +214,7 @@ window.apy = async function runPythonAsync (code, options=null) {
     }
 }
 
-window.enterPythonModule = async function enterPythonModule (module) {
+window.enterPythonModule = async function (module) {
     try {
         if (module.includes('/')) {
             module = _lstrip(module).replace(/\//g, '.')
@@ -228,13 +228,13 @@ window.enterPythonModule = async function enterPythonModule (module) {
     }
 }
 
-beepy.startLoading = function startLoading ({ mountPoint=null, text='Loading...' }={}) {
+beepy.startLoading = function ({ mountPoint=null, text='Loading...' }={}) {
     if (!!document.getElementById('beepy-loading')) return
     beepy.addElement(
         mountPoint || document.body, 'div', {id: 'beepy-loading', _index: 0, innerHTML: `<span>${text}</span>`}
     )
 }
-beepy.stopLoading = function stopLoading () {
+beepy.stopLoading = function () {
     const loadingEl = document.getElementById('beepy-loading')
     if (!!loadingEl) loadingEl.remove()
 }
@@ -253,8 +253,27 @@ window.__beepy_load = async () => {
 
     let requirements = beepy.__CONFIG__.requirements
     if (!Array.isArray(requirements)) requirements = requirements()
+    await Promise.all(requirements.map(beepy.pip.install))
 
-    await Promise.all([...requirements.map(beepy.pip.install), _loadDevServer(), _loadBeePyModule()])
+    let envFileExists = true
+    for (const file of beepy.__CONFIG__.include) {
+        try {
+            await beepy._writeLocalFile(_parseAndMkDirFile(file).join('/'))
+        } catch (e) {
+            if (file === '.env') {
+                envFileExists = false
+                continue
+            }
+            console.warn(`File ${file} was not found on the server`)
+        }
+    }
+
+    if (!envFileExists) {
+        await beepy._writeLocalFile('.env', await beepy.loadFile(`${beepy.__CONFIG__.path}/.env`))
+    }
+
+    await _loadBeePyModule()
+    await _loadDevServer()
 
     window.removeEventListener('load', window.__beepy_load)
 }
@@ -262,6 +281,7 @@ window.addEventListener('load', window.__beepy_load)
 
 beepy.DEV__hot_reload = false
 async function _loadDevServer () {
+    if (!beepy.__CONFIG__.developer) return
     try {  // TODO: add flag parameter for this
         beepy.DEV__hot_reload_ws = new WebSocket('ws://localhost:8998/')
     } catch (e) {}  // Dev Hot Reload server is not started
@@ -270,6 +290,9 @@ async function _loadDevServer () {
 
     await apy('import importlib as _dev_importlib; import sys as _dev_sys')
     beepy.DEV__hot_reload_ws.onmessage = async ({ data: file }) => {
+        if (file === '__') {  // dev mode
+            return await _main({reload: true})
+        }
         const data = beepy._filePathToModuleAndRealFileCache[file]
         if (data) {
             const [fileToWrite, module] = data
@@ -284,38 +307,25 @@ async function _loadDevServer () {
 }
 
 async function _loadBeePyModule () {
-    let version
     if (_src.indexOf('beepy.js') === -1) {
         throw new Error('Invalid BeePy source! Cannot get version of framework')
+    }
+
+    let version = (new URL(_src)).searchParams.get('v')
+    if (!version) {
+        console.warn('No version specified in BeePy source! The latest will be used')
+        version = ''
+    } else if (version === 'latest') {
+        version = ''
+    }
+
+    if (version === 'dev') {
+        await beepy.pip.install(`${beepy.__CONFIG__.path}/dist/beepy_web-0.0a0-py3-none-any.whl`)
     } else {
-        version = (new URL(_src)).searchParams.get('v')
-        if (version) {
-            if (version === 'latest') {
-                version = ''
-            }
-        } else {
-            console.warn('No version specified in BeePy source! The latest will be used')
-            version = ''
-        }
-    }
-    try {
         await beepy.pip.install(`beepy_web${(version ? '==' : '') + version}`)
-    } catch {
-        await beepy.pip.install(`${beepy.config.path}/dist/beepy_web-${version}-py3-none-any.whl`)
     }
 
-    beepy.globals = py(`
-import js
-from beepy import __version__
-from beepy.utils.internal import merge_configs, _BeePyGlobals
-js.console.log(f'%cBeePy version: {__version__}', 'color: lightgreen; font-size: 35px')
-merge_configs()
-
-del js, merge_configs
-_globals = _BeePyGlobals(globals())
-del _BeePyGlobals
-_globals # last evaluated value is returned from 'py' function
-`)
+    beepy.globals = py('from beepy.utils.internal import _init_js, _BeePyGlobals;_init_js();_BeePyGlobals(globals())')
     await _main()
 }
 
@@ -325,7 +335,7 @@ async function _main (options={reload: false}) {
         await beepy.__main__()
     } else {
         try {
-            beepy._loadLocalModule('', {checkPathExists: true})
+            beepy._loadLocalModule('')
             py(`import ${rootFolder}`)
         } catch (e) {
             console.debug(e)
@@ -373,38 +383,29 @@ function _parseAndMkDirModule (module, addCurrentPath) {
 
 beepy.__CURRENT_LOADING_FILE__ = ''
 beepy._filePathToModuleAndRealFileCache = {}
-beepy.populateCurrentPath = function populateCurrentPath (path) {
+beepy.populateCurrentPath = function (path) {
     const currentPath = beepy.__CURRENT_LOADING_FILE__.replace(/(\/(\w*.py)?)*$/, '')
     return `${currentPath}${currentPath && path ? '/' : ''}${path.replace(/^\/*/, '')}`
 }
-beepy.getPathWithCurrentPathAndOrigin = function getPathWithCurrentPathAndOrigin (path) {
+beepy.getPathWithCurrentPathAndOrigin = function (path) {
     path = beepy.populateCurrentPath(path)
     if (!path.includes('http')) path = `${window.location.origin}/${path}`
     return path
 }
 
 
-beepy._loadLocalModule = function _loadLocalModule (
-    module, {pathToWrite='', addCurrentPath=true, checkPathExists=false}={}
-) {
+beepy._loadLocalModule = function (module, {pathToWrite='', addCurrentPath=true}={}) {
     let moduleFile = ''
 
     const [path, parsedModule, fsPath] = _parseAndMkDirModule(module, addCurrentPath)
     const fullPath = `${path}${path && parsedModule ? '/' : ''}${parsedModule}`
-    let moduleFilePath = fullPath + '.py'
+    let moduleFilePath = `${fullPath}${parsedModule ? '/' : ''}__init__.py`
 
     try {
-        moduleFile = moduleFilePath === '.py' ? '<' : beepy.loadFileSync(_lstrip(moduleFilePath), {checkPathExists})
-        if (isHTML(moduleFile)) {
-            moduleFilePath = fullPath + (parsedModule ? `/` : '') + '__init__.py'
-            moduleFile = beepy.loadFileSync(_lstrip(moduleFilePath), {checkPathExists})
-            if (isHTML(moduleFile)) {
-                return 'Python file not found'
-            }
-        }
+        moduleFile = beepy.loadFileSync(_lstrip(moduleFilePath))
     } catch (e) {
-        console.error(e)
-        return e
+        moduleFilePath = `${fullPath}.py`
+        moduleFile = beepy.loadFileSync(_lstrip(moduleFilePath))
     }
 
     if (!pathToWrite) pathToWrite = moduleFilePath.replace(new RegExp(`^${path}`), fsPath)
@@ -412,8 +413,6 @@ beepy._loadLocalModule = function _loadLocalModule (
 
     beepy._filePathToModuleAndRealFileCache[moduleFilePath] = [pathToWrite, module]
     beepy._writeLocalFileSync(pathToWrite, moduleFile)
-
-    return false
 }
 
 beepy.listenerCheckFunctions = {
@@ -435,8 +434,8 @@ function _handleAsyncListener (method, modifiers) {
         }
     }
 }
-beepy.addAsyncListener = function addAsyncListener (el, eventName, method, modifiers, options={}) {
-    _listener = _handleAsyncListener(method, modifiers)  // should freeze parameters
+beepy.addAsyncListener = function (el, eventName, method, modifiers, options={}) {
+    const _listener = _handleAsyncListener(method, modifiers)  // should freeze parameters
     el.addEventListener(eventName, _listener, options)
     return _listener
 }

@@ -1,22 +1,49 @@
+import os
 import sys
 
 from importlib.abc import MetaPathFinder
 from importlib.util import spec_from_file_location
 
 from beepy.utils.js_py import js, IN_BROWSER
-from beepy.utils.internal import __CONFIG__
+from beepy.utils.internal import BEEPY_ROOT_PACKAGE, __CONFIG__
 from beepy.utils.dev import _debugger
 
 
-BEEPY_ROOT_PACKAGE = '__beepy_root__'
 requirements = __CONFIG__['requirements']
 MODULES_NOT_EXISTING_ON_SERVER = [
     BEEPY_ROOT_PACKAGE,
     *(requirements() if callable(requirements) else requirements),
-    '_hashlib',
+    '_hashlib',  # TODO: FIX THIS...
     '_strptime',
     'unicodedata',
     'pprint',
+    'numpy',
+    'matplotlib',
+    'numbers',
+    'pickle5',
+    'pickle',
+    '_compat_pickle',
+    '_pickle',
+    'org',
+    'ctypes',
+    '_ctypes',
+    'backports_abc',
+    'secrets',
+    'hmac',
+    'gzip',
+    'shlex',
+    'defusedxml',
+    'cffi',
+    'uuid',
+    '_uuid',
+    'cycler',
+    'six',
+    'six.moves',
+    'six.moves.winreg',
+    'decimal',
+    '_decimal',
+    'http',
+    'ssl',
 ]
 # some modules must be ignored to prevent load it from local server, when importing modules like micropip or datetime
 
@@ -24,6 +51,9 @@ MODULES_NOT_EXISTING_ON_SERVER = [
 class ServerFinder(MetaPathFinder):
     def find_spec(self, fullname, path, target=None):
         if path and any(p.startswith('/lib') for p in path):
+            return
+
+        if os.path.exists(f'/lib/python3.11/site-packages/{fullname}'):
             return
 
         if fullname in MODULES_NOT_EXISTING_ON_SERVER:
@@ -34,8 +64,9 @@ class ServerFinder(MetaPathFinder):
         if is_beepy_module:
             js.beepy.__CURRENT_LOADING_FILE__ = __CONFIG__['path']
 
+        err = None
         try:
-            err = js.beepy._loadLocalModule(fullname, checkPathExists=True)
+            js.beepy._loadLocalModule(fullname)
         except Exception as e:
             err = e
 

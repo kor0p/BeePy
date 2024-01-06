@@ -47,7 +47,7 @@ class Modal(Tag, name='modal', content_tag='h2', children_tag='modal-content'):
 
     @on('keyup.esc')
     @button_close.on('click')
-    def close(self, event):
+    def close(self):
         self.visible = False
         if self.on_close:
             self.on_close(False)
@@ -69,5 +69,5 @@ class ModalHandler(div, content_tag=div()):
     ]
 
     @button_show.on('click')
-    def show_modal(self, event):
+    def show_modal(self):
         self.modal.show()

@@ -10,6 +10,8 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
+    "pyodide-py==0.24.1",  # Pyodide package
+    "python-dotenv==1.0.0",  # .env file to os.environ
     "boltons==23.1.1",  # Better builtins
 ]
 
@@ -19,7 +21,12 @@ dependencies = [
 "Docs" = "https://bee-py.readthedocs.io/en/latest/"
 
 [project.optional-dependencies]
-dev = ["pyodide==0.19.0a1", "micropip", "watchdog", "websockets", "requests"]  # see dev-requirements.txt
+dev = [
+    "micropip==0.3.0",  # A lightweight Python package installer for the web
+    "watchdog==3.0.0",  # watcher for files that changes for Hot reload
+    "websockets==11.0.3",  # Hot reload is working using simple WebSockets server
+    "requests==2.31.0",  # HTTP synchronous requests lib
+]
 
 [build-system]
 requires = ["hatchling"]

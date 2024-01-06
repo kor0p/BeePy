@@ -83,7 +83,7 @@ class BaseForm(Tag, name='form', content_tag=h2()):
         self.visible = True
 
     @hide_btn.on('click')
-    def hide(self, _):
+    def hide(self):
         self.visible = False
 
 
@@ -139,7 +139,7 @@ class UserForm(BaseForm):
     ]
 
     @on('submit.prevent')
-    async def save(self, event):
+    async def save(self):
         try:
             if self.user.id is not None:
                 await request(f'users/{self.user.id}', method='PUT', body=self.user)
@@ -166,7 +166,7 @@ class UserForm(BaseForm):
         ]
 
 
-class UsersTab(tab, name='users'):
+class UsersTab(tab, name='users', content_tag=h2()):
     users: Users = users
 
     style = Style(
@@ -186,7 +186,7 @@ class UsersTab(tab, name='users'):
     ]
 
     @add_btn.on('click')
-    def add_new_user(self, event):
+    def add_new_user(self):
         self.form.user = User.default()
         self.form.show()
 
@@ -196,9 +196,15 @@ class UsersTab(tab, name='users'):
         self.form.show()
 
     @table.on(':delete')
-    def delete_user(self, event, _action, row):
-        # TODO: request to DELETE user on backend
-        self.table.delete_row(id=row['id'])
+    async def delete_user(self, event, _action, row):
+        id = row['id']
+        try:
+            await request(f'users/{id}', method='DELETE')
+        except Exception as error:
+            self.error = f'Error in request: {error}'
+        else:
+            self.table.delete_row(id=id)
+            self.error = ''
 
     @groups.on('change')
     def reload_groups_changed(self, _tag, _new_groups):
@@ -258,7 +264,7 @@ class GroupForm(BaseForm):
     ]
 
     @on('submit.prevent')
-    async def save(self, event):
+    async def save(self):
         try:
             if self.group.id is not None:
                 await request(f'groups/{self.group.id}', method='PUT', body=self.group)
@@ -274,7 +280,7 @@ class GroupForm(BaseForm):
         self.parent.__render__()
 
 
-class GroupsTab(tab, name='groups'):
+class GroupsTab(tab, name='groups', content_tag=h2()):
     groups: Groups = groups
 
     style = Style(
@@ -294,7 +300,7 @@ class GroupsTab(tab, name='groups'):
     ]
 
     @add_btn.on('click')
-    def add_new_group(self, event):
+    def add_new_group(self):
         self.form.group = Group.default()
         self.form.show()
 
@@ -304,9 +310,15 @@ class GroupsTab(tab, name='groups'):
         self.form.show()
 
     @table.on(':delete')
-    def delete_group(self, event, _action, row):
-        # TODO: request to DELETE group on backend
-        self.table.delete_row(id=row['id'])
+    async def delete_group(self, event, _action, row):
+        id = row['id']
+        try:
+            await request(f'groups/{id}', method='DELETE')
+        except Exception as error:
+            self.error = f'Error in request: {error}'
+        else:
+            self.table.delete_row(id=id)
+            self.error = ''
 
     async def load_groups(self):
         try:

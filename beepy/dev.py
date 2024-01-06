@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import functools
 import os
+import re
 
 import sys
 import time
@@ -8,10 +9,15 @@ import asyncio
 import http.server
 import socketserver
 from threading import Thread
+
+import dotenv
 from websockets.server import serve
 from websockets.exceptions import ConnectionClosedOK
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
+
+
+dotenv.load_dotenv()
 
 
 class MonitorFolder(FileSystemEventHandler):
@@ -19,7 +25,13 @@ class MonitorFolder(FileSystemEventHandler):
         self.server = server
 
     def on_any_event(self, event):
-        self.server.handle_file_event(event)
+        if not (
+            event.event_type in ('opened', 'closed')
+            or event.is_directory
+            or event.src_path.endswith(('~', '.tmp'))
+            or re.search(r'/(__pycache__|.idea|dist|build)/', event.src_path)
+        ):
+            self.server.handle_file_event(event)
 
 
 class DevServer:
@@ -27,6 +39,7 @@ class DevServer:
         self.websockets = []
         self.root_path = None
         self.observer = None
+        self.developer_mode = 'DEVELOPMENT' in os.environ
 
     async def ws_send(self, message):
         await asyncio.sleep(1)  # Hack for Django autoreload
@@ -41,27 +54,16 @@ class DevServer:
             print('[BeePy] No clients connected! Please, restart your page to connect to the dev server')
 
     def handle_file_event(self, event):
-        path = event.src_path
-        if (
-            event.is_directory
-            or event.src_path.endswith(('~', '.tmp'))
-            or '/__pycache__/' in path
-            or '/.idea/' in path
-            or 'dist' in path
-            or event.event_type in ('opened', 'closed')
-        ):
-            return
-
-        if path.startswith(self.root_path):
-            path = path[len(self.root_path): ]
-        if path.startswith('/'):
-            path = path[1:]
+        path: str = event.src_path.removeprefix(self.root_path).removeprefix('/')
 
         print(f'[BeePy] Found file change: {path}')
-        asyncio.run(self.ws_send(path))
+        if self.developer_mode:
+            os.system('hatch build')
+            asyncio.run(self.ws_send('__'))
+        else:
+            asyncio.run(self.ws_send(path))
 
     def _watcher_start(self):
-
         event_handler = MonitorFolder(self)
         observer = Observer()
         observer.schedule(event_handler, path=self.root_path, recursive=True)
@@ -96,7 +98,7 @@ class DevServer:
             print(f'[BeePy] Serving at port {port}\nOpen server: http://localhost:{port}')
             httpd.serve_forever()
 
-    def start(self, start_http=None, root_path=None, wait=False):
+    def start(self, start_http=None, root_path=None, forever=True):
         if self.observer is not None:
             print('[BeePy] Server is already started')
             return
@@ -109,14 +111,14 @@ class DevServer:
         Thread(target=self._ws_start, daemon=True).start()
         Thread(target=self._watcher_start, daemon=True).start()
         if start_http is not None:
-            Thread(target=start_http, daemon=True).start()
-        if wait:
-            while True:
-                time.sleep(3600)
+            if forever:
+                start_http()
+            else:
+                Thread(target=start_http, daemon=True).start()
 
 
 dev_server = DevServer()
-start_simple_dev_server = functools.partial(dev_server.start, start_http=dev_server._simple_http_start, wait=True)
+start_simple_dev_server = functools.partial(dev_server.start, start_http=dev_server._simple_http_start, forever=True)
 
 
 if __name__ == '__main__':

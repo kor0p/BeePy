@@ -85,7 +85,7 @@ class Link(a, WithRouter):
         self.href = Path.parse_to(value)
 
     @on('click.prevent')
-    async def navigate(self, event=None):  # TODO: make possible to create function without `event` argument
+    async def navigate(self):
         Path.parse(self.router.basename + self.to).push_state()
         self.router._history_refresh()
 
