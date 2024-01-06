@@ -269,7 +269,9 @@ window.__beepy_load = async () => {
     }
 
     if (!envFileExists) {
-        await beepy._writeLocalFile('.env', await beepy.loadFile(`${beepy.__CONFIG__.path}/.env`))
+        try {
+            await beepy._writeLocalFile('.env', await beepy.loadFile(`${beepy.__CONFIG__.path}/.env`))
+        } catch (e) {}
     }
 
     await _loadBeePyModule()
