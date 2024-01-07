@@ -16,7 +16,7 @@ from beepy.utils.dev import _debugger
 from beepy.context import OVERWRITE, SUPER, CONTENT, _SPECIAL_CHILD_STRINGS
 
 
-__version__ = '0.8.0'  # For internal development set to 0.0a0
+__version__ = '0.8.2'  # For internal development set to 0.0a0
 __CONFIG__['version'] = __version__
 
 
@@ -555,7 +555,7 @@ def mount(element: Tag, root_element: str, clear=False):
         raise NameError('Mount point not found')
 
     js.beepy.stopLoading()
-    if clear or js.beepy.DEV__hot_reload:
+    if clear or js.beepy.dev_server.started:
         root.innerHTML = ''
     js.beepy.startLoading(mountPoint=root)
 

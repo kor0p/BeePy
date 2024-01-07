@@ -28,8 +28,8 @@ __CONFIG__ = {
 
 
 def merge_configs():
-    __CONFIG__.update(js.beepy.__CONFIG__.to_py())
-    js.beepy.__CONFIG__ = to_js(__CONFIG__)
+    __CONFIG__.update(js.beepy.config.to_py())
+    js.beepy.config = to_js(__CONFIG__)
 
 
 if IN_BROWSER:  # TODO: check support for non-browser runs

@@ -249,7 +249,7 @@ class Style(Tag, name='style', content_tag=None, raw_html=True, force_ref=True):
         return js.beepy.addElement(
             js.document.head,
             'link',
-            href=js.beepy.getPathWithCurrentPathAndOrigin(file_path),
+            href=js.beepy.files.getPathWithCurrentPathAndOrigin(file_path),
             onload=cls.create_onload(),
             type='text/css',
             rel='stylesheet',

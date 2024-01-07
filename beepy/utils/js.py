@@ -264,11 +264,7 @@ if 0 and 1:  # never called, but type hinter is ok with that
 
 
 class BeePyModule:
-    __CURRENT_LOADING_FILE__ = ''
-    DEV__hot_reload = True
-
-    def getPathWithCurrentPathAndOrigin(self, path):
-        return path
+    config = {}
 
     def addElement(self, mount_point, element_name, **options):
         return HTMLElement(element_name)
@@ -281,6 +277,16 @@ class BeePyModule:
 
     def addAsyncListener(self, el, eventName, method, modifiers, **options):
         return
+
+    class files:
+        __CURRENT_LOADING_FILE__ = ''
+
+        def getPathWithCurrentPathAndOrigin(self, path):
+            return path
+
+    class dev_server:
+        started = True
+
 
 beepy = BeePyModule()
 _locals = {}

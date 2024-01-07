@@ -60,9 +60,9 @@ class ServerFinder(MetaPathFinder):
             return
 
         is_beepy_module = fullname.startswith('beepy.')
-        current_path = js.beepy.__CURRENT_LOADING_FILE__
+        current_path = js.beepy.files.__CURRENT_LOADING_FILE__
         if is_beepy_module:
-            js.beepy.__CURRENT_LOADING_FILE__ = __CONFIG__['path']
+            js.beepy.files.__CURRENT_LOADING_FILE__ = __CONFIG__['path']
 
         err = None
         try:
@@ -71,7 +71,7 @@ class ServerFinder(MetaPathFinder):
             err = e
 
         if err or is_beepy_module:
-            js.beepy.__CURRENT_LOADING_FILE__ = current_path
+            js.beepy.files.__CURRENT_LOADING_FILE__ = current_path
 
         if err:
             _debugger(err)

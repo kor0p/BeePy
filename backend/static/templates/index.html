@@ -18,9 +18,9 @@
             }
         </script>
         {% if IS_DEV %}
-            <script src='../BEEPY/beepy.js?v=dev'></script>
+            <script src='../BEEPY/web/dist/beepy.js'></script>
         {% else %}
-            <script src='https://kor0p.github.io/BeePy/beepy.js?v=latest'></script>
+            <script src='https://cdn.jsdelivr.net/npm/@kor0p/beepy/dist/beepy.js'></script>
         {% endif %}
         <script>
             beepy.__main__ = async () => {

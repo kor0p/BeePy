@@ -59,6 +59,7 @@ class DevServer:
         print(f'[BeePy] Found file change: {path}')
         if self.developer_mode:
             os.system('hatch build')
+            os.system(f'cd {self.root_path}/web; npm run build; cd -')  # rebuild dist
             asyncio.run(self.ws_send('__'))
         else:
             asyncio.run(self.ws_send(path))
