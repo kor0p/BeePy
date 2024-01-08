@@ -4,7 +4,7 @@ export const rootFolder = '__beepy_root__'
 
 
 export class Files {
-    static __CURRENT_LOADING_FILE__ = ''
+    static _lastLoadedFile = ''
 
     static mkDirPath (path, removeFileName=false) {
         const pathParts = path.split('/')
@@ -40,7 +40,7 @@ export class Files {
     }
 
     static populateCurrentPath (path) {
-        const currentPath = this.__CURRENT_LOADING_FILE__.replace(/(\/(\w*.py)?)*$/, '')
+        const currentPath = this._lastLoadedFile.replace(/(\/(\w*.py)?)*$/, '')
         return `${currentPath}${currentPath && path ? '/' : ''}${path.replace(/^\/*/, '')}`
     }
 
@@ -55,7 +55,7 @@ export class Files {
 export class SyncFiles {
     static loadFile (filePath) {
         filePath = _lstrip(filePath)
-        Files.__CURRENT_LOADING_FILE__ = filePath
+        Files._lastLoadedFile = filePath
         if (!filePath.includes('http')) filePath = `${window.location.origin}/${filePath}`
 
         const req = new XMLHttpRequest()
@@ -76,7 +76,7 @@ export class SyncFiles {
 
 export class AsyncFiles {
     static async loadFile (filePath) {
-        Files.__CURRENT_LOADING_FILE__ = filePath
+        Files._lastLoadedFile = filePath
         if (!filePath.includes('http')) filePath = `${window.location.origin}/${filePath}`
 
         const r = await fetch(filePath, {method: 'GET'})

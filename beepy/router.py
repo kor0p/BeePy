@@ -106,7 +106,7 @@ class Router(Tag):
 
     def pre_mount(self):
         self._load_children()
-        add_event_listener(js.window, 'popstate', self._history_refresh)
+        add_event_listener(js, 'popstate', self._history_refresh)
 
     @force_sync
     async def _history_refresh(self, event=None):

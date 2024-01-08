@@ -1,20 +1,22 @@
-import {_debugger, _lstrip, mergeDeep, addHTMLElement} from './utils'
+import {_debugger, _lstrip, addHTMLElement, mergeDeep} from './utils'
 import {AsyncFiles, Files, rootFolder, SyncFiles, SyncFiles as StaticFiles} from './files'
 import {dev_server} from './dev-server'
 import {python} from './python'
 
-let localConfig = {};
+const _script = document.currentScript
+let localConfig = {}
 if (!!window.beepy) {
     localConfig = window.beepy
 }
 
 class BeePy {
-    __version__ = '0.8.2'
+    __version__ = '0.8.4'
 
     pyodideIndexURL = null
     globals = null
     dev_server = dev_server
     dev_path = ''
+    python_api = python
 
     static DEFAULT_CONFIG = {
         include: ['.env'],
@@ -34,13 +36,10 @@ If you have config, you must define it before loading beepy script
             `)
         }
 
-        const config = mergeDeep(BeePy.DEFAULT_CONFIG, localConfig.config || {})
-        this.config = config
+        this.config = mergeDeep(BeePy.DEFAULT_CONFIG, localConfig.config || {})
         this._loadPyodideScript()
 
-        // TODO: VERSION from npm)
-        const _src = document.currentScript.src
-        const path = _src.substring(0, _src.indexOf('beepy.js') - 1).replace(/\/+$/, '')
+        const path = _script.src.substring(0, _script.src.indexOf('beepy.js') - 1).replace(/\/+$/, '')
         this.dev_path = path.split('/').slice(0, -2).join('/')
     }
 
@@ -104,17 +103,37 @@ If you have config, you must define it before loading beepy script
         SyncFiles._writeFile(pathToWrite, moduleFile)
     }
 
-    __main__ = false  // set beepy.__main__ to call your function on setUp
+    async enterPythonModule (module) {
+        try {
+            if (module.includes('/')) {
+                module = _lstrip(module).replace(/\//g, '.')
+            }
+
+            beepy._loadLocalModule(module, {pathToWrite: '__init__.py', addCurrentPath: false})
+            beepy.python_api.run(`import ${rootFolder}`)
+        } catch (e) {
+            console.error(e)
+            _debugger(e)
+        }
+    }
+
+    __main__ = false  // set beepy.__main__ to call custom function on setUp
 
     async _main (options={reload: false}) {
-        Files.__CURRENT_LOADING_FILE__ = ''
+        Files._lastLoadedFile = ''
         if (!!this.__main__) {
             return await this.__main__()
         }
 
+        const attrModule = _script.getAttribute('bee-module')
+        if (attrModule) {
+            await this.enterPythonModule(attrModule)
+            return
+        }
+
         try {
             this._loadLocalModule('')
-            python.run(`import ${rootFolder}`)
+            this.python_api.run(`import ${rootFolder}`)
         } catch (e) {
             console.debug(e)
             if (options.reload) return
@@ -176,26 +195,12 @@ If you have config, you must define it before loading beepy script
             await this.pip.install(`beepy_web==${this.__version__}`)
         }
 
-        this.globals = python.run(
+        this.globals = this.python_api.run(
             'from beepy.utils.internal import _init_js, _BeePyGlobals;_init_js();_BeePyGlobals(globals())'
         )
 
         await this._main()
         this.dev_server.init()
-    }
-}
-
-window.enterPythonModule = async function (module) {
-    try {
-        if (module.includes('/')) {
-            module = _lstrip(module).replace(/\//g, '.')
-        }
-
-        beepy._loadLocalModule(module, {pathToWrite: '__init__.py', addCurrentPath: false})
-        python.run(`import ${rootFolder}`)
-    } catch (e) {
-        console.error(e)
-        _debugger(e)
     }
 }
 

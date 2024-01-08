@@ -17,16 +17,14 @@
                 },
             }
         </script>
-        {% if IS_DEV %}
-            <script src='../BEEPY/web/dist/beepy.js'></script>
-        {% else %}
-            <script src='https://cdn.jsdelivr.net/npm/@kor0p/beepy/dist/beepy.js'></script>
-        {% endif %}
-        <script>
-            beepy.__main__ = async () => {
-                await enterPythonModule('{% static "templates" %}')
-            }
-        </script>
+        <script
+            bee-module='{% static "templates" %}'
+            {% if IS_DEV %}
+                src='../BEEPY/web/dist/beepy.js'
+            {% else %}
+                src='https://cdn.jsdelivr.net/npm/@kor0p/beepy/dist/beepy.js'
+            {% endif %}
+        ></script>
     </head>
     <body>
         <div id='root'></div>

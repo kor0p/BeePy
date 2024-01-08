@@ -3,6 +3,8 @@ from __future__ import annotations
 from abc import ABCMeta
 from typing import Union, Type, TypeVar
 
+from boltons.typeutils import make_sentinel
+
 import beepy
 
 from beepy.attrs import attr
@@ -20,9 +22,9 @@ Self = TypeVar('Self', bound='Context')
 
 _CONTEXT_INITIALIZED = False
 
-OVERWRITE = '__OVERWRITE__'
-SUPER = '__SUPER__'
-CONTENT = '__CONTENT__'
+OVERWRITE = make_sentinel('_OVERWRITE', var_name='OVERWRITE')
+SUPER = make_sentinel('_SUPER', var_name='SUPER')
+CONTENT = make_sentinel('_CONTENT', var_name='CONTENT')
 _SPECIAL_CHILD_STRINGS = (OVERWRITE, SUPER, CONTENT)
 
 

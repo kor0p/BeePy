@@ -279,7 +279,7 @@ class BeePyModule:
         return
 
     class files:
-        __CURRENT_LOADING_FILE__ = ''
+        _lastLoadedFile = ''
 
         def getPathWithCurrentPathAndOrigin(self, path):
             return path

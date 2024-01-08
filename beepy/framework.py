@@ -16,7 +16,7 @@ from beepy.utils.dev import _debugger
 from beepy.context import OVERWRITE, SUPER, CONTENT, _SPECIAL_CHILD_STRINGS
 
 
-__version__ = '0.8.2'  # For internal development set to 0.0a0
+__version__ = '0.8.4'  # For internal development set to 0.0a0
 __CONFIG__['version'] = __version__
 
 

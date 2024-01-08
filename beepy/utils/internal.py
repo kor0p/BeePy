@@ -15,6 +15,7 @@ _PY_TAG_ATTRIBUTE = '__PYTHON_TAG__'
 
 dotenv.load_dotenv(f'{BEEPY_ROOT_PACKAGE}/.env' if IN_BROWSER else '.env')
 
+# TODO: make it with dataclass
 __CONFIG__ = {
     'debug': 'DEBUG' in os.environ,
     'development': 'DEVELOPMENT' in os.environ,
