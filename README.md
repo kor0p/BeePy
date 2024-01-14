@@ -1,5 +1,8 @@
 # 🐝 BeePy
 
+[![NPM Package](https://img.shields.io/npm/v/@kor0p/beepy)](https://www.npmjs.com/package/@kor0p/beepy)
+[![Documentation](https://readthedocs.org/projects/bee-py/badge/?version=latest)](https://bee-py.readthedocs.io/en/latest/)
+
 ## The _frontend_ web framework for python
 ### Thanks for [Pyodide](https://pyodide.org/) - port of Python to [Emscripten](https://emscripten.org/), based on [WASM](https://webassembly.org/).
 ### Use Python in browser to build modern frontend via BeePy!
