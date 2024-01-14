@@ -25,11 +25,7 @@ class LocalStorage(Mapping):
         js.localStorage.setItem(self.prefix + key, json.dumps(value))
 
     def __iter__(self):
-        return (
-            key[len(self.prefix):]
-            for key in js.Object.keys(js.localStorage)
-            if key.startswith(self.prefix)
-        )
+        return (key[len(self.prefix) :] for key in js.Object.keys(js.localStorage) if key.startswith(self.prefix))
 
     def __len__(self):
         return len(tuple(iter(self)))

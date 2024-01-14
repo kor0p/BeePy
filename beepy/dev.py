@@ -1,21 +1,20 @@
 #!/usr/bin/env python3
+import asyncio
 import functools
+import http.server
 import os
 import re
-
+import socketserver
 import sys
 import time
-import asyncio
-import http.server
-import socketserver
+from pathlib import Path
 from threading import Thread
 
 import dotenv
-from websockets.server import serve
-from websockets.exceptions import ConnectionClosedOK
-from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
-
+from watchdog.observers import Observer
+from websockets.exceptions import ConnectionClosedOK
+from websockets.server import serve
 
 dotenv.load_dotenv()
 
@@ -58,8 +57,10 @@ class DevServer:
 
         print(f'[BeePy] Found file change: {path}')
         if self.developer_mode:
-            os.system('hatch build')
-            os.system(f'cd {self.root_path}/web; npm run build; cd -')  # rebuild dist
+            if path.endswith('.py'):
+                os.system('hatch build')
+            elif path.endswith('.js'):
+                os.system(f'cd {self.root_path}/web; npm run build; cd -')  # rebuild dist
             asyncio.run(self.ws_send('__'))
         else:
             asyncio.run(self.ws_send(path))
@@ -99,13 +100,13 @@ class DevServer:
             print(f'[BeePy] Serving at port {port}\nOpen server: http://localhost:{port}')
             httpd.serve_forever()
 
-    def start(self, start_http=None, root_path=None, forever=True):
+    def start(self, start_http=None, root_path=None, *, forever=True):
         if self.observer is not None:
             print('[BeePy] Server is already started')
             return
 
         if root_path is None:
-            root_path = sys.argv[1] if len(sys.argv) > 1 else os.getcwd()
+            root_path = sys.argv[1] if len(sys.argv) > 1 else Path.cwd()
 
         self.root_path = root_path
 

@@ -1,13 +1,13 @@
-import os
 import sys
-
 from importlib.abc import MetaPathFinder
 from importlib.util import spec_from_file_location
+from pathlib import Path
 
-from beepy.utils.js_py import js, IN_BROWSER
-from beepy.utils.internal import BEEPY_ROOT_PACKAGE, __CONFIG__
+from pyodide.ffi import JsException
+
 from beepy.utils.dev import _debugger
-
+from beepy.utils.internal import __CONFIG__, BEEPY_ROOT_PACKAGE
+from beepy.utils.js_py import IN_BROWSER, js
 
 requirements = __CONFIG__['requirements']
 MODULES_NOT_EXISTING_ON_SERVER = [
@@ -49,14 +49,11 @@ MODULES_NOT_EXISTING_ON_SERVER = [
 
 
 class ServerFinder(MetaPathFinder):
-    def find_spec(self, fullname, path, target=None):
+    def find_spec(self, fullname, path, target=None):  # noqa: ARG002 - override of MetaPathFinder
         if path and any(p.startswith('/lib') for p in path):
             return
 
-        if os.path.exists(f'/lib/python3.11/site-packages/{fullname}'):
-            return
-
-        if fullname in MODULES_NOT_EXISTING_ON_SERVER:
+        if Path(f'/lib/python3.11/site-packages/{fullname}').exists() or fullname in MODULES_NOT_EXISTING_ON_SERVER:
             return
 
         is_beepy_module = fullname.startswith('beepy.')
@@ -67,7 +64,7 @@ class ServerFinder(MetaPathFinder):
         err = None
         try:
             js.beepy._loadLocalModule(fullname)
-        except Exception as e:
+        except JsException as e:
             err = e
 
         if err or is_beepy_module:

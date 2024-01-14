@@ -7,7 +7,7 @@ class DevServer {
     _filePathToModuleAndRealFileCache = {}
 
     init () {
-        if (!beepy.config.developer) return
+        if (!beepy.config.development) return
 
         try {  // TODO: add flag parameter for this
             this.ws = new WebSocket('ws://localhost:8998/')

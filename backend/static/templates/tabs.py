@@ -1,10 +1,9 @@
 from functools import partial
 
-from beepy import Tag, Style, attr, state, __version__
-from beepy.tags import button, a, p, i, span, select, Head, ul
+from beepy import Style, Tag, __version__, attr, state
 from beepy.modules.tabs import tab, tab_title, tabs
-from beepy.router import WithRouter, Link
-
+from beepy.router import Link, WithRouter
+from beepy.tags import Head, a, button, i, p, select, span, ul
 
 Head.title = 'Tabs example'
 a_nt = partial(a, target='_blank')
@@ -24,14 +23,15 @@ class ButtonsView(Tag):
     count = attr(0)
 
     style = Style(
-        button=dict(
-            backgroundColor='lightblue',
-        )
+        button={
+            'backgroundColor': 'lightblue',
+            ('width', 'height'): '25px',
+        }
     )
 
     children = [
         button_inc := ColoredButton('+', color='red'),
-        button_dec := ColoredButton('–'),
+        button_dec := ColoredButton('-'),
     ]
 
     @button_inc.on('click')
@@ -58,10 +58,7 @@ class SelectView(Tag, name='div', content_tag='span'):
     def content(self):
         # TODO: maybe create decorator @content() with parameters?
         # TODO: think about better syntax?
-        return [
-            p(lambda _: f'Key: {self.selected}'),
-            p(lambda _: f'Value: {self.items[self.selected]}')
-        ]
+        return [p(lambda _: f'Key: {self.selected}'), p(lambda _: f'Value: {self.items[self.selected]}')]
 
 
 class ExamplesTabs(tabs):
@@ -114,7 +111,7 @@ class ExamplesTabs(tabs):
                 NEW_LINE,
                 Link('Timer', to='timer'),
                 NEW_LINE,
-                Link('Input\'s model', to='text-sync'),
+                Link("Input's model", to='text-sync'),
                 NEW_LINE,
                 a_nt('Multiple apps on one page', href='/multiple-apps'),
                 NEW_LINE,

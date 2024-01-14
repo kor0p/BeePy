@@ -1,5 +1,5 @@
 # beepy-webapp
 
-### app: 
+### app:
 - dev: `python manage.py runserver`
 - prod: `python manage.py runserver 0.0.0.0:8000`

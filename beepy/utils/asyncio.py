@@ -3,8 +3,8 @@ import inspect
 from functools import wraps
 
 import beepy
-from beepy.utils.js_py import js
 from beepy.utils.dev import _debugger
+from beepy.utils.js_py import js
 
 
 def ensure_sync(to_await, callback=None):
@@ -53,7 +53,7 @@ def force_sync(function):
         def _callback(_res_):
             try:
                 r = _res_.result()
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 - Error in callback, just skip
                 _debugger(e)
                 return
 
@@ -62,8 +62,9 @@ def force_sync(function):
                     continue
                 try:
                     cb(*args, **kwargs, _res_=r)
-                except Exception as e:
+                except Exception as e:  # noqa: BLE001 - Error in callback, just skip
                     _debugger(e)
+
         return ensure_sync(function(*args, **kwargs), _callback)
 
     wrapper.run_after = wrapper.add_callback = lambda fn: callbacks.append((fn, False)) or fn

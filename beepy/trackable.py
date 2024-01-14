@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
-from typing import Union, SupportsIndex, Callable
+from collections.abc import Callable, Iterable
+from typing import SupportsIndex
 
 from beepy.utils.common import Locker
 
@@ -14,6 +15,7 @@ class Trackable(ABC):
         self.onchange_triggers = []
         self._disable_onchange = Locker('Disable onchange()')
 
+    @abstractmethod
     def onchange_notify(self):
         pass
 
@@ -36,26 +38,27 @@ class Trackable(ABC):
         pass
 
     @abstractmethod
-    def _notify_add(self, key: Union[SupportsIndex, slice], added):
+    def _notify_add(self, key: SupportsIndex | slice, added):
         pass
 
     @abstractmethod
-    def _notify_remove(self, key: Union[SupportsIndex, slice], to_remove):
+    def _notify_remove(self, key: SupportsIndex | slice, to_remove):
         pass
 
+    @abstractmethod
     def _notify_post_remove(self):
-        self.onchange()
+        pass
 
 
 class TrackableList(Trackable, list):
     __slots__ = ('onchange_triggers', '_disable_onchange')
 
-    def _notify_add(self, key: Union[SupportsIndex, slice], added: Union[tuple, list]):
+    def _notify_add(self, key: SupportsIndex | slice, added: Iterable):
         length = len(self)
         if isinstance(key, slice):
-            for index, value in zip(range(key.start or 0, key.stop or length, key.step or 1), added):
+            for index, value in zip(range(key.start or 0, key.stop or length, key.step or 1), added, strict=True):
                 if index < 0:
-                    index += length
+                    index += length  # noqa: PLW2901
                 self._notify_add_one(index, value)
         else:
             index = key.__index__()
@@ -65,13 +68,13 @@ class TrackableList(Trackable, list):
         if added:
             self.onchange()
 
-    def _notify_remove(self, key: Union[SupportsIndex, slice], to_remove: Union[tuple, list]):
+    def _notify_remove(self, key: SupportsIndex | slice, to_remove: tuple | list):
         if isinstance(key, slice):
-            for index, value in reversed(tuple(
-                zip(range(key.start or 0, key.stop or len(self), key.step or 1), to_remove)
-            )):
+            for index, value in reversed(
+                tuple(zip(range(key.start or 0, key.stop or len(self), key.step or 1), to_remove, strict=True))
+            ):
                 if index < 0:
-                    index += len(self)
+                    index += len(self)  # noqa: PLW2901
                 self._notify_remove_one(index, value)
         else:
             index = key.__index__()
@@ -83,16 +86,16 @@ class TrackableList(Trackable, list):
         super().append(__object)
 
         if not self._disable_onchange:
-            self._notify_add(-1, (self[-1], ))
+            self._notify_add(-1, (self[-1],))
 
     def clear(self):
         length = len(self)
         if not self._disable_onchange:
             self._notify_remove(slice(0, length), self)
         super().clear()
-        if not self._disable_onchange:
-            if length:
-                self._notify_post_remove()
+        if not self._disable_onchange and length:
+            self._notify_post_remove()
+            self.onchange()
 
     def extend(self, __iterable):
         if self._disable_onchange:
@@ -101,7 +104,7 @@ class TrackableList(Trackable, list):
 
         length = len(self)
         super().extend(__iterable)
-        self._notify_add(slice(length, len(self)), self[length:len(self)])
+        self._notify_add(slice(length, len(self)), self[length : len(self)])
 
     def insert(self, __index, __object):
         if self._disable_onchange:
@@ -110,20 +113,18 @@ class TrackableList(Trackable, list):
 
         index = __index.__index__()
         super().insert(index, __object)
-        self._notify_add(index, (self[index], ))
+        self._notify_add(index, (self[index],))
 
     def pop(self, __index=None):
         if self._disable_onchange:
             return super().pop(__index)
 
-        if __index is None:
-            index = len(self) - 1
-        else:
-            index = __index.__index__()
+        index = len(self) - 1 if __index is None else __index.__index__()
 
-        self._notify_remove(index, (self[index], ))
+        self._notify_remove(index, (self[index],))
         result = super().pop(__index)
         self._notify_post_remove()
+        self.onchange()
         return result
 
     def remove(self, __value):
@@ -131,9 +132,10 @@ class TrackableList(Trackable, list):
             super().remove(__value)
             return
 
-        self._notify_remove(self.index(__value), (__value, ))
+        self._notify_remove(self.index(__value), (__value,))
         super().remove(__value)
         self._notify_post_remove()
+        self.onchange()
 
     def copy(self):
         result = type(self)(super().copy())
@@ -141,10 +143,35 @@ class TrackableList(Trackable, list):
         return result
 
     def reverse(self):
-        raise AttributeError('Not implemented yet!')
+        if self._disable_onchange:
+            super().reverse()
+            return
+
+        length = len(self)
+        self._notify_remove(slice(0, length), self)
+
+        super().reverse()
+
+        if length:
+            self._notify_post_remove()
+
+        self._notify_add(slice(0, len(self)), self)
 
     def sort(self, *, key=..., reverse=...):
-        raise AttributeError('Not implemented yet!')
+        if self._disable_onchange:
+            super().sort(key=key, reverse=reverse)
+            return
+
+        # TODO: rewrite this after `key=` implemented
+        length = len(self)
+        self._notify_remove(slice(0, length), self)
+
+        super().sort(key=key, reverse=reverse)
+
+        if length:
+            self._notify_post_remove()
+
+        self._notify_add(slice(0, len(self)), self)
 
     def __delitem__(self, key):
         if self._disable_onchange:
@@ -152,13 +179,14 @@ class TrackableList(Trackable, list):
             return
 
         to_remove = self[key]
-        if not isinstance(to_remove, (tuple, list)):
+        if not isinstance(to_remove, list):
             to_remove = (to_remove,)
 
         self._notify_remove(key, to_remove)
         super().__delitem__(key)
         if to_remove:
             self._notify_post_remove()
+            self.onchange()
 
     def __iadd__(self, other):
         self.extend(other)
@@ -177,7 +205,7 @@ class TrackableList(Trackable, list):
             if length:
                 self._notify_post_remove()
         else:
-            self._notify_add(slice(length, len(self)), self[length:len(self)])
+            self._notify_add(slice(length, len(self)), self[length : len(self)])
         return self
 
     def __setitem__(self, key, value):
@@ -186,17 +214,16 @@ class TrackableList(Trackable, list):
             return
 
         to_remove = self[key]
-        if not isinstance(to_remove, (tuple, list)):
+        if not isinstance(to_remove, list):
             to_remove = (to_remove,)
 
         self._notify_remove(key, to_remove)
         super().__setitem__(key, value)
-        # TODO: prevent doubling calls of onchange_notify
         if to_remove:
             self._notify_post_remove()
 
         added = value
-        if not isinstance(added, (tuple, list)):
+        if not isinstance(added, Iterable):
             added = (added,)
         self._notify_add(key, added)
 

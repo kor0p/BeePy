@@ -1,4 +1,4 @@
-from beepy import Tag, mount, state, on
+from beepy import Tag, mount, on, state
 
 
 class IncrementButton(Tag, name='button'):

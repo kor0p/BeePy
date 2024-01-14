@@ -1,7 +1,6 @@
 import inspect
 import traceback
 
-
 from beepy.utils.js_py import js, log, to_js
 
 

@@ -1,19 +1,18 @@
 from __future__ import annotations
 
 import re
-from re import Match
-from typing import Union, Type
 from dataclasses import dataclass
+from re import Match
 
 from beepy import Tag
 from beepy.attrs import html_attr, state
 from beepy.listeners import on
 from beepy.tags import a
 from beepy.types import Children
-from beepy.utils import js, force_sync
-from beepy.utils.js_py import add_event_listener, push_url
+from beepy.utils import js
 from beepy.utils.dev import _debugger
 from beepy.utils.internal import lazy_import_cls, reload_requirements
+from beepy.utils.js_py import push_url
 
 
 class WithRouter:
@@ -87,12 +86,12 @@ class Link(a, WithRouter):
     @on('click.prevent')
     async def navigate(self):
         Path.parse(self.router.basename + self.to).push_state()
-        self.router._history_refresh()
+        await self.router._history_refresh()
 
 
 class Router(Tag):
     basename = ''
-    routes: dict[str, Union[str, Type[Tag]]] = {
+    routes: dict[str, str | type[Tag]] = {
         # r'/$': Tag,
         # r'/app/(?P<id>.*)$': 'app.App',  # lazy import!
     }
@@ -106,28 +105,26 @@ class Router(Tag):
 
     def pre_mount(self):
         self._load_children()
-        add_event_listener(js, 'popstate', self._history_refresh)
 
-    @force_sync
-    async def _history_refresh(self, event=None):
+    @on('popstate')
+    async def _history_refresh(self):
         js.beepy.startLoading(mountPoint=self._root_parent.mount_element)
         await reload_requirements()
         self._load_children()
         js.beepy.stopLoading()
 
-    def import_tag_component(self, tag_cls: str | Type[Tag], match, **kwargs):
+    def import_tag_component(self, tag_cls: str | type[Tag], match, **kwargs):
         try:
-            tag_cls: Type[Tag] = lazy_import_cls(tag_cls)
+            tag_cls: type[Tag] = lazy_import_cls(tag_cls)
         except ModuleNotFoundError as e:
             _debugger(e)
             raise
 
         if issubclass(tag_cls, WithRouter):
-            kwargs['router'] = self
-            kwargs['match'] = match
+            kwargs |= {'router': self, 'match': match}
         return tag_cls(**kwargs)
 
-    def add_tag_component(self, tag_cls: str | Type[Tag], match, path, **kwargs):
+    def add_tag_component(self, tag_cls: str | type[Tag], match, path):  # noqa: ARG002 - arguments for overriding
         self.components.append(self.import_tag_component(tag_cls, match=match))
 
     def _load_children(self):

@@ -1,19 +1,19 @@
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass
-from typing import Optional
 from datetime import datetime
+from http.client import HTTPException
 
-from beepy import Tag, Style, SUPER, on
-from beepy.style import with_style
+from beepy import SUPER, Style, Tag, on
 from beepy.attrs import html_attr, state
-from beepy.tags import button, by__ref, input_, textarea, option, select, h2, label, Head, ul
-from beepy.modules.tabs import tabs, tab, tab_title
-from beepy.modules.table import Table, TableHead, TableBody
+from beepy.modules.table import Table, TableBody, TableHead
+from beepy.modules.tabs import tab, tab_title, tabs
+from beepy.style import with_style
+from beepy.tags import Head, button, by__ref, change, h2, label, option, select, textarea, ul
 from beepy.types import AttrValue
 from beepy.utils import __CONFIG__, force_sync
 from beepy.utils.api import request
-
 
 Head.title = 'Admin panel example'
 
@@ -28,10 +28,10 @@ styled_button = with_style()(button)
 
 @dataclass
 class User:
-    id: Optional[int]
+    id: int | None
     username: str
     created: datetime
-    group: Optional[int] = None
+    group: int | None = None
 
     @classmethod
     def default(cls):
@@ -40,7 +40,7 @@ class User:
 
 @dataclass
 class Group:
-    id: Optional[int]
+    id: int | None
     name: str
     description: str = ''
 
@@ -56,22 +56,25 @@ groups = state([], type=Groups, static=True)
 
 
 @groups.on('change')
-def sync_groups(__from_tag, new_groups):
-    store['groups'] = new_groups
+def sync_groups(_tag, value):
+    store['groups'] = value
 
 
 class BaseForm(Tag, name='form', content_tag=h2()):
-    visible = html_attr(False)
+    index = state(-1)
+    visible = html_attr(default=False)
 
-    style = Style(styles={
-        'opacity': 0,
-        'visibility': 'hidden',
-        'transition': 'opacity 0.2s, visibility 0.2s',
-        '&[visible]': {
-            'opacity': 1,
-            'visibility': 'visible',
-        },
-    })
+    style = Style(
+        styles={
+            'opacity': 0,
+            'visibility': 'hidden',
+            'transition': 'opacity 0.2s, visibility 0.2s',
+            '&[visible]': {
+                'opacity': 1,
+                'visibility': 'visible',
+            },
+        }
+    )
 
     children = [
         save_btn := button('Save', type='submit'),
@@ -102,12 +105,14 @@ class ViewGroup(AttrValue):
 
 
 class UsersTable(Table):
-    head = TableHead(columns=[
-        dict(id='id', label='ID'),
-        dict(id='username', label='Username'),
-        dict(id='created', label='Created', view=ViewTimestamp),
-        dict(id='group', label='Group', view=ViewGroup),
-    ])
+    head = TableHead(
+        columns=[
+            {'id': 'id', 'label': 'ID'},
+            {'id': 'username', 'label': 'Username'},
+            {'id': 'created', 'label': 'Created', 'view': ViewTimestamp},
+            {'id': 'group', 'label': 'Group', 'view': ViewGroup},
+        ]
+    )
     body = TableBody(rows=[])
 
 
@@ -126,7 +131,7 @@ class UserForm(BaseForm):
 
     parent: UsersTab
 
-    username = input_(value=user)
+    username = change(value=user)
     group = select(value=user)
 
     children = [
@@ -142,27 +147,23 @@ class UserForm(BaseForm):
     async def save(self):
         try:
             if self.user.id is not None:
-                await request(f'users/{self.user.id}', method='PUT', body=self.user)
+                user = await request(f'users/{self.user.id}', method='PUT', body=self.user)
             else:
-                await request('users/', method='POST', body=self.user)
-        except Exception as error:
+                user = await request('users/', method='POST', body=self.user)
+        except HTTPException as error:
             self.error = f'Error in request: {error}'
         else:
             self.hide()
             self.error = ''
             self.user = User.default()
-            await self.parent.load_users()
+            await self.parent.refresh_user(self.index, user)
         self.parent.__render__()
 
     @groups.on('change')
-    def global_groups_change(self, __tag, new_groups):
+    def global_groups_change(self, _tag, value):
         user_group = self.user and self.user.group
         self.group.options[:] = [
-            option(
-                label=group.name,
-                value=group.id,
-                defaultSelected=group.id == user_group
-            ) for group in new_groups
+            option(label=group.name, value=group.id, defaultSelected=group.id == user_group) for group in value
         ]
 
 
@@ -170,7 +171,7 @@ class UsersTab(tab, name='users', content_tag=h2()):
     users: Users = users
 
     style = Style(
-        get_vars=lambda self, ref, **params: {'button_ref': ref(self.add_btn)},
+        get_vars=lambda self, ref, **_: {'button_ref': ref(self.add_btn)},
         styles={
             '{button_ref}': {
                 'margin': '8px',
@@ -187,40 +188,49 @@ class UsersTab(tab, name='users', content_tag=h2()):
 
     @add_btn.on('click')
     def add_new_user(self):
+        self.form.index = -1
         self.form.user = User.default()
         self.form.show()
 
     @table.on(':edit')
-    def edit_user(self, event, _action, row):
+    def edit_user(self, index, row):
+        self.form.index = index
         self.form.user = User(**row)
         self.form.show()
 
     @table.on(':delete')
-    async def delete_user(self, event, _action, row):
+    async def delete_user(self, row):
         id = row['id']
         try:
             await request(f'users/{id}', method='DELETE')
-        except Exception as error:
+        except HTTPException as error:
             self.error = f'Error in request: {error}'
         else:
             self.table.delete_row(id=id)
             self.error = ''
 
     @groups.on('change')
-    def reload_groups_changed(self, _tag, _new_groups):
-        self.__render__()
+    def reload_groups_changed(self, _tag):
         self.table.body.sync()
+        self.__render__()
+
+    async def refresh_user(self, index, user):
+        if index < 0:  # new user
+            await asyncio.sleep(0.5)
+            return await self.load_users()
+
+        user |= {'created': datetime.strptime(user['created'], dt_input_format)}
+        self.users[index] = User(**user)
+        self.table.body.rows[index] = user
+        self.table.body.sync()  # TODO: make .rows - TrackableList?
 
     async def load_users(self):
         try:
             new_users = await request('users/')
-        except Exception as error:
+        except HTTPException as error:
             self.error = f'Error in request: {error}'
         else:
-            new_users = [{
-                **user,
-                'created': datetime.strptime(user['created'], dt_input_format)
-            } for user in new_users]
+            new_users = [user | {'created': datetime.strptime(user['created'], dt_input_format)} for user in new_users]
             self.users = [User(**user) for user in new_users]
             self.table.body.rows = new_users
             self.form.user = None
@@ -228,11 +238,13 @@ class UsersTab(tab, name='users', content_tag=h2()):
 
 
 class GroupsTable(Table):
-    head = TableHead(columns=[
-        dict(id='id', label='ID'),
-        dict(id='name', label='Name'),
-        dict(id='description', label='Description'),
-    ])
+    head = TableHead(
+        columns=[
+            {'id': 'id', 'label': 'ID'},
+            {'id': 'name', 'label': 'Name'},
+            {'id': 'description', 'label': 'Description'},
+        ]
+    )
     body = TableBody(rows=[])
 
 
@@ -251,7 +263,7 @@ class GroupForm(BaseForm):
 
     parent: GroupsTab
 
-    name = input_(value=group)
+    name = change(value=group)
     description = textarea(value=group)
 
     children = [
@@ -267,16 +279,16 @@ class GroupForm(BaseForm):
     async def save(self):
         try:
             if self.group.id is not None:
-                await request(f'groups/{self.group.id}', method='PUT', body=self.group)
+                group = await request(f'groups/{self.group.id}', method='PUT', body=self.group)
             else:
-                await request('groups/', method='POST', body=self.group)
-        except Exception as error:
+                group = await request('groups/', method='POST', body=self.group)
+        except HTTPException as error:
             self.error = f'Error in request: {error}'
         else:
             self.hide()
             self.error = ''
             self.group = Group.default()
-            await self.parent.load_groups()  # TODO: add add_row method for table
+            await self.parent.refresh_group(self.index, group)
         self.parent.__render__()
 
 
@@ -284,7 +296,7 @@ class GroupsTab(tab, name='groups', content_tag=h2()):
     groups: Groups = groups
 
     style = Style(
-        get_vars=lambda self, ref, **params: {'button_ref': ref(self.add_btn)},
+        get_vars=lambda self, ref, **_: {'button_ref': ref(self.add_btn)},
         styles={
             '{button_ref}': {
                 'margin': '8px',
@@ -301,29 +313,40 @@ class GroupsTab(tab, name='groups', content_tag=h2()):
 
     @add_btn.on('click')
     def add_new_group(self):
+        self.form.index = -1
         self.form.group = Group.default()
         self.form.show()
 
     @table.on(':edit')
-    def edit_group(self, event, _action, row):
+    def edit_group(self, index, row):
+        self.form.index = index
         self.form.group = Group(**row)
         self.form.show()
 
     @table.on(':delete')
-    async def delete_group(self, event, _action, row):
+    async def delete_group(self, row):
         id = row['id']
         try:
             await request(f'groups/{id}', method='DELETE')
-        except Exception as error:
+        except HTTPException as error:
             self.error = f'Error in request: {error}'
         else:
             self.table.delete_row(id=id)
             self.error = ''
 
+    async def refresh_group(self, index, group):
+        if index < 0:  # new group
+            await asyncio.sleep(0.5)
+            return await self.load_groups()
+
+        self.groups[index] = Group(**group)
+        self.table.body.rows[index] = group
+        self.table.body.sync()  # TODO: make .rows - TrackableList?
+
     async def load_groups(self):
         try:
             new_groups = await request('groups/')
-        except Exception as error:
+        except HTTPException as error:
             self.error = f'Error in request: {error}'
         else:
             self.groups = [Group(**group) for group in new_groups]

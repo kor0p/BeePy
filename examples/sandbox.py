@@ -1,8 +1,7 @@
-from beepy import Tag, mount, state, Head, Style, empty_tag
-from beepy.tags import button, p, div, textarea
+from beepy import Head, Style, Tag, empty_tag, mount, state
+from beepy.tags import button, div, p, textarea
 from beepy.types import safe_html
 from beepy.utils import ensure_sync, js
-
 
 Head.title = 'Sandbox'
 
@@ -39,7 +38,7 @@ class View(Tag, name='view'):
         textarea={
             'height': '300px',
             'width': '400px',
-        }
+        },
     )
 
     children = [
@@ -57,7 +56,7 @@ class View(Tag, name='view'):
         self.error = ''
         try:
             await js.apy(self.input.value + '\n\n' + DEMO_MOUNT_CODE)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - catching any bad user input :)
             self.error = str(e)
 
     @reset.on('click')

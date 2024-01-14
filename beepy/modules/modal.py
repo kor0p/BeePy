@@ -1,42 +1,44 @@
-from typing import Callable
+from collections.abc import Callable
 
 from beepy import Tag
 from beepy.attrs import attr, state
 from beepy.listeners import on
 from beepy.style import Style
-from beepy.tags import div, button, Body
+from beepy.tags import Body, button, div
 
 
 class Modal(Tag, name='modal', content_tag='h2', children_tag='modal-content'):
-    visible = attr(False)
-    on_close = state(type=Callable[[bool], None])  # TODO: add example
+    visible = attr(default=False)
+    on_close = state(type=Callable[[], None])  # TODO: add example
 
-    default_style = Style(styles={
-        'position': 'absolute',
-        'inset': 0,
-        'width': '100%',
-        'height': '100%',
-        'display': 'flex',
-        ('justify-content', 'justify-items', 'align-items'): 'center',
-        'background-color': 'rgba(255, 255, 255, 0.2)',
-        'opacity': 0,
-        'visibility': 'hidden',
-        'transition': 'opacity 0.2s, visibility 0.2s',
-        '&[visible]': {
-            'opacity': 1,
-            'visibility': 'visible',
-        },
-        'modal-content': {
+    default_style = Style(
+        styles={
             'position': 'absolute',
-            'padding': '5%',
-            ('width', 'height'): 'fit-content',
+            'inset': 0,
+            'width': '100%',
+            'height': '100%',
             'display': 'flex',
-            'flex-direction': 'column',
             ('justify-content', 'justify-items', 'align-items'): 'center',
-            'background-color': '#333',
-            'box-shadow': '0 0 1.5rem rgb(255 255 255 / 33%)',  # TODO: create beepy.style.rgb function
-        },
-    })
+            'background-color': 'rgba(255, 255, 255, 0.2)',
+            'opacity': 0,
+            'visibility': 'hidden',
+            'transition': 'opacity 0.2s, visibility 0.2s',
+            '&[visible]': {
+                'opacity': 1,
+                'visibility': 'visible',
+            },
+            'modal-content': {
+                'position': 'absolute',
+                'padding': '5%',
+                ('width', 'height'): 'fit-content',
+                'display': 'flex',
+                'flex-direction': 'column',
+                ('justify-content', 'justify-items', 'align-items'): 'center',
+                'background-color': '#333',
+                'box-shadow': '0 0 1.5rem rgb(255 255 255 / 33%)',  # TODO: create beepy.style.rgb function
+            },
+        }
+    )
 
     children = [
         button_close := button('Close'),
@@ -50,12 +52,12 @@ class Modal(Tag, name='modal', content_tag='h2', children_tag='modal-content'):
     def close(self):
         self.visible = False
         if self.on_close:
-            self.on_close(False)
+            self.on_close()
 
     def __mount__(self, element, parent, index=None):
         super().__mount__(Body.mount_element, Body)
 
-    def __unmount__(self, element, parent, _unsafe=False):
+    def __unmount__(self, element, parent, *, _unsafe=False):
         return super().__unmount__(element, parent, _unsafe=True)
 
 

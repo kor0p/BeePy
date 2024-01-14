@@ -1,21 +1,21 @@
 from __future__ import annotations
 
 from abc import ABCMeta
-from typing import Union, Type, TypeVar
+from typing import TYPE_CHECKING, TypeVar
 
 from boltons.typeutils import make_sentinel
 
 import beepy
-
 from beepy.attrs import attr
-from beepy.types import AttrType
 from beepy.utils import js
+from beepy.utils.common import get_random_name, log10_ceil, to_kebab_case
 from beepy.utils.dev import const_attribute
-from beepy.utils.common import log10_ceil, get_random_name, to_kebab_case
-from beepy.utils.js_py import create_once_callable, Interval
+from beepy.utils.js_py import Interval, create_once_callable
 
-__obj = object()
-_base_obj_dir = tuple(dir(__obj)) + ('__abstractmethods__',)
+if TYPE_CHECKING:
+    from beepy.types import AttrType
+
+_base_obj_dir = (*dir(object()), '__abstractmethods__')
 
 
 Self = TypeVar('Self', bound='Context')
@@ -41,7 +41,7 @@ class _MetaContext(ABCMeta):
 
         # used for checking inheritance: attributes, methods, etc.
         # for example: extending classes Tag and WithRouter must produce correct state 'router'
-        base_cls: Union[Type[Context], type] = type.__new__(mcs, _name, bases, {})
+        base_cls: type[Context] | type = type.__new__(mcs, _name, bases, {})
 
         namespace = namespace.copy()
         namespace.setdefault('__slots__', ())
@@ -63,22 +63,19 @@ class _MetaContext(ABCMeta):
                     static_attrs[attribute_name] = child
 
                 if new_attr and (
-                    (isinstance(child, attr) and not isinstance(new_attr, attr)) or
-                    (isinstance(child, _children.ChildrenRef) and not isinstance(new_attr, _children.ChildrenRef))
+                    (isinstance(child, attr) and not isinstance(new_attr, attr))
+                    or (isinstance(child, _children.ChildrenRef) and not isinstance(new_attr, _children.ChildrenRef))
                 ):
                     attrs_defaults[attribute_name] = namespace.pop(attribute_name)
 
         is_root = kwargs.get('_root')
-        if is_root:
-            ctx_name = ''
-        else:
-            ctx_name = kwargs.get('name')
+        ctx_name = '' if is_root else kwargs.get('name')
         namespace['__ROOT__'] = is_root
 
         if ctx_name or (initialized and not hasattr(base_cls, '_context_name_')):
             namespace['_context_name_'] = ctx_name or to_kebab_case(_name)
 
-        cls: Union[Type[Context], type] = super().__new__(mcs, _name, bases, namespace)
+        cls: type[Context] | type = super().__new__(mcs, _name, bases, namespace)
 
         if initialized:
             cls._static_attrs = attr.order_dict_by_priority(cls._static_attrs.copy() | static_attrs)
@@ -98,8 +95,8 @@ class _MetaContext(ABCMeta):
         if not hasattr(beepy, 'children'):
             return
 
-        for attribute_name, child in mcs._clean_namespace(namespace):
-            if isinstance(child, (beepy.children.ChildRef, Context)) and (
+        for _attribute_name, child in mcs._clean_namespace(namespace):
+            if isinstance(child, beepy.children.ChildRef | Context) and (
                 extra := getattr((child if isinstance(child, Context) else child.child), '__extra_attributes__', None)
             ):
                 extra = {key: value for key, value in extra.items() if key not in namespace}
@@ -181,7 +178,7 @@ class Context(metaclass=_MetaContext, _root=True):
             return self
 
         for name, attribute in self.attrs.items():
-            attribute._link_ctx(name, self, force=False)
+            attribute._link_cmpt(name, self, force=False)
             if parent and name in kwargs:
                 attribute.__set_first__(self, kwargs[name], parent)
 
@@ -196,7 +193,7 @@ class Context(metaclass=_MetaContext, _root=True):
 
         for name, attr_to_move_on in parent.attrs.items():
             if attr_to_move_on.move_on:
-                attr_to_move_on._link_ctx(name, self, force_cls_set=True)
+                attr_to_move_on._link_cmpt(name, self, force_cls_set=True)
                 if name in p_data:
                     self._attrs_defaults[name] = p_data[name]
 
@@ -205,7 +202,7 @@ class Context(metaclass=_MetaContext, _root=True):
         data = self._attrs_defaults | kwargs
         self.init(*args, **data)
 
-    def init(self, *args, **kwargs):
+    def init(self, *_args, **kwargs):
         for key, attr_ in self.attrs.items():
             if key not in kwargs:
                 if attr_.required:
@@ -223,11 +220,7 @@ class Context(metaclass=_MetaContext, _root=True):
 
     @property
     def __view_attrs__(self) -> dict[str, AttrType]:
-        return {
-            _attr.name: _attr._get_view_value(self)
-            for _attr in self.attrs.values()
-            if _attr._view
-        }
+        return {_attr.name: _attr._get_view_value(self) for _attr in self.attrs.values() if _attr._view}
 
     @property
     def __attrs__(self) -> dict[str, AttrType]:
@@ -239,10 +232,7 @@ class Context(metaclass=_MetaContext, _root=True):
 
     @property
     def __states__(self) -> dict[str, AttrType]:
-        return {
-            _attr.name: _attr.__get__(self)
-            for _attr in self.attrs.values()
-        }
+        return {_attr.name: _attr.__get__(self) for _attr in self.attrs.values()}
 
     @const_attribute
     def args_kwargs(self):
@@ -268,4 +258,4 @@ class Context(metaclass=_MetaContext, _root=True):
 _CONTEXT_INITIALIZED = True
 
 
-__all__ = ['SUPER', 'CONTENT', '_SPECIAL_CHILD_STRINGS', '_MetaContext', 'Context']
+__all__ = ['OVERWRITE', 'SUPER', 'CONTENT', '_SPECIAL_CHILD_STRINGS', '_MetaContext', 'Context']

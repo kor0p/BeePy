@@ -1,20 +1,24 @@
 from __future__ import annotations
 
-import inspect
-import traceback
-from copy import deepcopy
+from collections import defaultdict
 from functools import partial, wraps
 from types import MethodType
-from typing import Any, Callable, Optional, Type, Union
-from collections import defaultdict
+from typing import TYPE_CHECKING, Any
 
+import beepy
 from beepy.attrs import set_html_attribute, state
-from beepy.children import ComponentRef
-from beepy.context import _MetaContext, Context
-from beepy.types import AttrType, Renderer, Tag, WebBase
+from beepy.context import Context, _MetaContext
 from beepy.listeners import on
-from beepy.utils import js, IN_BROWSER, log, to_js
-from beepy.utils.common import NONE_TYPE
+from beepy.types import AttrType, Renderer, WebBase
+from beepy.utils import IN_BROWSER, js
+from beepy.utils.common import NONE_TYPE, nested_copy
+from beepy.utils.dev import _debugger
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from beepy.children import ComponentRef
+    from beepy.framework import Tag
 
 _current__lifecycle_method: dict[str, dict[int, Component]] = {}
 
@@ -41,8 +45,11 @@ def _lifecycle_method(*, hash_function=hash):
                     result = original_func(self, *args, **kwargs)
 
                 return result
+
             return original_method_wrapper
+
         return lifecycle_method
+
     return _wrapper
 
 
@@ -56,7 +63,7 @@ class _MetaComponent(_MetaContext):
         static_onchange_handlers = []
 
         if initialized:
-            for attribute_name, child in tuple(mcs._clean_namespace(namespace)):
+            for _attribute_name, child in tuple(mcs._clean_namespace(namespace)):
                 if not (callable(child) and hasattr(child, '_attrs_static_')):
                     continue
 
@@ -67,10 +74,10 @@ class _MetaComponent(_MetaContext):
                         _state.handlers[trigger].remove(child)
                 static_onchange_handlers.append((child, _states_with_static_handler))
 
-        cls: Union[Type[Component], type] = super().__new__(mcs, _name, bases, namespace, **kwargs)
+        cls: type[Component] | type = super().__new__(mcs, _name, bases, namespace, **kwargs)
 
         if initialized:
-            cls._static_listeners = deepcopy(cls._static_listeners)
+            cls._static_listeners = defaultdict(list, **nested_copy(cls._static_listeners))
             cls._static_onchange_handlers = cls._static_onchange_handlers.copy() + static_onchange_handlers
         else:
             cls._static_listeners = defaultdict(list)
@@ -117,7 +124,7 @@ class _MetaComponent(_MetaContext):
         self._parent_ = None
 
         self._dependents = []
-        self._listeners = deepcopy(self._static_listeners)
+        self._listeners = defaultdict(list, **nested_copy(self._static_listeners))
         self._event_listeners = defaultdict(list)
         self._handlers = defaultdict(list)
 
@@ -126,7 +133,7 @@ class _MetaComponent(_MetaContext):
         _original_func(self, *args, **kwargs)
 
     @classmethod
-    def __META_mount__(cls, self: Component, args, kwargs, _original_func, _mount_attrs=True):
+    def __META_mount__(cls, self: Component, args, kwargs, _original_func, *, _mount_attrs=True):
         result = _original_func(self, *args, **kwargs) if _original_func else None
 
         if _mount_attrs:
@@ -153,7 +160,7 @@ class _MetaComponent(_MetaContext):
         return result
 
     @classmethod
-    def __META_unmount__(cls, self: Component, args, kwargs, _original_func, _post_mount=True):
+    def __META_unmount__(cls, self: Component, args, kwargs, _original_func, *, _post_mount=True):
         if not _post_mount:
             self.unmount()
 
@@ -179,10 +186,7 @@ class _MetaComponent(_MetaContext):
         for name, value in {**self.__attrs__, **attrs}.items():
             # TODO: optimize this - set only changed attributes
 
-            if _attr := self.attrs.get(name):
-                type = _attr.type
-            else:
-                type = NONE_TYPE
+            type = _attr.type if (_attr := self.attrs.get(name)) else NONE_TYPE
             set_html_attribute(self.mount_element, name, value, type=type)
 
         self.post_render()
@@ -193,9 +197,10 @@ class _MetaComponent(_MetaContext):
 class Component(WebBase, Context, metaclass=_MetaComponent, _root=True):
     __slots__ = ('_parent_', '_event_listeners', '_dependents', '_listeners', '_handlers', '_ref')
 
-    parent: Optional[Tag]
+    parent: Tag | None
+    mount_element: js.HTMLElement | None
 
-    _ref: Optional[ComponentRef]
+    _ref: ComponentRef | None
     _force_ref: bool
 
     _event_listeners: defaultdict[str, list[Callable[[js.Event], None]]]
@@ -212,35 +217,31 @@ class Component(WebBase, Context, metaclass=_MetaComponent, _root=True):
     @property
     def parent(self):
         if self._parent_ is None:
-            try:
-                raise ValueError
-            except ValueError:
-                frame = inspect.currentframe().f_back
-                log.warn(traceback.format_exc(), inspect.getsourcefile(frame), frame.f_lineno, to_js(frame.f_locals))
+            _debugger("ValueError: Trying to get .parent, but it's undefined")
         return self._parent_
 
     @parent.setter
     def parent(self, v):
         self._parent_ = v
 
-    def as_child(self, parent: Optional[Tag], exists_ok=False):
+    def as_child(self, parent: Tag | None, *, exists_ok=False):
         if self._ref:
             if exists_ok:
                 self.__set_ref__(parent, self._ref)
                 return self._ref
             else:
                 raise TypeError(f'Component {self._context_name_} already is child')
-        ref = ComponentRef(self)
+        ref = beepy.children.ComponentRef(self)
         self.__set_ref__(parent, ref)
         return ref
 
-    def __set_ref__(self, parent: Optional[Tag], ref: ComponentRef):
+    def __set_ref__(self, parent: Tag | None, ref: ComponentRef):
         self._ref = ref
 
     def clone(self, parent=None) -> Component:
         clone = super().clone(parent=parent)
-        clone._listeners = deepcopy(self._listeners)
-        clone._handlers = deepcopy(self._handlers)
+        clone._listeners = defaultdict(list, **nested_copy(self._listeners))
+        clone._handlers = defaultdict(list, **nested_copy(self._handlers))
         return clone
 
     def __init__(self, *args, **kwargs: AttrType):
@@ -257,11 +258,11 @@ class Component(WebBase, Context, metaclass=_MetaComponent, _root=True):
 
     def _mount_attrs(self):
         for attribute in self.attrs.values():
-            attribute.__mount_ctx__(self)
+            attribute.__mount_cmpt__(self)
 
     def _post_mount_attrs(self):
         for attribute in self.attrs.values():
-            attribute.__post_mount_ctx__(self)
+            attribute.__post_mount_cmpt__(self)
 
     def pre_mount(self):
         """empty method for easy override with code for run before mount"""
@@ -281,7 +282,7 @@ class Component(WebBase, Context, metaclass=_MetaComponent, _root=True):
     def post_render(self):
         """empty method for easy override with code for run after render"""
 
-    def on(self, method: Union[Tag, str]):
+    def on(self, method: Callable | str):
         if isinstance(method, str) and method.startswith(':'):  # TODO: maybe it could be useful in `class on()`?
             action = method[1:]
 
@@ -297,12 +298,12 @@ class Component(WebBase, Context, metaclass=_MetaComponent, _root=True):
 
             return wrapper
 
-        def wrapper(callback):
-            event_listener = on(method)(callback, get_parent=True)
+        def wrapper(callback: Callable):
+            event_listener = on(method)(callback, child=self)
             event_name = event_listener.name or callback.__name__
-            event_listener.__set_name__(self, event_name, set_static_listeners=False)
-            self._listeners[event_name] = self._listeners[event_name].copy() + [event_listener]
-            return event_listener.__get__(self)
+            event_listener.__set_name__(self, event_name)
+            self._listeners[event_name] = [*self._listeners[event_name].copy(), event_listener]
+            return callback
 
         if not isinstance(method, str):
             return wrapper(method)
@@ -318,7 +319,7 @@ class Directive(Component, _root=True):
 
     element = state()
 
-    def __unmount__(self, element, parent, _unsafe=False):
+    def __unmount__(self, element, parent, *, _unsafe=False):
         # DO NOT DELETE; This method must be wrapped by _MetaTag.__unmount
         pass
 

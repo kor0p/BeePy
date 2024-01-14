@@ -1,6 +1,7 @@
+import inspect
+import math
 import random
 import re
-import math
 import string
 
 from boltons.typeutils import make_sentinel
@@ -41,7 +42,7 @@ def to_kebab_case(name: str, *, replacer='-'):
     return _internal_to_kebab_case(name, replacer=replacer)
 
 
-def escape_html(s, quote=False, whitespace=False):
+def escape_html(s, *, quote=False, whitespace=False):
     """Replace special characters "&", "<" and ">" to HTML-safe sequences.
     If the optional flag quote is True (default), the quotation mark characters (" and ') are also translated.
     If the optional flag whitespace is True, new line (\n) and tab (\t) characters are also translated.
@@ -49,7 +50,7 @@ def escape_html(s, quote=False, whitespace=False):
     #       Must be done first!
     s = s.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
     if quote:
-        s = s.replace('"', '&quot;').replace('\'', '&#39;')
+        s = s.replace('"', '&quot;').replace("'", '&#39;')
     if whitespace:
         s = s.replace('\n', '<br>').replace('\t', '&emsp;').replace('  ', ' &nbsp;')
     return s
@@ -105,6 +106,20 @@ class Locker:
         return f'Locker<{self.name}>({self.locked})'
 
 
+def call_handler_with_optional_arguments(handler, obj, optional_args, *args):
+    parameters = inspect.signature(handler).parameters
+
+    for name, arg in reversed(optional_args.items()):
+        if name in parameters:
+            args = (arg, *args)
+    return handler(obj, *args)
+
+
+def nested_copy(dct):
+    # We shouldn't use deepcopy, we want just copy nested dicts, not objects inside
+    return {key: value.copy() for key, value in dct.items()}
+
+
 __all__ = [
     'NONE_TYPE',
     'log10_ceil',
@@ -115,4 +130,6 @@ __all__ = [
     'safe_issubclass',
     'AnyOfType',
     'Locker',
+    'call_handler_with_optional_arguments',
+    'nested_copy',
 ]

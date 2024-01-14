@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from beepy import Style, attr, state, on
-from beepy.tags import p, input_, button, span, ul, li, form, Head
+from beepy import Style, attr, on, state
 from beepy.children import Children
 from beepy.modules.local_storage import LocalStorage
-
+from beepy.tags import Head, button, form, input_, li, p, span, ul
 
 Head.title = 'Todo List'
 Style.import_file('styles/todos.css')
@@ -12,12 +11,12 @@ Style.import_file('styles/todos.css')
 
 class TodoList(ul, content_tag=p()):
     class Todo(li, content_tag=p()):
-        completed = attr(False)
+        completed = attr(default=False)
 
         parent: TodoList
 
         children = [
-            remove := span('×'),
+            remove := span('×'),  # noqa: RUF001 - multiplication sign :)
         ]
 
         @on('click')
@@ -39,19 +38,14 @@ class TodoList(ul, content_tag=p()):
             input=input_(),
             btn=button('+', type='submit'),
         ),
-        todos := Children([
-            Todo('Create Todo List', completed=True),
-        ]),
+        todos := Children([Todo('Create Todo List', completed=True)]),
     ]
 
     local_storage = LocalStorage('todos-')
 
     def mount(self):
-        if (saved_todos := self.local_storage.get('list')):
-            self.todos[:] = [
-                self.Todo(todo['text'], completed=todo['completed'])
-                for todo in saved_todos
-            ]
+        if saved_todos := self.local_storage.get('list'):
+            self.todos[:] = [self.Todo(todo['text'], completed=todo['completed']) for todo in saved_todos]
         self.recalculate_completed()
 
     def content(self):
@@ -59,14 +53,11 @@ class TodoList(ul, content_tag=p()):
 
     @todos.onchange
     def sync_to_local_storage(self):
-        self.local_storage['list'] = [
-            {'text': todo._content[0], 'completed': todo.completed}
-            for todo in self.todos
-        ]
+        self.local_storage['list'] = [{'text': todo._content[0], 'completed': todo.completed} for todo in self.todos]
         self.recalculate_completed()
 
     @on('submit.prevent')
-    def save_todo(self, event):
+    def save_todo(self):
         todo_text = self.add.input.value
         if not todo_text:
             return

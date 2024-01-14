@@ -1,20 +1,21 @@
 from __future__ import annotations
 
-from typing import TypeVar, Type, Literal, Union
+from typing import Literal, TypeVar
 
 from beepy.attrs import state
 from beepy.children import Children
-from beepy.tags import table, thead, tbody, tr, th, td
-from beepy.style import Style
 from beepy.listeners import on
 from beepy.modules.actions import Action
+from beepy.style import Style
+from beepy.tags import table, tbody, td, th, thead, tr
 from beepy.utils.asyncio import ensure_sync_many
+from beepy.utils.common import call_handler_with_optional_arguments
 
 T = TypeVar('T')
 
 
 class TableCellAction(Action, _root=True):
-    components: dict[str, Type[TableCellAction]] = {}
+    components: dict[str, type[TableCellAction]] = {}
 
     parent: TD
 
@@ -22,12 +23,17 @@ class TableCellAction(Action, _root=True):
     def click(self, event):
         tr: TR = self.parent.parent
         table: Table = tr.parent.parent
+        row = table._map_data(tr.raw_data)
+        index = table.find_row_index(id=row['id'])
+
         ensure_sync_many(
             [
-                handler(table.parent, event, self.action_name, table._map_data(tr.raw_data))
+                call_handler_with_optional_arguments(
+                    handler, table.parent, {'event': event, 'action': self.action_name, 'index': index}, row
+                )
                 for handler in table._handlers[self.action_name]
             ],
-            lambda *args: table.parent.__render__()
+            lambda *_: table.parent.__render__(),
         )
 
 
@@ -52,7 +58,7 @@ class TD(td):
 class TR(tr):
     data = state(type=list[dict[str, str]])
 
-    parent: Union[TableHead, TableBody]
+    parent: TableHead | TableBody
 
     children = [
         _data := Children(),  # TODO: add auto-reload data, instead of `sync` functions
@@ -67,11 +73,8 @@ class TR(tr):
         return [(line['view'] if isinstance(line, dict) else line) for line in self.data]
 
     @data.on('mount', 'change')
-    def sync(self, value=None):
-        self._data[:] = [
-            (TD(str(line['view'])) if isinstance(line, dict) else TD(*line))
-            for line in self.data
-        ]
+    def sync(self):
+        self._data[:] = [(TD(str(line['view'])) if isinstance(line, dict) else TD(*line)) for line in self.data]
 
 
 class TableHead(thead, children_tag=TR(), force_ref=True):
@@ -86,14 +89,11 @@ class TableHead(thead, children_tag=TR(), force_ref=True):
     ]
 
     @columns.on('mount', 'change')
-    def sync(self, value=None):
+    def sync(self):
         if not self.parent_defined:
             return
 
-        self._columns[:] = [
-            TH(column['label'])
-            for column in self.columns
-        ]
+        self._columns[:] = [TH(column['label']) for column in self.columns]
         if self.parent.actions:
             self._columns.append(TH('Actions'))
 
@@ -108,18 +108,20 @@ class TableBody(tbody, force_ref=True):
     ]
 
     @rows.on('mount', 'change')
-    def sync(self, value=None):
+    def sync(self):
         if not self.parent_defined:
             return
 
         self._rows[:] = [
-            TR(data=[
-                *(
-                    {'value': cell, 'view': col['view'](cell).__view_value__() if 'view' in col else cell}
-                    for col, cell in self.parent._zip_column_row(row)
-                ),
-                [TableCellAction.components[action]() for action in self.parent.actions],
-            ])
+            TR(
+                data=[
+                    *(
+                        {'value': cell, 'view': col['view'](cell).__view_value__() if 'view' in col else cell}
+                        for col, cell in self.parent._zip_column_row(row)
+                    ),
+                    [TableCellAction.components[action]() for action in self.parent.actions],
+                ]
+            )
             for row in self.rows
         ]
 
@@ -134,20 +136,22 @@ class Table(table):
     head: TableHead
     body: TableBody
 
-    default_style = Style(styles={
-        '&': {
-            'border-spacing': 0,
-            'border-collapse': 'collapse',
-        },
-        '& >': {
-            '&, th, td': {
-                'border': '1px solid #333',
+    default_style = Style(
+        styles={
+            '&': {
+                'border-spacing': 0,
+                'border-collapse': 'collapse',
             },
-            'th, td': {
-                'padding': '8px',
+            '& >': {
+                '&, th, td': {
+                    'border': '1px solid #333',
+                },
+                'th, td': {
+                    'padding': '8px',
+                },
             },
         }
-    })
+    )
 
     def _zip_column_row(self, row):
         if isinstance(row, dict):
@@ -160,16 +164,13 @@ class Table(table):
     def _map_data(self, row):
         if isinstance(row, dict):
             return row
-        return dict(zip([col['id'] for col in self.head.columns], row))
+        return dict(zip([col['id'] for col in self.head.columns], row, strict=True))
 
     @property
     def data(self):
-        return [
-            self._map_data(row)
-            for row in self.body.rows
-        ]
+        return [self._map_data(row) for row in self.body.rows]
 
-    def find_row_index(self, raise_key_error=False, **filters):
+    def find_row_index(self, *, raise_key_error=True, **filters):
         if '_index' in filters:
             return filters['_index']
 
@@ -190,7 +191,7 @@ class Table(table):
         return row_index
 
     def find_row(self, **filters):
-        return self.body.rows[self.find_row_index(raise_key_error=True, **filters)]
+        return self.body.rows[self.find_row_index(**filters)]
 
     def delete_row(self, **filters):
-        self.body.delete_row(self.find_row_index(raise_key_error=True, **filters))
+        self.body.delete_row(self.find_row_index(**filters))

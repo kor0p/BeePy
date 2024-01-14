@@ -1,6 +1,6 @@
-from beepy import Style, Tag, Directive, state, on
-from beepy.tags import change, p
+from beepy import Directive, Style, Tag, on, state
 from beepy.style import Var
+from beepy.tags import change, p
 
 
 class Highlight(Directive, name='highlight'):
@@ -15,8 +15,8 @@ class Highlight(Directive, name='highlight'):
         self.set_highlight(None)
 
     @color.on('change')
-    def set_highlight(self, new_color):
-        self.parent.style_highlight.var('highlight_color', new_color)
+    def set_highlight(self, value):
+        self.parent.style_highlight.var('highlight_color', value)
 
 
 class App(Tag, name='div'):
@@ -39,10 +39,7 @@ class App(Tag, name='div'):
 
     highlight = Highlight(element='text', color=color)
 
-    children = [
-        change(value=color),
-        text := p('Hover me')
-    ]
+    children = [change(value=color), text := p('Hover me')]
 
     def content(self):
         return f'Current color: {self.color}'

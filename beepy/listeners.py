@@ -1,18 +1,28 @@
 from __future__ import annotations
 
 import inspect
-from typing import Optional, Any, Callable
-from types import MethodType
+from collections import defaultdict
 from functools import partial, wraps
-from copy import deepcopy
+from types import MethodType
+from typing import TYPE_CHECKING, Any
 
-from beepy.types import Tag
 from beepy.utils import js, to_js
-from beepy.utils.js_py import create_proxy
+from beepy.utils.common import nested_copy
 from beepy.utils.internal import _PY_TAG_ATTRIBUTE
+from beepy.utils.js_py import create_proxy
 
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
-GLOBAL_EVENTS_LIST = ('keyup', 'keypress', 'keydown')
+    from beepy.components import Component
+
+global_events = {
+    'keyup': js.document,
+    'keypress': js.document,
+    'keydown': js.document,
+    'popstate': js.window,
+    'hashchange': js.window,
+}
 _key_codes = {
     'esc': (27,),
     'tab': (9,),
@@ -37,18 +47,18 @@ RAW_JS_CHECKS = ('prevent', 'stop', 'stop_all')
 
 
 class on:
-    __slots__ = ('name', 'callback', 'pass_event', 'get_parent', 'modifiers', 'checks', 'js_checks')
+    __slots__ = ('name', 'callback', 'pass_event', 'child_restrict', 'modifiers', 'checks', 'js_checks')
 
-    name: Optional[str]
-    callback: Callable[[Tag, ...], Any]
+    name: str | None
+    callback: Callable[[Component, ...], Any]
     pass_event: bool
-    get_parent: bool
+    child_restrict: type[Component] | None
     modifiers: list[str]
     checks: list[Callable[[js.Event], bool]]
     js_checks: list[str]
 
-    def __init__(self, method):
-        self.get_parent = False
+    def __init__(self, method):  # TODO: add 'mount' callbacks?
+        self.child_restrict = None
         self.pass_event = True
         self.modifiers = []
         self.checks = []
@@ -72,81 +82,87 @@ class on:
         self.name = None
         self(method)
 
-    def __call__(self, method, get_parent=None):
+    def __call__(self, method, child=None):
         self.callback = method
-        self.get_parent = get_parent
+        self.child_restrict = child
 
         sig = inspect.signature(method)
         self.pass_event = 'event' in sig.parameters
         return self
 
+    def _get_cb_and_instance(self, cmpt):
+        if (
+            self.child_restrict
+            and cmpt.parent_defined
+            and (self.child_restrict == cmpt or (cmpt._ref and self.child_restrict == cmpt._ref.child))
+        ):
+            cmpt = cmpt.parent
+
+        if isinstance(self.callback, MethodType):
+            return self.callback, cmpt
+        else:
+            return MethodType(self.callback, cmpt), cmpt
+
     def __get__(self, instance, owner=None):
         if instance is None:
             return self
-        return self.callback
+        return self._get_cb_and_instance(instance)[0]
 
-    def _prepare_call(self, tag, event):
+    def _prepare_call(self, cmpt, event):
         for check in self.checks:
             if not check(event):
                 return
 
-        if self.get_parent:
-            tag = tag.parent
+        return self._get_cb_and_instance(cmpt)
 
-        if isinstance(self.callback, MethodType):
-            return self.callback, tag
-        else:
-            return MethodType(self.callback, tag), tag
-
-    async def _a_call(self, tag, event):
-        if (prepare := self._prepare_call(tag, event)) is None:
+    async def _a_call(self, cmpt, event):
+        if (prepare := self._prepare_call(cmpt, event)) is None:
             return
 
-        fn, tag = prepare
+        fn, cmpt = prepare
 
         args = (event,) if self.pass_event else ()
         data = await fn(*args)
-        self._after_call(tag, event)
+        self._after_call(cmpt, event)
         return data
 
-    def _call(self, tag, event):
-        if (prepare := self._prepare_call(tag, event)) is None:
+    def _call(self, cmpt, event):
+        if (prepare := self._prepare_call(cmpt, event)) is None:
             return
 
-        fn, tag = prepare
+        fn, cmpt = prepare
         args = (event,) if self.pass_event else ()
         data = fn(*args)
-        self._after_call(tag, event)
+        self._after_call(cmpt, event)
         return data
 
-    def _after_call(self, tag, event):
-        for dependent in tag._dependents:
+    def _after_call(self, cmpt, event):
+        for dependent in cmpt._dependents:
             # TODO: move to other place
-            print(f'DEPENDENT CALL {dependent} {tag} {event}')
             dependent.__render__()
 
-        print(f'AFTER CALL {tag} {event}')
-        getattr(event.currentTarget, _PY_TAG_ATTRIBUTE, tag).__render__()
+        getattr(event.currentTarget, _PY_TAG_ATTRIBUTE, cmpt).__render__()
 
-    def _make_listener(self, event_name: str, tag: Tag):
+    def _make_listener(self, event_name: str, cmpt: Component):
         if inspect.iscoroutinefunction(self.callback):
+
             @wraps(self.callback)
             async def method(event):
-                return await self._a_call(tag, event)
+                return await self._a_call(cmpt, event)
+
         else:
+
             @wraps(self.callback)
             def method(event):
-                return self._call(tag, event)
-        is_global = event_name in GLOBAL_EVENTS_LIST  # TODO: check this || what about set global by attr?
+                return self._call(cmpt, event)
+
         return js.beepy.addAsyncListener(
-            js.document if is_global else tag.mount_element, event_name, create_proxy(method), to_js(self.js_checks)
+            global_events.get(event_name, cmpt.mount_element), event_name, create_proxy(method), to_js(self.js_checks)
         )
 
     @classmethod
-    def _remove_listener(cls, event_name: str, tag: Tag, event_listener: Callable):
-        is_global = event_name in GLOBAL_EVENTS_LIST
-
-        (js.document if is_global else tag.mount_element).removeEventListener(event_name, event_listener)
+    def _remove_listener(cls, event_name: str, cmpt: Component, event_listener: Callable):
+        global_events.get(event_name, cmpt.mount_element).removeEventListener(event_name, event_listener)
 
     def __set__(self, instance, value):
         raise AttributeError(f'Cannot set on_{self.name} event handler')
@@ -154,12 +170,12 @@ class on:
     def __delete__(self, instance):
         pass
 
-    def __set_name__(self, owner, name, *, set_static_listeners=True):
+    def __set_name__(self, owner, name):
         if self.name is None:
             self.name = name
 
-        if set_static_listeners:
-            owner._static_listeners = deepcopy(owner._static_listeners)
+        if self.child_restrict is None:
+            owner._static_listeners = defaultdict(list, **nested_copy(owner._static_listeners))
             owner._static_listeners[self.name].append(self)
 
     def __repr__(self):

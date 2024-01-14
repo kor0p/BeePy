@@ -1,14 +1,16 @@
+import asyncio
 import os
 import sys
-import asyncio
-from typing import Callable
 from importlib import import_module
+from typing import TYPE_CHECKING
 
 import dotenv
 import micropip
 
-from beepy.utils.js_py import js, IN_BROWSER, to_js
+from beepy.utils.js_py import IN_BROWSER, js, to_js
 
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 BEEPY_ROOT_PACKAGE = '__beepy_root__'
 _PY_TAG_ATTRIBUTE = '__PYTHON_TAG__'
@@ -48,8 +50,8 @@ async def reload_requirements():
 def lazy_import(module_path):
     if not (
         (module := sys.modules.get(module_path))
-        and (spec := getattr(module, "__spec__", None))
-        and getattr(spec, "_initializing", False) is False
+        and (spec := getattr(module, '__spec__', None))
+        and getattr(spec, '_initializing', False) is False
     ):
         module = import_module(module_path)
 
@@ -69,6 +71,7 @@ def lazy_import_cls(cls):
 
 def _init_js():
     from beepy import __version__
+
     js.console.log(f'%cBeePy version: {__version__}', 'color: lightgreen; font-size: 35px')
     merge_configs()
 

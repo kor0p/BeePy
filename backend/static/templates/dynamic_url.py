@@ -1,8 +1,8 @@
-from beepy import Tag, Style, attr, on
-from beepy.tags import p, Head
+from beepy import Style, Tag, attr, on
+from beepy.tags import Head, p
 from beepy.utils import js
-from beepy.utils.js_py import replace_url
 from beepy.utils.asyncio import delay
+from beepy.utils.js_py import replace_url
 
 Head.title = 'Dynamic URL'
 
@@ -53,7 +53,4 @@ class DynamicURL(Tag, name='div'):
         font_size='48px',
     )
 
-    children = [
-        Item(name, url=url)
-        for url, name in urls.items()
-    ]
+    children = [Item(name, url=url) for url, name in urls.items()]

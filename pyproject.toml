@@ -1,6 +1,6 @@
 [project]
 name = "beepy-web"
-authors = [{name = "kor0p", email = "3.kor0p@gmail.com"}]
+authors = [{ name = "kor0p", email = "3.kor0p@gmail.com" }]
 description = "The modern frontend web framework for Python"
 dynamic = ["version"]
 requires-python = ">=3.10.10"
@@ -10,9 +10,9 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "pyodide-py==0.24.1",  # Pyodide package
-    "python-dotenv==1.0.0",  # .env file to os.environ
-    "boltons==23.1.1",  # Better builtins
+    "pyodide-py==0.24.1", # Pyodide package
+    "python-dotenv==1.0.0", # .env file to os.environ
+    "boltons==23.1.1", # Better builtins
 ]
 
 [project.urls]
@@ -22,10 +22,13 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-    "micropip==0.3.0",  # A lightweight Python package installer for the web
-    "watchdog==3.0.0",  # watcher for files that changes for Hot reload
-    "websockets==11.0.3",  # Hot reload is working using simple WebSockets server
-    "requests==2.31.0",  # HTTP synchronous requests lib
+    "micropip==0.3.0", # A lightweight Python package installer for the web
+    "watchdog==3.0.0", # watcher for files that changes for Hot reload
+    "websockets==11.0.3", # Hot reload is working using simple WebSockets server
+    "requests==2.31.0", # HTTP synchronous requests lib
+]
+contributing = [
+    "pre-commit", # for pre-commit git hooks
 ]
 
 [build-system]
@@ -49,3 +52,47 @@ exclude = [
 
 [tool.hatch.build.targets.wheel]
 packages = ["beepy"]
+
+[tool.refurb]
+ignore = [124, 126]
+quiet = true
+
+[tool.black]
+line-length = 120
+target-version = ["py311"]
+skip-string-normalization = true
+
+[tool.isort]
+line_length = 120
+profile = "black"
+
+[tool.ruff]
+fix = true
+select = [
+    "ARG", "B", "BLE", "C4", "E", "ERA", "F", "FBT", "I", "PGH", "PIE", "PL", "PT", "PTH", "PYI", "Q", "RUF", "SIM",
+    "TCH", "TRY", "UP"
+]
+# 21, 2, 12, 2, 2, 6, 39, .. 19, ..., 10, TRY 23,
+ignore = [
+    "TRY003",  #Avoid specifying long messages outside the exception class        TODO: fix it later
+    "RUF012",  # Mutable class attributes  (children = []...)    TODO: Can we just add typing ClassVar to class Tag ?
+]
+external = ["FURB111"]
+line-length = 120
+show-fixes = true
+target-version = "py311"
+ignore-init-module-imports = true
+extend-exclude = ["*tests*", "beepy/utils/js.py"]
+
+[tool.ruff.flake8-builtins]
+builtins-ignorelist = ["id"]
+
+[tool.ruff.flake8-quotes]
+inline-quotes = "single"
+multiline-quotes = "single"
+
+[tool.ruff.pycodestyle]
+ignore-overlong-task-comments = true
+
+[tool.ruff.pydocstyle]
+convention = "google"

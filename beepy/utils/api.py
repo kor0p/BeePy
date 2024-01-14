@@ -1,12 +1,11 @@
 import dataclasses
 import json
 from datetime import datetime
+from http import HTTPStatus
 from http.client import HTTPException
 
-from pyodide import http as pyodide_http
-
-from beepy.utils.js_py import IN_BROWSER
 from beepy.utils.internal import __CONFIG__
+from beepy.utils.js_py import IN_BROWSER
 
 
 class UpgradedJSONEncoder(json.JSONEncoder):  # TODO: consider on rewriting json.JSONEncoder
@@ -18,41 +17,38 @@ class UpgradedJSONEncoder(json.JSONEncoder):  # TODO: consider on rewriting json
         return super().default(o)
 
 
-async def request(url, method='GET', body=None, headers=None, **opts):
-    if body is not None:
-        body = json.dumps(body, cls=UpgradedJSONEncoder)
-
-    if headers is None:
-        headers = {}
-
-    headers.update(
-        {
-            'mode': 'no-cors',
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Headers': '*',
-            'Access-Control-Allow-Origin': '*',
-        }
-    )
-
-    response = await pyodide_http.pyfetch(
-        __CONFIG__['api_url'] + url, method=method, body=body, headers=headers, **opts
-    )
-
-    if int(response.status) >= 400:
-        raise HTTPException(response.status)
-
-    if method == 'GET' or opts.get('to_json'):
-        response = await response.json()
-    else:
-        response = await response.string()
-
-    return response
-
-
-if not IN_BROWSER:
-    import requests
+if IN_BROWSER:
+    from pyodide.http import pyfetch
 
     async def request(url, method='GET', body=None, headers=None, **opts):
+        if body is not None:
+            body = json.dumps(body, cls=UpgradedJSONEncoder)
+
+        if headers is None:
+            headers = {}
+
+        headers.update(
+            {
+                'mode': 'no-cors',
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Headers': '*',
+                'Access-Control-Allow-Origin': '*',
+            }
+        )
+
+        response = await pyfetch(__CONFIG__['api_url'] + url, method=method, body=body, headers=headers, **opts)
+
+        try:
+            response.raise_for_status()
+        except OSError as err:
+            raise HTTPException(err) from err
+
+        return (await response.json()) if method in ('GET', 'PUT', 'POST') else (await response.text())
+
+else:
+    import requests
+
+    async def request(url, method='GET', body=None, headers=None, **_opts):
         if body is not None:
             body = json.dumps(body, cls=UpgradedJSONEncoder)
 
@@ -63,15 +59,10 @@ if not IN_BROWSER:
 
         response = requests.request(method, __CONFIG__['api_url'] + url, data=body, headers=headers)
 
-        if int(response.status_code) >= 400:
+        if int(response.status_code) >= HTTPStatus.BAD_REQUEST:
             raise HTTPException(response.status_code)
 
-        if method == 'GET' or opts.get('to_json'):
-            response = response.json()
-        else:
-            response = response.text
-
-        return response
+        return response.json() if method in ('GET', 'PUT', 'POST') else response.text
 
 
 __all__ = ['request', 'UpgradedJSONEncoder']

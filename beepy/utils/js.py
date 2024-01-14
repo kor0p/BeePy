@@ -7,6 +7,7 @@ from __future__ import annotations
 import time
 from collections import defaultdict
 from threading import Thread
+from typing import TYPE_CHECKING, Self
 
 try:
     from pyodide.ffi import IN_BROWSER, create_once_callable, create_proxy
@@ -15,7 +16,7 @@ except ImportError:
 
 
 class HTMLElement:
-    __PYTHON_TAG__: 'Tag'
+    __PYTHON_TAG__: Tag
 
     def __init__(self, tag_name):
         self.attributes = {}
@@ -24,6 +25,9 @@ class HTMLElement:
         self.tagName = tag_name
         self.shadowRoot = None
         self.clientWidth = self.clientHeight = self.scrollWidth = self.scrollHeight = 1
+
+    def getAttribute(self, name):
+        return self.attributes.get(name)
 
     def setAttribute(self, name, value):
         self.attributes[name] = value
@@ -77,7 +81,7 @@ class HTMLElement:
         if attrs:
             attrs = ' ' + attrs
         if not self.data:
-            return f"<{self.tagName}{attrs}/>"
+            return f'<{self.tagName}{attrs}/>'
         return f"<{self.tagName}{attrs}>{''.join(map(str, self.data))}</{self.tagName}>"
 
 
@@ -259,7 +263,7 @@ def clearTimeout(timeout_id):
         threads['timeout'][timeout_id].join()
 
 
-if 0 and 1:  # never called, but type hinter is ok with that
+if TYPE_CHECKING:
     from beepy.framework import Tag
 
 
@@ -290,6 +294,7 @@ class BeePyModule:
 
 beepy = BeePyModule()
 _locals = {}
+window = self = globalThis = Self
 
 
 #################

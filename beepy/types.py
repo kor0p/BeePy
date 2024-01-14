@@ -1,24 +1,24 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Optional, Union, Iterable, ForwardRef
+from collections.abc import Iterable
 from functools import wraps
+from typing import TYPE_CHECKING
 
-import beepy
 from beepy.trackable import TrackableList
-from beepy.utils import js, __CONFIG__
+from beepy.utils import __CONFIG__, js
 from beepy.utils.common import escape_html
 
-attr = ForwardRef('attr')
-Tag = ForwardRef('Tag')
-Component = ForwardRef('Component')  # Future update
-ChildrenRef = ForwardRef('ChildrenRef')
+if TYPE_CHECKING:
+    from beepy.children import ChildrenRef
+    from beepy.framework import Tag
 
 
 class AttrValue:
     """
     Extend this class to be able to use it as value in beepy.attr and children
     """
+
     __slots__ = ('value',)
 
     def __init__(self, value):
@@ -32,7 +32,7 @@ class AttrValue:
 
     @abstractmethod
     def __view_value__(self):
-        """ This method will be called on render, must return serializable value """
+        """This method will be called on render, must return serializable value"""
 
 
 class safe_html(str):
@@ -51,7 +51,7 @@ def safe_html_content(function):
 class Renderer:
     __slots__ = ()
 
-    def _render(self, value: Union[str, Iterable[str]]) -> str:
+    def _render(self, value: str | Iterable[str]) -> str:
         if isinstance(value, safe_html):
             return value.__html__()
 
@@ -74,7 +74,7 @@ class Mounter:
     __slots__ = ()
 
     @abstractmethod
-    def __mount__(self, element: js.HTMLElement, parent: Mounter, index: Optional[int] = None):
+    def __mount__(self, element: js.HTMLElement, parent: Mounter, index: int | None = None):
         pass
 
     @abstractmethod
@@ -90,9 +90,9 @@ class Children(WebBase, TrackableList):
     # TODO: extend Children from Context too?
     __slots__ = ('parent', 'parent_index', 'ref', 'mounted')
 
-    parent: Optional[Tag]
+    parent: Tag | None
     parent_index: int
-    ref: Optional[ChildrenRef]
+    ref: ChildrenRef | None
     mounted: bool
 
     def __init__(self, iterable=()):
@@ -102,17 +102,19 @@ class Children(WebBase, TrackableList):
         self.ref = None
         self.mounted = False
 
-    def as_child(self, parent: Optional[Tag], exists_ok=False):
+    def as_child(self, parent: Tag | None, *, exists_ok=False):
+        from beepy.children import ChildrenRef
+
         if self.ref:
             if exists_ok:
                 return self.ref
             else:
                 raise TypeError(f'{self} already is child')
-        ref = beepy.children.ChildrenRef(self)
+        ref = ChildrenRef(self)
         self.__set_parent__(parent, 0, ref)
         return ref
 
-    def __set_parent__(self, parent: Optional[Tag], index: int, ref: ChildrenRef):
+    def __set_parent__(self, parent: Tag | None, index: int, ref: ChildrenRef):
         self.parent = parent
         self.parent_index = index
         self.ref = ref
@@ -135,7 +137,7 @@ class Children(WebBase, TrackableList):
         if self.parent._mount_finished_:
             child.__render__()
 
-    def _notify_remove_one(self, key: int, child: Tag):
+    def _notify_remove_one(self, _key: int, child: Tag):
         if not self.mounted and not self.parent:
             return
 
@@ -161,7 +163,7 @@ class Children(WebBase, TrackableList):
             child.__unmount__(element, parent)
 
 
-AttrType = Union[None, str, int, bool, Iterable['AttrType'], dict[str, 'AttrType'], AttrValue, Tag, attr]
-ContentType = Union[str, Iterable, Renderer]
+AttrType = None | str | int | bool | Iterable['AttrType'] | dict[str, 'AttrType'] | AttrValue  # Also: Tag | attr
+ContentType = str | Iterable['ContentType'] | Renderer
 
 __all__ = ['AttrType', 'ContentType', 'AttrValue', 'Renderer', 'Mounter', 'Children', 'safe_html', 'safe_html_content']

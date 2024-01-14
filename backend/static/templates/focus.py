@@ -1,4 +1,4 @@
-from beepy import Style, Tag, Directive
+from beepy import Directive, Style, Tag
 from beepy.tags import input_
 
 
@@ -24,4 +24,4 @@ class App(Tag, name='div'):
     ]
 
     def content(self):
-        return f'This input is in focus)'
+        return 'This input is in focus)'

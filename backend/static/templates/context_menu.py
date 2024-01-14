@@ -1,7 +1,7 @@
 from beepy import Style, __version__
-from beepy.tags import p, Head
+from beepy.modules.context_menu import ContextMenu, ContextMenuHandler, MenuDivider, MenuItem
+from beepy.tags import Head, p
 from beepy.utils import js
-from beepy.modules.context_menu import MenuDivider, MenuItem, ContextMenu, ContextMenuHandler
 
 Head.title = 'Context Menu example'
 
@@ -19,7 +19,7 @@ class Menu(ContextMenu):
 
     @share_to.on('click')
     def open_share(self):
-        js.open(f'https://t.me/share/url?url={js.location.href}&text=Yay! It\'s BeePy v{__version__}', '_blank')
+        js.open(f"https://t.me/share/url?url={js.location.href}&text=Yay! It's BeePy v{__version__}", '_blank')
 
     @refresh.on('click')
     def refresh_page(self):

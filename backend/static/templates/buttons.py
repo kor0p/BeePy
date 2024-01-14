@@ -1,4 +1,4 @@
-from beepy import Tag, Style, state, attr, on
+from beepy import Style, Tag, attr, on, state
 from beepy.tags import Head
 
 Head.title = 'Colored Increment Buttons'
@@ -7,20 +7,22 @@ Head.title = 'Colored Increment Buttons'
 class ColoredButton(Tag, name='button'):
     parent: 'View'
 
-    some_attr = attr(True)
+    some_attr = attr(default=True)
 
     title = state('')
     increment = state(1)
     color = state('gray')
 
-    style = Style(styles={
-        '&': {
-            'margin': '8px',
-        },
-        '& *': {
-            'color': '{color}',
+    style = Style(
+        styles={
+            '&': {
+                'margin': '8px',
+            },
+            '& *': {
+                'color': '{color}',
+            },
         }
-    })
+    )
 
     @on
     def click(self):
@@ -35,13 +37,11 @@ class View(Tag, name='view'):
 
     title = state('Increment buttons example')
 
-    style = Style(
-        zoom=7,
-    )
+    style = Style(zoom=7, width='25px', height='25px')
 
     children = [
         ColoredButton(title='+', color='red'),
-        ColoredButton(title='–', increment=-1),
+        ColoredButton(title='-', increment=-1),
     ]
 
     def content(self):

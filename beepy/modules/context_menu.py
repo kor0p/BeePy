@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from beepy.utils import js
 from beepy.attrs import attr, state
 from beepy.listeners import on
 from beepy.style import Style
-from beepy.tags import div, hr, ul, li, Body
+from beepy.tags import Body, div, hr, li, ul
+from beepy.utils import js
 
 
 class MenuDivider(hr):
@@ -15,20 +15,22 @@ class MenuDivider(hr):
 
 
 class MenuItem(li):
-    default_style = Style(styles={
-        'padding': '0.5em 1em',
-        'cursor': 'pointer',
-        'display': 'flex',
-        'align-items': 'center',
-        '&:hover': {
-            'background-color': '#2d2d2d',
-            'border-left': '4px solid #333',
+    default_style = Style(
+        styles={
+            'padding': '0.5em 1em',
+            'cursor': 'pointer',
+            'display': 'flex',
+            'align-items': 'center',
+            '&:hover': {
+                'background-color': '#2d2d2d',
+                'border-left': '4px solid #333',
+            },
         }
-    })
+    )
 
 
 class ContextMenu(ul):
-    visible = attr(False)
+    visible = attr(default=False)
 
     pos_x = state(0)
     pos_y = state(0)
@@ -38,28 +40,29 @@ class ContextMenu(ul):
         top='{pos_y}px',
     )
 
-    default_style = Style(styles={
-        'visibility': 'hidden',
-        'background-color': '#353535',
-        'font-size': '24px',
-        'border-radius': '2px',
-        'padding': '5px 0 5px 0',
-        'width': '180px',
-        'height': 'auto',
-        'margin': 0,
-        'z-index': 50,
-        # use absolute positioning
-        'position': 'absolute',
-        'list-style': 'none',
-        'box-shadow': '0 0 20px 0 #222',
-        'opacity': 0,
-        'transition': '0.2s',
-
-        '&[visible]': {
-            'opacity': 1,
-            'visibility': 'visible',
+    default_style = Style(
+        styles={
+            'visibility': 'hidden',
+            'background-color': '#353535',
+            'font-size': '24px',
+            'border-radius': '2px',
+            'padding': '5px 0 5px 0',
+            'width': '180px',
+            'height': 'auto',
+            'margin': 0,
+            'z-index': 50,
+            # use absolute positioning
+            'position': 'absolute',
+            'list-style': 'none',
+            'box-shadow': '0 0 20px 0 #222',
+            'opacity': 0,
+            'transition': '0.2s',
+            '&[visible]': {
+                'opacity': 1,
+                'visibility': 'visible',
+            },
         }
-    })
+    )
 
     def show(self):
         self.visible = True
@@ -83,7 +86,7 @@ class ContextMenu(ul):
     def __mount__(self, element, parent, index=None):
         super().__mount__(Body.mount_element, Body)
 
-    def __unmount__(self, element, parent, _unsafe=False):
+    def __unmount__(self, element, parent, *, _unsafe=False):
         return super().__unmount__(element, parent, _unsafe=True)
 
 

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+from boltons.iterutils import first
+
 from beepy import Tag
+from beepy.attrs import attr, html_attr, state
 from beepy.style import Style
-from beepy.attrs import attr, state, html_attr
 from beepy.tags import div, ul
 from beepy.utils import js
 from beepy.utils.js_py import replace_url
@@ -10,17 +12,19 @@ from beepy.utils.js_py import replace_url
 
 class tab(div, name='tab'):
     tab_id = state(type=str)
-    visible = html_attr(False)
+    visible = html_attr(default=False)
     title: tab_title = state()
 
-    default_style = Style(styles={
-        'padding': '6px 12px',
-        'animation': 'fadeEffect 1s',
-        'display': 'none',
-        '&[visible]': {
-            'display': 'block',
+    default_style = Style(
+        styles={
+            'padding': '6px 12px',
+            'animation': 'fadeEffect 1s',
+            'display': 'none',
+            '&[visible]': {
+                'display': 'block',
+            },
         }
-    })
+    )
 
     @attr()
     def id(self) -> str:
@@ -35,64 +39,65 @@ class tab(div, name='tab'):
 
 class tab_title(Tag, name='li', content_tag=None):
     _tab: tab = state(type=tab)
-    selected = attr(False)
+    selected = attr(default=False)
 
 
 class tabs(Tag, name='tabs'):
-    dark_theme = attr(False)
+    dark_theme = attr(default=False)
     selected_id = attr(type=str)
     selected: tab = state(type=tab)
 
     name: str = 'Unknown'
 
-    default_style = Style(styles={
-        'a': {
-            'color': 'lightskyblue',
-            'text-decoration': 'none',
-        },
-        'ul': {
-            '': '''
-            list-style-type: none;
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-            background-color: #e1e1e1;
-            ''',
-            'li': {
+    default_style = Style(
+        styles={
+            'a': {
+                'color': 'lightskyblue',
+                'text-decoration': 'none',
+            },
+            'ul': {
                 '': '''
-                float: left;
-                font-family: "Lato", sans-serif;
-                display: inline-block;
-                text-align: center;
-                padding: 14px 16px;
-                text-decoration: none;
-                transition: 0.3s;
-                font-size: 12px;
+                list-style-type: none;
+                margin: 0;
+                padding: 0;
+                overflow: hidden;
+                background-color: #e1e1e1;
                 ''',
-                '&:hover': {
-                    'background-color': '#cdcdcd',
-                },
-                '&[selected]': {
-                    'background-color': '#b1b1b1',
+                'li': {
+                    '': '''
+                    float: left;
+                    font-family: "Lato", sans-serif;
+                    display: inline-block;
+                    text-align: center;
+                    padding: 14px 16px;
+                    text-decoration: none;
+                    transition: 0.3s;
+                    font-size: 12px;
+                    ''',
+                    '&:hover': {
+                        'background-color': '#cdcdcd',
+                    },
+                    '&[selected]': {
+                        'background-color': '#b1b1b1',
+                    },
                 },
             },
-        },
-        '&[dark-theme] ul': {
-            'background-color': '#1e1e1e',
-            'li': {
-                '&:hover': {
-                    'background-color': '#222222',
-                },
-                '&[selected]': {
-                    'background-color': '#3e3e3e',
+            '&[dark-theme] ul': {
+                'background-color': '#1e1e1e',
+                'li': {
+                    '&:hover': {
+                        'background-color': '#222222',
+                    },
+                    '&[selected]': {
+                        'background-color': '#3e3e3e',
+                    },
                 },
             },
-        },
-    })
+        }
+    )
 
     children = [
         tabs_titles := ul(),
-        # tab_titles = ul(id=tab_title('Text'))
     ]
 
     @property
@@ -106,20 +111,20 @@ class tabs(Tag, name='tabs'):
             _tab_title.on('click')(lambda _ul, _tab_id=tab_id: _ul.parent.select_tab(_tab_id))
 
     def mount(self):
-        for tab_id, tab in self.tabs_list.items():
+        for tab_id, _tab in self.tabs_list.items():
             getattr(self.tabs_titles, tab_id).link_parent_attrs(self)
 
         url = js.URL.new(js.location.href)
 
         selected = None
         if url.hash and url.hash.startswith(f'#tab-{self.name}/'):
-            selected = self.select_tab(url.hash[len(f'#tab-{self.name}/'):])
+            selected = self.select_tab(url.hash[len(f'#tab-{self.name}/') :])
             if selected:
                 js.location.hash = ''
         if not selected:
             selected = self.select_tab(url.searchParams.get(self.name))
         if not selected:
-            self.select_tab(tuple(self.tabs_titles.ref_children.keys())[0])
+            self.select_tab(first(self.tabs_titles.ref_children.keys()))
         self._update_url()
 
     def select_tab(self, tab_id):
@@ -151,7 +156,6 @@ class tabs(Tag, name='tabs'):
         url.searchParams.set(self.name, selected_tab.tab_id)  # modifies url.href
 
         replace_url(url, name=selected_tab.id, title=''.join(getattr(self.tabs_titles, selected_tab.tab_id).content()))
-        print(f'URL replaced to {url} for {selected_tab} [3]')
 
 
 __all__ = ['tab', 'tab_title', 'tabs']

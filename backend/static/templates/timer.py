@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
-from beepy import Tag, Style, state
+from beepy import Style, Tag, state
 from beepy.tags import a, p
-from beepy.utils.js_py import Interval
 from beepy.types import safe_html_content
+from beepy.utils.js_py import Interval
 
 Style.import_file('styles/timer.css')
-_EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
+_EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
 
 
 class DateTimeDisplay(Tag, name='date-time-display'):
@@ -54,7 +54,7 @@ class CountUpTimer(Tag, name='timer', children_tag=a()):
     def mount(self):
         if self.start == _EPOCH:
             self.start = _EPOCH + timedelta(
-                days=self.days, hours=self.hours, minutes=self.minutes, seconds=self.seconds,
+                days=self.days, hours=self.hours, minutes=self.minutes, seconds=self.seconds
             )
         self.timer()
         self._interval = Interval(self.timer, period=1)

@@ -1,7 +1,7 @@
-from django.shortcuts import render, get_object_or_404
+from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
+
 from .models import Group, User
 from .serializers import GroupSerializer, UserSerializer
-from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
 
 
 class GroupView(RetrieveUpdateDestroyAPIView):

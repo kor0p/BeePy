@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-from typing import Type
-
 from beepy.tags import button
 
 
 class Action(button, _root=True):
-    components: dict[str, Type[Action]] = {}
+    components: dict[str, type[Action]] = {}
 
     action_name: str
 

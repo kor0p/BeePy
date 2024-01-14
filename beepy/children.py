@@ -1,13 +1,20 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from typing import Optional, Callable, Union, Type, TypeVar, Generic, Iterable
+from collections.abc import Callable, Iterable
+from typing import TYPE_CHECKING, Generic, TypeVar
 
 import beepy
-from beepy.types import Tag, Component, Renderer, WebBase, Children, ContentType
-from beepy.context import Context
+from beepy.components import Component
+from beepy.types import Children, ContentType, Renderer, WebBase
 from beepy.utils import js, log
 from beepy.utils.internal import _PY_TAG_ATTRIBUTE
+
+if TYPE_CHECKING:
+    from beepy.context import Context
+    from beepy.framework import Tag
+else:
+    Tag = None
 
 
 class CustomWrapper(WebBase):
@@ -30,18 +37,16 @@ class StringWrapper(CustomWrapper):
 class ContentWrapper(CustomWrapper):
     __slots__ = ('content', 'tag', 'mount_element', '_current_render', 'parent', 'mount_parent', 'children')
 
-    SHADOW_ROOTS = (
-        'article', 'aside', 'blockquote', 'body', 'div', 'footer', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'header',
-        'main', 'nav', 'p', 'section', 'span',
-    )
+    SHADOW_ROOTS = ('article', 'aside', 'blockquote', 'body', 'div', 'footer', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6')
+    SHADOW_ROOTS += ('header', 'main', 'nav', 'p', 'section', 'span')
 
-    content: Callable[[], Union[ContentType, Tag]]
-    tag: Optional[Tag]
-    mount_element: Optional[js.HTMLElement]
+    content: Callable[[], ContentType | Tag]
+    tag: Tag | None
+    mount_element: js.HTMLElement | None
     _current_render: list[Renderer]
-    parent: Optional[Tag]
-    mount_parent: Optional[js.HTMLElement]
-    children: Optional[list[Tag]]
+    parent: Tag | None
+    mount_parent: js.HTMLElement | None
+    children: list[Tag] | None
 
     def __init__(self, content, tag, _current_render):
         self.content = content
@@ -59,19 +64,9 @@ class ContentWrapper(CustomWrapper):
     def __mount__(self, element, parent: Tag, index=None):
         self.parent = parent
         self.mount_parent = element
-        parent_name = element.tagName.lower()
         if self.tag:
             self.mount_element = self.tag.clone(parent).mount_element
             self.mount_parent.insertChild(self.mount_element, index)
-        elif ('-' in parent_name or parent_name in self.SHADOW_ROOTS) and False:
-            # TODO: add some param to use shadow root directly
-            # (or) TODO[fix]: with shadow root children cannot be rendered
-            # (or) TODO: at least warn developer, or raise error, if not fixed
-            if self.parent._shadow_root:
-                self.mount_element = self.parent._shadow_root
-            else:
-                self.mount_element = self.mount_parent.attachShadow(mode='closed')
-            self.parent._shadow_root = self.mount_element
         else:
             self.mount_element = js.document.createDocumentFragment()
             self.mount_parent.insertChild(self.mount_element, index)
@@ -151,11 +146,11 @@ C = TypeVar('C')
 class ChildRef(WebBase, Generic[C]):
     __slots__ = ('name', 'child', 'inline_def', '_cache')
 
-    name: Optional[str]
+    name: str | None
     child: C
     _cache: dict[Context, C]
 
-    def __init__(self, child: C, inline_def=False):
+    def __init__(self, child: C, *, inline_def=False):
         self.name = None
         self.child = child
         self.inline_def = inline_def
@@ -164,7 +159,7 @@ class ChildRef(WebBase, Generic[C]):
     def __repr__(self):
         return f'{type(self).__name__}(Tag.{self.name} = {self.child})'
 
-    def __get__(self, instance: Optional[Context], owner: Optional[Type[Context]] = None) -> Union[ChildRef, C]:
+    def __get__(self, instance: Context | None, owner: type[Context] | None = None) -> ChildRef | C:
         if instance is None:
             return self
 
@@ -180,7 +175,7 @@ class ChildRef(WebBase, Generic[C]):
     def __delete__(self, instance: Context):
         del self._cache[instance]
 
-    def __set_name__(self, owner: Type[Tag], name: str):
+    def __set_name__(self, owner: type[Tag], name: str):
         self.name = name
 
     @abstractmethod
@@ -202,7 +197,7 @@ class ComponentRef(ChildRef[Component]):
 
     child: Component
 
-    def _update_child(self, parent: Tag, index):
+    def _update_child(self, parent: Tag, index):  # noqa: ARG002 - arguments for overriding
         clone = self.__get__(parent).clone(parent)
         clone.__set_ref__(parent, self)
         self.__set__(parent, clone)
@@ -234,7 +229,6 @@ class ChildrenRef(ChildRef):
             current_value[:] = value
 
 
-from beepy.framework import Tag
-
+from beepy.framework import Tag  # noqa: E402, isort: skip - circular import
 
 __all__ = ['CustomWrapper', 'StringWrapper', 'ContentWrapper', 'TagRef', 'ChildrenRef']

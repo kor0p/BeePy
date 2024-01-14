@@ -1,22 +1,21 @@
 from __future__ import annotations
 
 import traceback
-from typing import Union, Callable, Type, Iterable, Optional
-from types import MethodType
+from collections.abc import Callable, Iterable
 from functools import cache
+from types import MethodType
 
 from beepy.attrs import attr, set_html_attribute, state
-from beepy.children import CustomWrapper, StringWrapper, ContentWrapper, ChildRef, TagRef, Children
-from beepy.components import _MetaComponent, Component
-from beepy.types import Renderer, Mounter, AttrType, ContentType
-from beepy.utils import js, log, __CONFIG__
-from beepy.utils.internal import _PY_TAG_ATTRIBUTE
+from beepy.children import ChildRef, Children, ContentWrapper, CustomWrapper, StringWrapper, TagRef
+from beepy.components import Component, _MetaComponent
+from beepy.context import _SPECIAL_CHILD_STRINGS, CONTENT, OVERWRITE, SUPER
+from beepy.types import AttrType, ContentType, Mounter, Renderer
+from beepy.utils import __CONFIG__, js, log
 from beepy.utils.common import NONE_TYPE, get_random_name, to_kebab_case
 from beepy.utils.dev import _debugger
-from beepy.context import OVERWRITE, SUPER, CONTENT, _SPECIAL_CHILD_STRINGS
+from beepy.utils.internal import _PY_TAG_ATTRIBUTE
 
-
-__version__ = '0.8.4'  # For internal development set to 0.0a0
+__version__ = '0.8.5'  # For internal development set to 0.0a0
 __CONFIG__['version'] = __version__
 
 
@@ -24,10 +23,10 @@ _TAG_INITIALIZED = False
 
 
 class _MetaTag(_MetaComponent):
-    _tag_classes: list[Type[Tag]] = []
+    _tag_classes: list[type[Tag]] = []
     __clean_class_attribute_names = ('_content_tag', '_static_children_tag')
 
-    def __new__(mcs, _name: str, bases: tuple, namespace: dict, **kwargs):
+    def __new__(mcs, _name: str, bases: tuple, namespace: dict, **kwargs):  # noqa: PLR0912, PLR0915
         namespace = namespace.copy()
         namespace.setdefault('__slots__', ())
         if '_content' in namespace:
@@ -35,15 +34,12 @@ class _MetaTag(_MetaComponent):
 
         # used for checking inheritance: attributes, methods, etc.
         # for example: extending classes Tag and WithRouter must produce correct state 'router'
-        mock_cls: Union[Type[Tag], type] = type.__new__(mcs, _name, bases, {})
+        mock_cls: type[Tag] | type = type.__new__(mcs, _name, bases, {})
 
         initialized = _TAG_INITIALIZED  # As base classes is also declared here, we must be sure base class exists
 
         is_root = kwargs.get('_root')
-        if is_root:
-            tag_name = ''
-        else:
-            tag_name = kwargs.get('name')
+        tag_name = '' if is_root else kwargs.get('name')
         namespace['__ROOT__'] = is_root
 
         if tag_name or (initialized and not hasattr(mock_cls, '_tag_name_')):
@@ -62,7 +58,7 @@ class _MetaTag(_MetaComponent):
             content_tag = kwargs['content_tag']
             if isinstance(content_tag, str):
                 content_tag = empty_tag(content_tag)()
-            elif not isinstance(content_tag, (Tag, NONE_TYPE)):
+            elif not isinstance(content_tag, Tag | NONE_TYPE):
                 raise TypeError('content_tag argument must be either str, Tag or None')
             namespace['_content_tag'] = content_tag
 
@@ -97,16 +93,17 @@ class _MetaTag(_MetaComponent):
                 if callable(child) and hasattr(child, '_attrs_static_'):
                     continue
 
-                if isinstance(child, (Component, Children, ChildRef)):
+                if isinstance(child, Component | Children | ChildRef):
                     if child in children_arg:
                         ref_children.append(child)
                         # TODO: make possible inherit without replacement?
                         if (old_child := getattr(mock_cls, attribute_name, None)) and isinstance(old_child, ChildRef):
                             to_remove_children.append(old_child)
-                        if isinstance(child, (Component, Children)):
+                        if isinstance(child, Component | Children):
                             children_arg[children_arg.index(child)] = namespace[attribute_name] = child.as_child(None)
-    
-                    if isinstance(child, Component) and child._force_ref:  # TODO: add support '_force_ref' for Children too
+
+                    if isinstance(child, Component) and child._force_ref:
+                        # TODO: add support '_force_ref' for Children too
                         namespace[attribute_name] = _ref = child.as_child(None)
                         _ref.__set_name__(None, attribute_name)
                         children_arg.insert(0, _ref)
@@ -124,7 +121,7 @@ class _MetaTag(_MetaComponent):
                     # TODO: replace 5 in get_random_name(5) with some log
                     children_arg[_index] = namespace[f'_{get_random_name(5)}_'] = child.as_child(None)
 
-        cls: Union[Type[Tag], type] = super().__new__(mcs, _name, bases, namespace, **kwargs)
+        cls: type[Tag] | type = super().__new__(mcs, _name, bases, namespace, **kwargs)
 
         if not hasattr(cls, '_raw_html'):
             cls._raw_html = False
@@ -148,7 +145,7 @@ class _MetaTag(_MetaComponent):
                     cls._static_children.remove(CONTENT)
                 if SUPER in children_arg:
                     super_children_index = children_arg.index(SUPER)
-                    children_arg[super_children_index: super_children_index + 1] = cls._static_children
+                    children_arg[super_children_index : super_children_index + 1] = cls._static_children
                 else:
                     children_arg.extend(cls._static_children)
                 cls._static_children = children_arg
@@ -211,15 +208,15 @@ class _MetaTag(_MetaComponent):
         return super().__META_render__(self, args, kwargs, _original_func)
 
     @classmethod
-    def __META_init__(cls, self: Tag, args, kwargs, _original_func):
-        called_from_clone = kwargs.pop('__parent__', None)
+    def __META_init__(cls, self: Tag, args, kwargs, _original_func):  # noqa: PLR0912, PLR0915
+        kwargs.pop('__parent__', None)  # called from clone
         if hasattr(getattr(self, 'mount_element', None), _PY_TAG_ATTRIBUTE):
             return
 
         self._children = self._static_children.copy()
         self._content = self._static_content
 
-        children_argument: Union[Callable, ContentType] = kwargs.get('children') or args
+        children_argument: Callable | ContentType = kwargs.get('children') or args
         if children_argument and (not isinstance(children_argument, Iterable) or isinstance(children_argument, str)):
             children_argument = [children_argument]
         children_argument = list(children_argument)
@@ -230,7 +227,7 @@ class _MetaTag(_MetaComponent):
             is_child_arg_tag = False
             try:
                 content_empty = not bool(self.content())
-            except Exception as e:
+            except Exception:  # noqa: BLE001 - trying to call content function
                 content_empty = False
             if content_empty:
                 is_child_arg_string = True
@@ -256,10 +253,10 @@ class _MetaTag(_MetaComponent):
                     child.clone(self).as_child(self) for child in children_argument
                 ]
             else:
-                self._children = self._children.copy() + [*children_argument]
+                self._children = [*self._children.copy(), *children_argument]
 
         for key, value in kwargs.items():
-            if not isinstance(value, (Component, Children)) or key in self.attrs:
+            if not isinstance(value, Component | Children) or key in self.attrs:
                 continue
             value: Component | Children
             child = value.as_child(self, exists_ok=True)
@@ -329,7 +326,7 @@ class Tag(Component, metaclass=_MetaTag, _root=True):
 
     _content: ContentType
     _shadow_root: js.HTMLElement
-    _ref: Optional[TagRef]
+    _ref: TagRef | None
     _force_ref: bool = False
 
     _tag_name_: str
@@ -345,11 +342,11 @@ class Tag(Component, metaclass=_MetaTag, _root=True):
 
     @classmethod
     def __root_declared__(cls):
-        """ This method is called, when root Tag is defined """
+        """This method is called, when root Tag is defined"""
 
     @classmethod
     def __class_declared__(cls):
-        """ This method is called, when common Tag is defined """
+        """This method is called, when common Tag is defined"""
 
     def __init__(self, *args, **kwargs: AttrType):
         kwargs.setdefault('_load_children', False)
@@ -373,7 +370,7 @@ class Tag(Component, metaclass=_MetaTag, _root=True):
     def __getitem__(self, key):
         return getattr(self, key)
 
-    def as_child(self, parent: Optional[Tag], exists_ok=False, inline_def=False):
+    def as_child(self, parent: Tag | None, *, exists_ok=False, inline_def=False):
         if self._ref:
             if exists_ok:
                 self.__set_ref__(parent, self._ref)
@@ -388,12 +385,12 @@ class Tag(Component, metaclass=_MetaTag, _root=True):
         super().__notify__(attr_name, attribute, value)
         self.__render__()
 
-    def __set_ref__(self, parent: Optional[Tag], ref: TagRef):
+    def __set_ref__(self, parent: Tag | None, ref: TagRef):
         super().__set_ref__(parent, ref)
         if ref.inline_def:
             setattr(type(parent), ref.name, self)
 
-    def __render__(self, attrs: Optional[dict[str, AttrType]] = None):
+    def __render__(self, attrs: dict[str, AttrType] | None = None):
         self._current_render.append(self)
 
         if attrs is None:
@@ -402,10 +399,7 @@ class Tag(Component, metaclass=_MetaTag, _root=True):
         for name, value in {**self.__attrs__, **attrs}.items():
             # TODO: optimize this - set only changed attributes
 
-            if _attr := self.attrs.get(name):
-                type = _attr.type
-            else:
-                type = NONE_TYPE
+            type = _attr.type if (_attr := self.attrs.get(name)) else NONE_TYPE
             set_html_attribute(self.mount_element, name, value, type=type)
 
         content_index = self.get_content_index()
@@ -450,7 +444,7 @@ class Tag(Component, metaclass=_MetaTag, _root=True):
 
         self.mount_parent.insertChild(self.mount_element, index)
 
-    def __unmount__(self, element, parent, _unsafe=False):
+    def __unmount__(self, element, parent, *, _unsafe=False):
         if not _unsafe and self.mount_parent is not None and self.mount_parent is not element:
             log.warn(
                 'Something went wrong!\n'
@@ -463,7 +457,7 @@ class Tag(Component, metaclass=_MetaTag, _root=True):
 
     @property
     def own_children(self) -> list[Mounter]:
-        return [child for child in self.children if not isinstance(child, (ChildRef, CustomWrapper))]
+        return [child for child in self.children if not isinstance(child, ChildRef | CustomWrapper)]
 
     @property
     def ref_children(self) -> dict[str, Mounter]:
@@ -481,7 +475,7 @@ class Tag(Component, metaclass=_MetaTag, _root=True):
                 return index
 
     @property
-    def children(self) -> list[Union[Mounter, Renderer, ChildRef, ContentWrapper]]:
+    def children(self) -> list[Mounter | Renderer | ChildRef | ContentWrapper]:
         return self._children
 
     @children.setter
@@ -491,8 +485,8 @@ class Tag(Component, metaclass=_MetaTag, _root=True):
     def _handle_children(self, children):
         result = []
 
-        for child in children:
-            result.append(child)
+        for new_child in children:
+            child = new_child
 
             if isinstance(child, ContentWrapper):
                 child = child.content.__func__
@@ -503,11 +497,13 @@ class Tag(Component, metaclass=_MetaTag, _root=True):
                 child = self.content
 
             if isinstance(child, attr):
-                child = lambda s, _n=child.name: getattr(s, _n)
+
+                def child(s, _n=child.name):
+                    return getattr(s, _n)
 
             if isinstance(child, Component) and child in self._children and child._ref is not None:
                 # using Component as descriptor/just child; this allows save reference from parent to new copy of child
-                result[-1] = child._ref._update_child(self, self._children.index(child))
+                child = child._ref._update_child(self, self._children.index(child))
             elif isinstance(child, ChildRef) and child in self._children:
                 child._update_child(self, self._children.index(child))
             # TODO: make ContentWrapper descriptor, here call .clone()
@@ -515,7 +511,9 @@ class Tag(Component, metaclass=_MetaTag, _root=True):
             elif callable(child):
                 if not isinstance(child, MethodType):
                     child = MethodType(child, self)
-                result[-1] = ContentWrapper(child, self._content_tag, self._current_render)
+                child = ContentWrapper(child, self._content_tag, self._current_render)
+
+            result.append(child)
 
         return result
 
@@ -530,7 +528,7 @@ class Tag(Component, metaclass=_MetaTag, _root=True):
             return _MetaTag._current_render[self._root_parent]
         except KeyError as e:
             _debugger(e)
-            raise ValueError('It looks like element is not mounted correctly, please see the docs')
+            raise ValueError('It looks like element is not mounted correctly, please see the docs') from None
 
 
 _TAG_INITIALIZED = True
@@ -538,7 +536,7 @@ _TAG_INITIALIZED = True
 
 @cache
 def empty_tag(name):
-    return _MetaTag(name, (Tag, ), {}, name=name, content_tag=None)
+    return _MetaTag(name, (Tag,), {}, name=name, content_tag=None)
 
 
 def inline_tag(name, content_tag=None, **attributes):
@@ -549,7 +547,7 @@ empty_div = empty_tag('div')
 empty_span = empty_tag('span')
 
 
-def mount(element: Tag, root_element: str, clear=False):
+def mount(element: Tag, root_element: str, *, clear=False):
     root = js.document.querySelector(root_element)
     if root is None:
         raise NameError('Mount point not found')

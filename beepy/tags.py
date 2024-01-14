@@ -1,13 +1,14 @@
-from typing import Any, Optional
+from typing import Any
 
-from beepy.framework import Tag
-from beepy.attrs import attr, state, html_attr
+from boltons.typeutils import make_sentinel
+
+from beepy.attrs import attr, html_attr, state
 from beepy.children import Children
-from beepy.utils import js, __CONFIG__
-from beepy.utils.common import get_random_name, AnyOfType
+from beepy.framework import Tag
+from beepy.utils import __CONFIG__, js
+from beepy.utils.common import AnyOfType, get_random_name
 
-
-AUTO_ID = object()
+AUTO_ID = make_sentinel(var_name='AUTO_ID')
 
 
 class html_tag(Tag, _root=True, content_tag=None):
@@ -17,9 +18,7 @@ class html_tag(Tag, _root=True, content_tag=None):
 
     def __set_ref__(self, parent, ref):
         super().__set_ref__(parent, ref)
-        if type(self).id is html_tag.id and (
-            self.id is AUTO_ID or (__CONFIG__['inputs_auto_id'] and self.id is None)
-        ):
+        if type(self).id is html_tag.id and (self.id is AUTO_ID or (__CONFIG__['inputs_auto_id'] and self.id is None)):
             # TODO: replace 5 and 2 with some log value
             self.id = f'{ref.name or get_random_name(5)}-{get_random_name(2)}'
 
@@ -42,12 +41,12 @@ class hr(html_tag, name='hr'):
 
 
 class img(html_tag, name='img'):
-    src = attr(type=str)
+    src = html_attr(type=str)
 
 
 class a(html_tag, name='a'):
     href = attr(type=str)
-    target = attr(type=str, enum={'_blank', '_self', '_parent', '_top', AnyOfType(str)})
+    target = attr(enum={'_blank', '_self', '_parent', '_top', AnyOfType(str)}, type=str)
 
 
 class p(html_tag, name='p'):
@@ -138,12 +137,12 @@ class h6(html_tag, name='h6'):
 class input_(html_tag, name='input'):
     type = attr(
         'text',
-        enum={
-            'button', 'checkbox', 'color', 'date', 'datetime-local', 'email', 'file', 'hidden', 'image', 'month',
-            'number', 'password', 'radio', 'range', 'reset', 'search', 'submit', 'tel', 'text', 'time', 'url', 'week',
-        },
+        enum=(
+            {'button', 'number', 'checkbox', 'color', 'date', 'datetime-local', 'email', 'file', 'hidden', 'image'}
+            | {'password', 'radio', 'range', 'reset', 'search', 'submit', 'tel', 'text', 'time', 'url', 'week', 'month'}
+        ),
     )
-    hidden = attr(False)
+    hidden = attr(default=False)
     value = html_attr('', model='input')
     placeholder = html_attr(None, type=str)
 
@@ -157,7 +156,7 @@ class change(input_):
 
 class textarea(html_tag, name='textarea'):
     value = html_attr('', model='change')
-    data_gramm = html_attr(True, type=str)
+    data_gramm = html_attr(default=True, type=str)
 
     def clear(self):
         self.value = ''
@@ -180,14 +179,14 @@ class nav(html_tag, name='nav'):
 
 
 class button(html_tag, name='button'):
-    type = attr('button', type=str, enum={'submit', 'reset', 'button'})
+    type = attr('button', enum={'submit', 'reset', 'button'}, type=str)
 
 
 class option(html_tag, name='option'):
     value = html_attr()
     label = html_attr('')
-    defaultSelected = html_attr(False)
-    selected = html_attr(False)
+    defaultSelected = html_attr(default=False)
+    selected = html_attr(default=False)
 
 
 class select(html_tag, name='select'):
@@ -202,10 +201,7 @@ class select(html_tag, name='select'):
 
     @classmethod
     def with_items(cls, items: dict[str, Any], **kwargs):
-        return cls(options=[
-            option(label=label_, value=value)
-            for value, label_ in items.items()
-        ], **kwargs)
+        return cls(options=[option(label=label_, value=value) for value, label_ in items.items()], **kwargs)
 
 
 class StandaloneTag(html_tag, _root=True):
@@ -219,11 +215,11 @@ class StandaloneTag(html_tag, _root=True):
         self.mount_parent = element
         self.pre_mount()
 
-    def clone(self, parent=None):
+    def clone(self, parent=None):  # noqa: ARG002 - arguments for overriding
         return self
 
-    def as_child(self, parent: Optional[Tag], exists_ok=False):
-        return super().as_child(parent, True)
+    def as_child(self, parent: Tag | None, *, exists_ok=False, inline_def=False):  # noqa: ARG002 - args for overriding
+        return super().as_child(parent, exists_ok=True, inline_def=inline_def)
 
 
 class Head(StandaloneTag, name='head', mount=js.document.head):
@@ -247,7 +243,5 @@ Body = Body()
 # TODO: add all HTML tags
 
 
-__all__ = [
-    'html_tag', 'div', 'a', 'p', 'b', 'i', 'ul', 'li', 'span', 'form', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-    'input_', 'textarea', 'header', 'main', 'footer', 'nav', 'button', 'option', 'select', 'Head',
-]
+__all__ = ['html_tag', 'div', 'a', 'p', 'b', 'i', 'ul', 'li', 'span', 'form', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']
+__all__ += ['input_', 'textarea', 'header', 'main', 'footer', 'nav', 'button', 'option', 'select', 'Head']

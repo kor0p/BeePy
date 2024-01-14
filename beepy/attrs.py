@@ -1,22 +1,30 @@
-from __future__ import annotations as _
+from __future__ import annotations
 
-import builtins
 import keyword
-from typing import Optional, Callable, Union, Sequence, Type, get_type_hints, ForwardRef, TypeVar, Any
 from collections import defaultdict
+from typing import TYPE_CHECKING, Any, get_type_hints
+
+from boltons.iterutils import first
+from boltons.typeutils import issubclass, make_sentinel
 
 from beepy.types import AttrType, AttrValue
-from beepy.utils.common import NONE_TYPE, wraps_with_name, to_kebab_case
 from beepy.utils import log
+from beepy.utils.common import NONE_TYPE, call_handler_with_optional_arguments, to_kebab_case, wraps_with_name
 
+if TYPE_CHECKING:
+    import builtins
+    from collections.abc import Callable, Sequence
+    from typing import TypeVar
 
-Context = ForwardRef('Context')
-T = TypeVar('T')
+    from beepy.components import Component
+    from beepy.context import Context
+
+    T = TypeVar('T')
 
 SPECIAL_CONVERT_ATTRIBUTES = {
     'contenteditable': lambda tag, val: (
         convert_boolean_attribute_value(val) if val == tag.mount_element.isContentEditable else val
-    ),
+    )
 }
 
 
@@ -24,16 +32,15 @@ def convert_boolean_attribute_value(value):
     return '' if value else None
 
 
-_MISSING = object()
+_MISSING = make_sentinel(var_name='_MISSING')
 
 
 def set_html_attribute(el, name: str, value, *, type: builtins.type = NONE_TYPE):
-    existing_attribute = getattr(el, name, _MISSING)
     if value is None:
         el.removeAttribute(name)
     elif name.endswith('_'):
         el.setAttribute(name[:-1], value)
-    elif existing_attribute is _MISSING or issubclass(type, bool):
+    elif not hasattr(el, name) or issubclass(type, bool):
         el.setAttribute(name, value)
     else:
         setattr(el, name, value)
@@ -41,11 +48,20 @@ def set_html_attribute(el, name: str, value, *, type: builtins.type = NONE_TYPE)
 
 class attr:
     __slots__ = (
-        'name', 'initial_value', 'type',
-        'const', 'required', 'notify',
-        'static', 'move_on', 'model',
-        'model_options', '_from_model_cache',
-        'fget', 'fset', 'fdel',
+        'name',
+        'initial_value',
+        'type',
+        'const',
+        'required',
+        'notify',
+        'static',
+        'move_on',
+        'model',
+        'model_options',
+        '_from_model_cache',
+        'fget',
+        'fset',
+        'fdel',
         'handlers',
         'enum',
         '_cache',
@@ -54,30 +70,39 @@ class attr:
     _view = True
     _set_on_render = False
 
-    name: Optional[str]
+    name: str | None
     initial_value: T
-    type: Optional[Union[type, Type[Context]]]
+    type: builtins.type | None
     const: bool
     required: bool
     notify: bool
     static: bool
     move_on: bool
-    model: Optional[str]
+    model: str | None
     model_options: dict[str, Any]
-    _from_model_cache: list[tuple[Context, attr, Optional[str]]]
-    fget: Callable[[Context], T]
-    fset: Callable[[Context, T], None]
-    fdel: Callable[[Context], None]
-    handlers: dict[str, list[Callable[[Context, T], None]]]
+    _from_model_cache: list[tuple[Component, attr, str | None]]
+    fget: Callable[[Component], T]
+    fset: Callable[[Component, T], None]
+    fdel: Callable[[Component], None]
+    handlers: dict[str, list[Callable[[Component, T], None]]]
     enum: Sequence
 
-    _cache: dict[Context, AttrType]
+    _cache: dict[Component, AttrType]
 
-    def __init__(
-        self, initial_value=None, /, *,
-        const=False, required=False, notify=False,
-        static=False, move_on=False, model=None, model_options=None,
-        fget=None, fset=None, fdel=None,
+    def __init__(  # noqa: PLR0913    # TODO: think about splitting logic
+        self,
+        default=None,
+        *,
+        const=False,
+        required=False,
+        notify=False,
+        static=False,
+        move_on=False,
+        model=None,
+        model_options=None,
+        fget=None,
+        fset=None,
+        fdel=None,
         enum=None,
         **kwargs,
     ):
@@ -85,8 +110,8 @@ class attr:
 
         self.name = None
         self.const = const
-        assert not const or initial_value is None, f'Const {type(self).__name__} cannot have initial value'
-        self.initial_value = initial_value
+        assert not const or default is None, f'Const {type(self).__name__} cannot have initial value'
+        self.initial_value = default
         self.required = required or const  # const attr must be also required
         self.notify = notify
         self.static = static
@@ -95,14 +120,11 @@ class attr:
         self.model_options = {'attribute': None} | (model_options or {})
         self._from_model_cache = []
 
-        if initial_value is None and _type is None:
+        if default is None and _type is None:
             self.type = NONE_TYPE
         else:
             if _type is None:
-                if self.model and isinstance(initial_value, attr):
-                    _type = initial_value.type
-                else:
-                    _type = type(initial_value)
+                _type = default.type if self.model and isinstance(default, attr) else type(default)
             self._set_type(_type)
 
         # TODO: think on: is this needed?
@@ -143,12 +165,12 @@ class attr:
         self.fget = fget
         self.name = to_kebab_case(fget.__name__)
         if self.type is NONE_TYPE:
-            annotations = get_type_hints(fget)
-            if 'return' in annotations:
-                self._set_type(annotations['return'])
+            type_hints = get_type_hints(fget)
+            if 'return' in type_hints:
+                self._set_type(type_hints['return'])
         return self
 
-    def __set__(self, instance, value, _prevent_model=False):
+    def __set__(self, instance, value, *, _prevent_model=False):
         current_value = self.__get__(instance)
         if self.const and current_value is not None:
             raise AttributeError
@@ -159,10 +181,10 @@ class attr:
         (self.fset or self._fset)(instance, value)
 
         if instance.parent_defined:
-            for trigger in self.handlers['change']:
-                if _prevent_model and _prevent_model in (True, self) and trigger.__name__.startswith('@attr'):
+            for handler in self.handlers['change']:
+                if _prevent_model and _prevent_model in (True, self) and handler.__name__.startswith('@attr'):
                     continue
-                trigger(instance, value)
+                call_handler_with_optional_arguments(handler, instance, {'value': value})
 
         if self.notify:
             instance.__notify__(self.name, self, value)
@@ -186,7 +208,7 @@ class attr:
     def setter(self, fset):
         self.fset = fset
         if self.type is NONE_TYPE:
-            self._set_type(tuple(get_type_hints(fset).values())[0])
+            self._set_type(first(get_type_hints(fset).values()))
         return self
 
     def __set_name__(self, owner, name):
@@ -195,36 +217,38 @@ class attr:
         else:
             self.name = name
 
-    def _set_type(self, _type, raise_error=False):
+    def _set_type(self, _type, *, raise_error=False):
         if hasattr(_type, '__origin__'):  # TODO: add support of strict check of type on change/etc
             _type = _type.__origin__
-        try:
-            issubclass(_type, type)
-        except TypeError as e:
+
+        if not isinstance(_type, type):
             error = f'Bad type for attribute: {_type!r}, {type(_type)}'
             if raise_error:
-                raise TypeError(error) from e
+                raise TypeError(error)
             else:
                 self.type = NONE_TYPE
                 return log.error(error)
 
         self.type = _type
 
-    def _link_ctx(self, name: str, ctx: Context, force: bool = True, force_cls_set: bool = False):
-        ctx.attrs[name] = self
+    def _link_cmpt(self, name: str, component: Component, *, force: bool = True, force_cls_set: bool = False):
+        component.attrs[name] = self
         if force:
-            self.__set_name__(ctx, name)
+            self.__set_name__(component, name)
         if force_cls_set:
-            setattr(type(ctx), name, self)
-        elif not hasattr(ctx, name) and hasattr(ctx, 'mount_element'):
-            setattr(ctx, name, self.__get__(ctx))
+            setattr(type(component), name, self)
+        elif not hasattr(component, name) and hasattr(component, 'mount_element'):
+            setattr(component, name, self.__get__(component))
         return self
 
-    def _get_type_instance(self, *, error_text=''):
+    def _get_type_instance(self):
         try:
             return self.type()
-        except Exception as e:
-            log.debug(f'Got error when trying to empty-args constructor of {self.type}: {e}\n' + error_text)
+        except Exception as e:  # noqa: BLE001 - trying to call empty constructor
+            log.debug(
+                f'Got error when trying to empty-args constructor of {self.type}: {e}\n'
+                f'Will be better to set {self.name} not to None'
+            )
 
     def _prepare_attribute_for_model(self, instance):
         if attribute := self.model_options['attribute']:
@@ -232,26 +256,24 @@ class attr:
                 return attribute(instance)
             return attribute
 
-    def _set_model_value(self, instance, attr_, ctx: Context):
-        value = self.__get__(instance.parent if instance.parent_defined else ctx)
+    def _set_model_value(self, instance, attr_, component: Component):
+        initial_value = self.__get__(instance.parent if instance.parent_defined else component)
 
-        if value is None:
+        if initial_value is None:
             if self.initial_value is not None:
-                value = self.initial_value
-            elif self.type:
-                __value = self._get_type_instance(error_text=f'Will be better to set {self.name} not to None')
-                if __value is not None:
-                    value = __value
+                initial_value = self.initial_value
+            elif self.type and (value_from_type := self._get_type_instance()) is not None:
+                initial_value = value_from_type
         if attribute_ := self._prepare_attribute_for_model(instance):
-            value = getattr(value, attribute_)
-        if value is None:
-            value = ''
+            initial_value = getattr(initial_value, attribute_)
+        if initial_value is None:
+            initial_value = ''
 
-        attr_.__set__(instance, value, _prevent_model=attribute_)
+        attr_.__set__(instance, initial_value, _prevent_model=attribute_)
 
         return attribute_
 
-    def _handle_model_listeners(self, ctx: Context):
+    def _handle_model_listeners(self, component: Component):
         to_remove_indexes = []
 
         for index, (instance, attr_, name) in enumerate(self._from_model_cache):
@@ -259,49 +281,52 @@ class attr:
                 to_remove_indexes.append(index)
                 continue
 
-            if instance.parent_defined and instance.parent != ctx:
+            if instance.parent_defined and instance.parent != component:
                 continue
 
-            attribute_ = self._set_model_value(instance, attr_, ctx)
+            attribute_ = self._set_model_value(instance, attr_, component)
 
             _attribute_str = f'({attribute_})' if attribute_ else ''
 
             @instance.on(attr_.model)
             @wraps_with_name(f'@attr[to:{attr_}->model{_attribute_str}->{self}]')
             def __handler_to_model(parent_instance, event, current_attribute=attribute_):
-                _value = event.target.value
+                value = event.target.value
                 if current_attribute:
-                    setattr(self.__get__(parent_instance), current_attribute, _value)
+                    setattr(self.__get__(parent_instance), current_attribute, value)
                 else:
-                    self.__set__(parent_instance, _value, _prevent_model=current_attribute)
+                    self.__set__(parent_instance, value, _prevent_model=current_attribute)
 
             @self.on('change')
             @wraps_with_name(f'@attr[from:{attr_}->model{_attribute_str}->{self}]')
             def __handler_from_model(
-                parent_instance, _value, current_instance=instance, _attr_=attr_, current_attribute=attribute_
+                parent_instance, value, current_instance=instance, _attr_=attr_, current_attribute=attribute_
             ):
                 instance_ = getattr(parent_instance, current_attribute) if current_attribute else current_instance
 
-                if _value is not None and current_attribute:
-                    _value = getattr(_value, current_attribute)
+                if value is not None and current_attribute:
+                    value = getattr(value, current_attribute)
 
-                _attr_.__set__(instance_, _value, _prevent_model=current_attribute)
+                _attr_.__set__(instance_, value, _prevent_model=current_attribute)
 
         for index in reversed(to_remove_indexes):
             self._from_model_cache.pop(index)
 
     def __init_ctx__(self, ctx: Context, value):
         for handler in self.handlers['init']:
-            handler(ctx, value)
+            call_handler_with_optional_arguments(handler, ctx, {'value': value})
 
-    def __mount_ctx__(self, ctx: Context):
-        self._handle_model_listeners(ctx)
+    def __mount_cmpt__(self, component: Component):
+        self._handle_model_listeners(component)
 
-    def __post_mount_ctx__(self, ctx: Context):
+    def __post_mount_cmpt__(self, component: Component):
         for instance, attr_, _ in self._from_model_cache:
-            self._set_model_value(instance, attr_, ctx)
-        for handler in self.handlers['mount']:
-            handler(ctx, self.__get__(ctx))
+            self._set_model_value(instance, attr_, component)
+
+        if self.handlers['mount']:
+            value = self.__get__(component)
+            for handler in self.handlers['mount']:
+                call_handler_with_optional_arguments(handler, component, {'value': value})
 
     def __delete__(self, instance):
         return (self.fdel or self._fdel)(instance)
@@ -337,7 +362,7 @@ class attr:
 
             for trigger in triggers:
                 if handler in self.handlers[trigger]:
-                    raise AttributeError(f'This @on(\'{trigger}\') handler is already set')
+                    raise AttributeError(f"This @on('{trigger}') handler is already set")
             for trigger in triggers:
                 self.handlers[trigger].append(handler)
             return handler
@@ -388,7 +413,13 @@ class html_attr(attr):
         if instance is None:
             return self
 
-        return getattr(instance.mount_element, self.name, None)
+        el = instance.mount_element
+        if hasattr(el, self.name):  # noqa: SIM108 - just want to see difference
+            value = getattr(el, self.name, None)
+        else:
+            value = el.getAttribute(self.name)
+
+        return (value == '') if issubclass(self.type, bool) else value
 
     def _fset(self, instance, value):
         if hasattr(instance, 'mount_element'):
@@ -407,17 +438,17 @@ class listen_state(state):
         self.provider = None
         self.subscribers = []
 
-    def __mount_ctx__(self, ctx: Context):
+    def __mount_cmpt__(self, component: Component):
         if self.provider is None:
-            self.provider = ctx
+            self.provider = component
         else:
-            self.subscribers.append(ctx)
+            self.subscribers.append(component)
 
-    def __set__(self, instance, value, _prevent_model=False):
+    def __set__(self, instance, value, *, _prevent_model=False):
         super().__set__(instance, value, _prevent_model=_prevent_model)
         if instance is self.provider:
-            for ctx in self.subscribers:
-                ctx.__notify__(self.name, self, value)
+            for component in self.subscribers:
+                component.__notify__(self.name, self, value)
 
 
 __all__ = ['attr', 'state', 'html_attr']

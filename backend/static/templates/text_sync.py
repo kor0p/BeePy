@@ -1,14 +1,14 @@
-from beepy import Tag, Style, CONTENT, state
+from beepy import CONTENT, Style, Tag, state
 from beepy.tags import button, input_
 
 
 class TextSyncExample(Tag, name='example'):
     style = Style(
         zoom=5,
-        input=dict(
-            outline='2px solid transparent',
-            padding='0.5rem 0',
-        ),
+        input={
+            'outline': '2px solid transparent',
+            'padding': '0.5rem 0',
+        },
     )
 
     value = state('')

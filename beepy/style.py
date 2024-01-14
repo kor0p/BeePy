@@ -1,12 +1,12 @@
 import re
-from typing import Any, Optional, Type
+from collections.abc import Iterable
+from typing import Any
 
 from beepy.framework import __CONFIG__, Tag, attr, state
-from beepy.utils import js
-from beepy.utils.common import log10_ceil, get_random_name, MISSING, to_kebab_case, safe_issubclass
 from beepy.tags import Head
-from beepy.types import safe_html, safe_html_content
-from beepy.types import AttrValue
+from beepy.types import AttrValue, safe_html, safe_html_content
+from beepy.utils import js
+from beepy.utils.common import MISSING, get_random_name, log10_ceil, safe_issubclass, to_kebab_case
 
 
 def dict_of_properties_to_css(properties):
@@ -14,15 +14,15 @@ def dict_of_properties_to_css(properties):
         if not prop:
             yield value
             continue
-        if not isinstance(prop, (tuple, set)):
-            prop = (prop,)
+        if not isinstance(prop, Iterable) or isinstance(prop, str):
+            prop = (prop,)  # noqa: PLW2901
         if value == '':
-            value = '""'
+            value = '""'  # noqa: PLW2901
         result = ''
         for _property in prop:
             _property = to_kebab_case(_property)
             result += '    ' + _property
-            if isinstance(value, (list, tuple)):  # handle raw css
+            if isinstance(value, tuple | list):  # handle raw css
                 result += ' ' + (_property + ' ').join(x for x in value if x)
             else:
                 result += f': {value};'
@@ -33,16 +33,14 @@ def dict_of_parents_to_css(children, parent, braces):
     for child, value in children.items():
         if not child:
             yield f' {braces[0]} {child.strip()} {braces[1]}'
-        if isinstance(child, (tuple, set)):
-            child = ','.join(child)
-        if '&' in child:
-            child = re.sub('&', parent, child)
-        else:
-            child = parent + ' ' + child
+        if isinstance(child, tuple | set):
+            child = ','.join(child)  # noqa: PLW2901
+        child = re.sub('&', parent, child) if '&' in child else parent + ' ' + child  # noqa: PLW2901
         for inner in dict_to_css_iter(value, child, braces):
             if child.startswith('@') and not parent:
-                inner = f' {braces[0]} {inner.strip()} {braces[1]}'
-            yield inner
+                yield f' {braces[0]} {inner.strip()} {braces[1]}'
+            else:
+                yield inner
 
 
 def dict_to_css_iter(selectors: dict, parent: str = '', braces=('{', '}')):
@@ -150,12 +148,12 @@ class Style(Tag, name='style', content_tag=None, raw_html=True, force_ref=True):
     }
 
     options = state(type=dict)
-    real_parent: Optional[Tag]
+    real_parent: Tag | None
 
     @classmethod
-    def from_css(cls, file):
+    def from_css(cls, _file):
         # TODO: implement import from css/scss/pycss
-        raise AttributeError
+        raise NotImplementedError
 
     def __init__(self, styles=None, options=None, get_vars=None, **styles_dict):
         super().__init__()
@@ -181,7 +179,7 @@ class Style(Tag, name='style', content_tag=None, raw_html=True, force_ref=True):
         else:
             super().__mount__(element, parent, index)
 
-    def __unmount__(self, element, parent, _unsafe=False):
+    def __unmount__(self, element, parent, *, _unsafe=False):
         return super().__unmount__(element, parent, _unsafe=True)
 
     def mount(self):
@@ -222,9 +220,7 @@ class Style(Tag, name='style', content_tag=None, raw_html=True, force_ref=True):
 
         if self._main_style and (vars := parent.style_id.vars):
             # TODO: add mangling for --var names
-            params['__VARS__'] = dict_to_css(
-                {safe_html(f'--{name}'): value for name, value in vars.items()}
-            ).strip()[1:-1]
+            params['__VARS__'] = dict_to_css({safe_html(f'--{name}'): var for name, var in vars.items()}).strip()[1:-1]
 
         # TODO: use native css '--var: {}' instead of re-render the whole content
         return self._content.strip().format(**params)
@@ -256,7 +252,7 @@ class Style(Tag, name='style', content_tag=None, raw_html=True, force_ref=True):
         )
 
 
-def with_style(style_or_tag_cls: Optional[Style | Type[Tag]] = None):
+def with_style(style_or_tag_cls: Style | type[Tag] | None = None):
     """
     @with_style
     class Button(Tag, name='button'):
@@ -265,7 +261,7 @@ def with_style(style_or_tag_cls: Optional[Style | Type[Tag]] = None):
     styled_button = with_style(Style(display='block', **kwargs))(button)
     """
 
-    def wrapper(tag_cls: Type[Tag]):
+    def wrapper(tag_cls: type[Tag]):
         return type(tag_cls.__name__, (tag_cls,), {'style': style_or_tag_cls or Style()})
 
     if safe_issubclass(style_or_tag_cls, Tag):

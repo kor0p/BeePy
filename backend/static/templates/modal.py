@@ -1,6 +1,6 @@
-from beepy import Style, SUPER
-from beepy.tags import p, Head
+from beepy import SUPER, Style
 from beepy.modules.modal import Modal, ModalHandler
+from beepy.tags import Head, p
 
 Head.title = 'Modal example'
 

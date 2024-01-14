@@ -1,6 +1,6 @@
 # 🐝 BeePy
 
-## The _frontend_ web framework for python 
+## The _frontend_ web framework for python
 ### Thanks for [Pyodide](https://pyodide.org/) - port of Python to [Emscripten](https://emscripten.org/), based on [WASM](https://webassembly.org/).
 ### Use Python in browser to build modern frontend via BeePy!
 
