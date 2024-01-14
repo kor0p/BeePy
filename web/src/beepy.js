@@ -10,7 +10,7 @@ if (!!window.beepy) {
 }
 
 class BeePy {
-    __version__ = '0.8.5'
+    __version__ = '0.8.6'
 
     pyodideIndexURL = null
     globals = null
@@ -125,8 +125,14 @@ If you have config, you must define it before loading beepy script
             return await this.__main__()
         }
 
-        const attrModule = _script.getAttribute('bee-module')
+        let attrModule = _script.getAttribute('bee-module')
         if (attrModule) {
+            const href = window.location.href.substring(window.location.origin.length)
+            if (attrModule.substring(0, 2) === '..') {
+                attrModule = `${href.split('/').slice(0, -2).join('/')}${attrModule.substring(2)}`
+            } else if (attrModule[0] === '.') {
+                attrModule = `${href.split('/').slice(0, -1).join('/')}${attrModule.substring(1)}`
+            }
             await this.enterPythonModule(attrModule)
             return
         }
