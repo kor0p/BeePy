@@ -1,7 +1,7 @@
 from beepy import Style, Tag, attr, on
 from beepy.tags import Head, p
 from beepy.utils import js
-from beepy.utils.asyncio import delay
+from beepy.utils.asyncio import sleep
 from beepy.utils.js_py import replace_url
 
 Head.title = 'Dynamic URL'
@@ -35,15 +35,15 @@ class Item(Tag, name='item', content_tag=p()):
     url = attr(type=str)
 
     @on('click')
-    async def go(self):
+    def go(self):
         current_hash = js.location.hash[1:]
         for i in range(len(current_hash) + 1, -1, -1):
             push_hash(current_hash[:i] + emojis['break'] + emojis['worker'])
-            await delay(100)
+            sleep(0.1)
 
         for i in range(len(self.url)):
             push_hash(self.url[:i] + emojis['build'] + emojis['worker'])
-            await delay(100)
+            sleep(0.1)
 
         push_hash(self.url)
 

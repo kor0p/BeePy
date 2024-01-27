@@ -64,10 +64,6 @@ export function mergeDeep(...objects) {
     }, {})
 }
 
-window.delay = async function delay(ms) {
-    return new Promise(r => setTimeout(r, ms))
-}
-
 
 export function _lstrip (text) {
     return text.replace(/^\/+/, '')

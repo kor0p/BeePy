@@ -9,10 +9,7 @@ from collections import defaultdict
 from threading import Thread
 from typing import TYPE_CHECKING, Self
 
-try:
-    from pyodide.ffi import IN_BROWSER, create_once_callable, create_proxy
-except ImportError:
-    from pyodide import IN_BROWSER, create_once_callable, create_proxy
+from pyodide.ffi import create_once_callable, create_proxy
 
 
 class HTMLElement:
@@ -176,10 +173,6 @@ location = Location()
 history = History()
 
 
-async def delay(ms):
-    time.sleep(ms)
-
-
 class LocalStorage(dict):
     def getItem(self, key):
         return self[key]
@@ -279,9 +272,6 @@ class BeePyModule:
     def stopLoading(self):
         return
 
-    def addAsyncListener(self, el, eventName, method, modifiers, **options):
-        return
-
     class files:
         _lastLoadedFile = ''
 
@@ -297,6 +287,8 @@ _locals = {}
 window = self = globalThis = Self
 
 
+# Copy of pyodide.ffi.wrappers with using internal implementation intervals and timeouts
+# So this code can be used out of browser easily
 #################
 #       .       #
 #       .       #

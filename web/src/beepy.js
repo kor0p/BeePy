@@ -1,13 +1,9 @@
 import {_debugger, _lstrip, addHTMLElement, mergeDeep} from './utils'
-import {AsyncFiles, Files, rootFolder, SyncFiles, SyncFiles as StaticFiles} from './files'
+import {Files, rootFolder} from './files'
 import {dev_server} from './dev-server'
 import {python} from './python'
 
 const _script = document.currentScript
-let localConfig = {}
-if (!!window.beepy) {
-    localConfig = window.beepy
-}
 
 class BeePy {
     __version__ = '0.8.6'
@@ -20,7 +16,7 @@ class BeePy {
 
     static DEFAULT_CONFIG = {
         include: ['.env'],
-        pyodideVersion: '0.24.1',
+        pyodideVersion: '0.25.0',
         requirements: [],  // also could be function
     }
 
@@ -53,54 +49,26 @@ If you have config, you must define it before loading beepy script
         if (!!loadingEl) loadingEl.remove()
     }
 
-    // Listeners
-
-    listenerCheckFunctions = {
-        'prevent': 'preventDefault',
-        'stop': 'stopPropagation',
-        'stop_all': 'stopImmediatePropagation',
-    }
-
-    _handleAsyncListener (method, modifiers) {
-        return async (event) => {
-            for (const modifier of modifiers) {
-                event[this.listenerCheckFunctions[modifier]]()
-            }
-
-            try {
-                return await method(event)
-            } catch (err) {
-                _debugger(err)
-            }
-        }
-    }
-
-    addAsyncListener (el, eventName, method, modifiers, options={}) {
-        const _listener = this._handleAsyncListener(method, modifiers)  // should freeze parameters
-        el.addEventListener(eventName, _listener, options)
-        return _listener
-    }
-
     // Modules
-    _loadLocalModule (module, {pathToWrite='', addCurrentPath=true}={}) {
+    async loadLocalModule (module, {pathToWrite='', addCurrentPath=true}={}) {
         let moduleFile
 
-        const [path, parsedModule, fsPath] = Files._parseAndMkDirModule(module, addCurrentPath)
+        const [path, parsedModule, fsPath] = Files.parseAndMkDirModule(module, addCurrentPath)
         const fullPath = `${path}${path && parsedModule ? '/' : ''}${parsedModule}`
         let moduleFilePath = `${fullPath}${parsedModule ? '/' : ''}__init__.py`
 
         try {
-            moduleFile = StaticFiles.loadFile(moduleFilePath)
+            moduleFile = await Files.loadFile(moduleFilePath)
         } catch (e) {
             moduleFilePath = `${fullPath}.py`
-            moduleFile = StaticFiles.loadFile(moduleFilePath)
+            moduleFile = await Files.loadFile(moduleFilePath)
         }
 
         if (!pathToWrite) pathToWrite = moduleFilePath.replace(new RegExp(`^${path}`), fsPath)
         if (pathToWrite.includes('/')) Files.mkDirPath(pathToWrite, true)
 
         this.dev_server._filePathToModuleAndRealFileCache[moduleFilePath] = [pathToWrite, module]
-        SyncFiles._writeFile(pathToWrite, moduleFile)
+        await Files.writeFile(pathToWrite, moduleFile)
     }
 
     async enterPythonModule (module) {
@@ -109,8 +77,8 @@ If you have config, you must define it before loading beepy script
                 module = _lstrip(module).replace(/\//g, '.')
             }
 
-            beepy._loadLocalModule(module, {pathToWrite: '__init__.py', addCurrentPath: false})
-            beepy.python_api.run(`import ${rootFolder}`)
+            await beepy.loadLocalModule(module, {pathToWrite: '__init__.py', addCurrentPath: false})
+            await beepy.python_api.runAsync(`import ${rootFolder}`)
         } catch (e) {
             console.error(e)
             _debugger(e)
@@ -138,8 +106,8 @@ If you have config, you must define it before loading beepy script
         }
 
         try {
-            this._loadLocalModule('')
-            this.python_api.run(`import ${rootFolder}`)
+            await this.loadLocalModule('')
+            await this.python_api.runAsync(`import ${rootFolder}`)
         } catch (e) {
             console.debug(e)
             if (options.reload) return
@@ -159,7 +127,7 @@ If you have config, you must define it before loading beepy script
         let envFileExists = true
         for (const file of this.config.include) {
             try {
-                await AsyncFiles._writeFile(Files._parseAndMkDirFile(file).join('/'))
+                await Files.writeFile(Files.parseAndMkDirFile(file).join('/'))
             } catch (e) {
                 if (file === '.env') {
                     envFileExists = false
@@ -171,7 +139,7 @@ If you have config, you must define it before loading beepy script
 
         if (!envFileExists) {
             try {
-                await AsyncFiles._writeFile('.env', await AsyncFiles.loadFile(`${this.dev_path}/.env`))
+                await Files.writeFile('.env', await Files.loadFile(`${this.dev_path}/.env`))
             } catch (e) {}
         }
     }

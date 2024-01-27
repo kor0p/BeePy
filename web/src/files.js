@@ -17,7 +17,7 @@ export class Files {
         }
     }
 
-    static _parseAndMkDirFile (filePath, addCurrentPath = false, separator='/') {
+    static parseAndMkDirFile (filePath, addCurrentPath = false, separator='/') {
         let path = ''
 
         if (filePath && filePath.indexOf(separator) !== -1) {
@@ -35,8 +35,8 @@ export class Files {
     }
 
 
-    static _parseAndMkDirModule (module, addCurrentPath) {
-        return this._parseAndMkDirFile(module, addCurrentPath, '.')
+    static parseAndMkDirModule (module, addCurrentPath) {
+        return this.parseAndMkDirFile(module, addCurrentPath, '.')
     }
 
     static populateCurrentPath (path) {
@@ -49,34 +49,9 @@ export class Files {
         if (!path.includes('http')) path = `${window.location.origin}/${path}`
         return path
     }
-}
 
-
-export class SyncFiles {
-    static loadFile (filePath) {
-        filePath = _lstrip(filePath)
-        Files._lastLoadedFile = filePath
-        if (!filePath.includes('http')) filePath = `${window.location.origin}/${filePath}`
-
-        const req = new XMLHttpRequest()
-        req.open('GET', filePath, false)
-        req.send(null)
-        if (req.status >= 400 && req.status < 500) {
-            throw new Error('File not found')
-        }
-        return req.response
-    }
-
-    static _writeFile (file, content) {
-        if (!content) content = this.loadFile(file)
-        pyodide.FS.writeFile(`${rootFolder}/${file}`, content)
-    }
-}
-
-
-export class AsyncFiles {
     static async loadFile (filePath) {
-        Files._lastLoadedFile = filePath
+        this._lastLoadedFile = filePath
         if (!filePath.includes('http')) filePath = `${window.location.origin}/${filePath}`
 
         const r = await fetch(filePath, {method: 'GET'})
@@ -86,7 +61,7 @@ export class AsyncFiles {
         return await r.text()
     }
 
-    static async _writeFile (file, content) {
+    static async writeFile (file, content) {
         if (!content) content = await this.loadFile(_lstrip(file))
         pyodide.FS.writeFile(`${rootFolder}/${file}`, content)
     }

@@ -12,8 +12,9 @@ from beepy.modules.tabs import tab, tab_title, tabs
 from beepy.style import with_style
 from beepy.tags import Head, button, by__ref, change, h2, label, option, select, textarea, ul
 from beepy.types import AttrValue
-from beepy.utils import __CONFIG__, force_sync
+from beepy.utils import __CONFIG__
 from beepy.utils.api import request
+from beepy.utils.asyncio import before_load
 
 Head.title = 'Admin panel example'
 
@@ -371,7 +372,7 @@ class Admin(tabs, name='app'):
     def pre_mount(self):
         self.load_data()
 
-    @force_sync.wait_load
+    @before_load
     async def load_data(self):
         await self.groups.load_groups()
         await self.users.load_users()

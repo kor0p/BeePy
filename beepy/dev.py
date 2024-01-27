@@ -63,7 +63,7 @@ class DevServer:
                 os.system(f'cd {self.root_path}/web; npm run build; cd -')  # rebuild dist
             asyncio.run(self.ws_send('__'))
         else:
-            asyncio.run(self.ws_send(path))
+            asyncio.run(self.ws_send(path.removeprefix(self.static_path)))
 
     def _watcher_start(self):
         event_handler = MonitorFolder(self)
@@ -100,7 +100,7 @@ class DevServer:
             print(f'[BeePy] Serving at port {port}\nOpen server: http://localhost:{port}')
             httpd.serve_forever()
 
-    def start(self, start_http=None, root_path=None, *, forever=True):
+    def start(self, start_http=None, root_path=None, static_path='', *, forever=True):
         if self.observer is not None:
             print('[BeePy] Server is already started')
             return
@@ -109,6 +109,7 @@ class DevServer:
             root_path = sys.argv[1] if len(sys.argv) > 1 else Path.cwd()
 
         self.root_path = root_path
+        self.static_path = static_path
 
         Thread(target=self._ws_start, daemon=True).start()
         Thread(target=self._watcher_start, daemon=True).start()
