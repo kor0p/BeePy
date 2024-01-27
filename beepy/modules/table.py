@@ -8,8 +8,7 @@ from beepy.listeners import on
 from beepy.modules.actions import Action
 from beepy.style import Style
 from beepy.tags import table, tbody, td, th, thead, tr
-from beepy.utils.asyncio import ensure_sync_many
-from beepy.utils.common import call_handler_with_optional_arguments
+from beepy.utils.common import relaxed_call_handler
 
 T = TypeVar('T')
 
@@ -23,18 +22,13 @@ class TableCellAction(Action, _root=True):
     def click(self, event):
         tr: TR = self.parent.parent
         table: Table = tr.parent.parent
+        tag = table.parent
         row = table._map_data(tr.raw_data)
-        index = table.find_row_index(id=row['id'])
 
-        ensure_sync_many(
-            [
-                call_handler_with_optional_arguments(
-                    handler, table.parent, {'event': event, 'action': self.action_name, 'index': index}, row
-                )
-                for handler in table._handlers[self.action_name]
-            ],
-            lambda *_: table.parent.__render__(),
-        )
+        extra_args = {'event': event, 'action': self.action_name, 'index': table.find_row_index(id=row['id'])}
+        for handler in table._handlers[self.action_name]:
+            relaxed_call_handler(handler, tag, extra_args, row)
+        tag.__render__()
 
 
 class ActionEdit(TableCellAction):

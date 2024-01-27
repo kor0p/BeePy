@@ -1,7 +1,7 @@
 from beepy import Head, Style, Tag, empty_tag, mount, state
 from beepy.tags import button, div, p, textarea
 from beepy.types import safe_html
-from beepy.utils import ensure_sync, js
+from beepy.utils import js, syncify
 
 Head.title = 'Sandbox'
 
@@ -64,7 +64,7 @@ class View(Tag, name='view'):
         self.input.value = DEMO_CODE
 
     def mount(self):
-        ensure_sync(self.run())
+        syncify(self.run())
 
 
 mount(View(), '#root')

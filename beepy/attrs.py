@@ -9,7 +9,7 @@ from boltons.typeutils import issubclass, make_sentinel
 
 from beepy.types import AttrType, AttrValue
 from beepy.utils import log
-from beepy.utils.common import NONE_TYPE, call_handler_with_optional_arguments, to_kebab_case, wraps_with_name
+from beepy.utils.common import NONE_TYPE, relaxed_call_handler, to_kebab_case, wraps_with_name
 
 if TYPE_CHECKING:
     import builtins
@@ -184,7 +184,7 @@ class attr:
             for handler in self.handlers['change']:
                 if _prevent_model and _prevent_model in (True, self) and handler.__name__.startswith('@attr'):
                     continue
-                call_handler_with_optional_arguments(handler, instance, {'value': value})
+                relaxed_call_handler(handler, instance, {'value': value})
 
         if self.notify:
             instance.__notify__(self.name, self, value)
@@ -314,7 +314,7 @@ class attr:
 
     def __init_ctx__(self, ctx: Context, value):
         for handler in self.handlers['init']:
-            call_handler_with_optional_arguments(handler, ctx, {'value': value})
+            relaxed_call_handler(handler, ctx, {'value': value})
 
     def __mount_cmpt__(self, component: Component):
         self._handle_model_listeners(component)
@@ -326,7 +326,7 @@ class attr:
         if self.handlers['mount']:
             value = self.__get__(component)
             for handler in self.handlers['mount']:
-                call_handler_with_optional_arguments(handler, component, {'value': value})
+                relaxed_call_handler(handler, component, {'value': value})
 
     def __delete__(self, instance):
         return (self.fdel or self._fdel)(instance)

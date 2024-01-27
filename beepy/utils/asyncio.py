@@ -3,91 +3,59 @@ import inspect
 from functools import wraps
 
 import beepy
-from beepy.utils.dev import _debugger
-from beepy.utils.js_py import js
 
 
-def ensure_sync(to_await, callback=None):
-    if inspect.iscoroutine(to_await):
-        task = asyncio.get_event_loop().run_until_complete(to_await)
-        if callback:
-            task.add_done_callback(callback)
-        return task
-
-    if callback:
-        callback(to_await)
-    return to_await
+async def ensure_async(coro_or_result):
+    if inspect.iscoroutine(coro_or_result):
+        return await coro_or_result
+    else:
+        return coro_or_result
 
 
-def ensure_sync_many(to_awaits, callback=None):
-    tasks = []
-    raw_results = []
-
-    for to_await in to_awaits:
-        if inspect.iscoroutine(to_await):
-            tasks.append(to_await)
-        else:
-            raw_results.append(to_await)
-
-    if not tasks:
-        if callback:
-            callback(tasks, raw_results)
-        return tasks, raw_results
-
-    task = asyncio.get_event_loop().run_until_complete(asyncio.gather(*tasks))
-    if callback:
-        task.add_done_callback(lambda r: callback(r, raw_results))
-    return task, raw_results
+def ensure_sync(coro_or_result):
+    if inspect.iscoroutine(coro_or_result):
+        return syncify(coro_or_result)
+    else:
+        return coro_or_result
 
 
-def force_sync(function):
-    # TODO: maybe do it with class will be better?
+def syncify(coro):
+    return asyncio.create_task(coro).syncify()
 
-    callbacks = []
 
+def syncify_func(function):
     @wraps(function)
-    def wrapper(*args, _done_callback_=None, **kwargs):
-        current_callbacks = [(cb() if dynamic else cb) for cb, dynamic in callbacks]
-        current_callbacks.append(_done_callback_)
-
-        def _callback(_res_):
-            try:
-                r = _res_.result()
-            except Exception as e:  # noqa: BLE001 - Error in callback, just skip
-                _debugger(e)
-                return
-
-            for cb in current_callbacks:
-                if cb is None:
-                    continue
-                try:
-                    cb(*args, **kwargs, _res_=r)
-                except Exception as e:  # noqa: BLE001 - Error in callback, just skip
-                    _debugger(e)
-
-        return ensure_sync(function(*args, **kwargs), _callback)
-
-    wrapper.run_after = wrapper.add_callback = lambda fn: callbacks.append((fn, False)) or fn
-    wrapper.add_dynamic_callback = lambda fn: callbacks.append((fn, True)) or fn
+    def wrapper(*args, **kwargs):
+        return syncify(function(*args, **kwargs))
 
     return wrapper
 
 
-def force_sync__wait_load(function):
-    wrapper = force_sync(function)
-    wrapper.add_dynamic_callback(beepy.context.Context.create_onload)
+async def _gather(*coros):
+    return await asyncio.gather(*coros)
+
+
+def syncify_many(*coros):
+    return asyncio.create_task(_gather(*coros)).syncify()
+
+
+def execute_before_load(coro):
+    waiter = beepy.context.Context.create_onload()
+    try:
+        return syncify(coro)
+    finally:
+        waiter()
+
+
+def before_load(function):
+    @wraps(function)
+    def wrapper(*args, **kwargs):
+        return execute_before_load(function(*args, **kwargs))
+
     return wrapper
 
 
-force_sync.wait_load = force_sync__wait_load
+sleep = syncify_func(asyncio.sleep)
 
 
-delay = js.delay
-
-
-@force_sync
-async def sleep(s):  # TODO: check if this actually works or not
-    return await js.delay(s * 1000)
-
-
-__all__ = ['ensure_sync', 'force_sync', 'delay', 'sleep']
+__all__ = ['syncify', 'syncify_func', 'syncify_many', 'execute_before_load', 'before_load', 'sleep']

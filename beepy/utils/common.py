@@ -106,7 +106,7 @@ class Locker:
         return f'Locker<{self.name}>({self.locked})'
 
 
-def call_handler_with_optional_arguments(handler, obj, optional_args, *args):
+def relaxed_call_handler(handler, obj, optional_args, *args):
     parameters = inspect.signature(handler).parameters
 
     for name, arg in reversed(optional_args.items()):
@@ -130,6 +130,6 @@ __all__ = [
     'safe_issubclass',
     'AnyOfType',
     'Locker',
-    'call_handler_with_optional_arguments',
+    'relaxed_call_handler',
     'nested_copy',
 ]

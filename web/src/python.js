@@ -2,19 +2,19 @@ import {_debugger, isObject} from './utils'
 
 
 function _getGlobalsDict (options) {
+    let globals
     if (isObject(options)) {
-        return {globals: options.globals || beepy.globals}
+        globals = options.globals || beepy.globals
     } else if (options === null) {
-        return {globals: beepy.globals}
+        globals = beepy.globals
     } else {
-        console.warn('DeprecationWarning: The argument "globals" is now passed as a named argument')
-        return {globals: options || beepy.globals}
+        throw Error('ArgumentError: The argument "globals" is passed as a named argument')
     }
+    return {globals, locals: globals}
 }
 
 
 class Python {
-
     run (code, options=null) {
         try {
             return pyodide.runPython(code, _getGlobalsDict(options))
@@ -30,7 +30,7 @@ class Python {
             await pyodide.loadPackagesFromImports(code)
         }
         try {
-            return await pyodide.runPythonAsync(code, _getGlobalsDict(options))
+            return await pyodide.runPythonSyncifying(code, _getGlobalsDict(options))
         } catch (e) {
             console.debug(e)
             _debugger(e)
