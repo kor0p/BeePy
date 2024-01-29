@@ -11,14 +11,14 @@
         "webpack-merge": "^5.10.0"
     },
     "name": "@kor0p/beepy",
-    "version": "0.8.6",
+    "version": "0.8.7",
     "main": "",
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1",
         "watch": "webpack --watch",
         "start": "webpack serve --config webpack.dev.js",
         "build": "webpack --config webpack.prod.js",
-        "publish": "cp ../README.md . && npm publish --access=public && rm README.md"
+        "publish-2": "cp ../README.md . && npm publish --access=public && rm README.md"
     },
     "keywords": [
         "python",

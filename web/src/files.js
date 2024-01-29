@@ -21,9 +21,9 @@ export class Files {
         let path = ''
 
         if (filePath && filePath.indexOf(separator) !== -1) {
-            let pathParts = filePath.split(separator).reverse()
-            filePath = pathParts.shift()
-            path = pathParts.reverse().join('/')
+            let pathParts = filePath.split(separator)
+            filePath = pathParts.pop()
+            path = pathParts.join('/')
             this.mkDirPath(path)
         }
 

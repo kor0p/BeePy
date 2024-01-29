@@ -15,7 +15,7 @@ from beepy.utils.common import NONE_TYPE, get_random_name, to_kebab_case
 from beepy.utils.dev import _debugger
 from beepy.utils.internal import _PY_TAG_ATTRIBUTE
 
-__version__ = '0.8.6'  # For internal development set to 0.0a0
+__version__ = '0.8.7'  # For internal development set to 0.0a0
 __CONFIG__['version'] = __version__
 
 

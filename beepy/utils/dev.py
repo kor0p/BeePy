@@ -4,14 +4,6 @@ import traceback
 from beepy.utils.js_py import js, log, to_js
 
 
-class const_attribute(property):
-    def __set__(self, instance, value):
-        if self.__get__(instance) is None:
-            super().__set__(instance, value)
-        else:
-            raise AttributeError
-
-
 def _debugger(error=None):
     if isinstance(error, Exception):
         log.warn(traceback.format_exc())
@@ -28,4 +20,4 @@ def _debugger(error=None):
     js._DEBUGGER(error)
 
 
-__all__ = ['const_attribute', '_debugger']
+__all__ = ['_debugger']

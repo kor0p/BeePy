@@ -63,7 +63,7 @@ class ServerFinder(MetaPathFinder):
 
         err = None
         try:
-            js.beepy._loadLocalModule(fullname)
+            js.beepy.loadModule(fullname)
         except JsException as e:
             err = e
 

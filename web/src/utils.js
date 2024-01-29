@@ -1,7 +1,8 @@
-export const _debugger = function (error=null) {
+export function _debugger (error=null) {
     const place_breakpoint_here = 'use variable _locals in console to get locals() from python frame'
 }
 window._DEBUGGER = _debugger
+
 
 Element.prototype.insertChild = function (child, index) {
     if (index == null || index >= this.children.length) {

@@ -10,7 +10,7 @@ if (!!window.beepy) {
 }
 
 class BeePy {
-    __version__ = '0.8.6'
+    __version__ = '0.8.7'
 
     pyodideIndexURL = null
     globals = null
@@ -82,10 +82,14 @@ If you have config, you must define it before loading beepy script
     }
 
     // Modules
-    _loadLocalModule (module, {pathToWrite='', addCurrentPath=true}={}) {
+    loadModule (module, {pathToWrite='', addCurrentPath=true}={}) {
         let moduleFile
 
-        const [path, parsedModule, fsPath] = Files._parseAndMkDirModule(module, addCurrentPath)
+        if (module.includes('/')) {
+            module = _lstrip(module).replace(/\//g, '.')
+        }
+
+        const [path, parsedModule, fsPath = ''] = Files._parseAndMkDirModule(module, addCurrentPath)
         const fullPath = `${path}${path && parsedModule ? '/' : ''}${parsedModule}`
         let moduleFilePath = `${fullPath}${parsedModule ? '/' : ''}__init__.py`
 
@@ -101,15 +105,22 @@ If you have config, you must define it before loading beepy script
 
         this.dev_server._filePathToModuleAndRealFileCache[moduleFilePath] = [pathToWrite, module]
         SyncFiles._writeFile(pathToWrite, moduleFile)
+        return fullPath
     }
 
-    async enterPythonModule (module) {
+    async enterModule (module) {
         try {
-            if (module.includes('/')) {
-                module = _lstrip(module).replace(/\//g, '.')
-            }
+            const fullModulePath = beepy.loadModule(module, {addCurrentPath: false})
+            beepy.python_api.run(`import ${rootFolder}.${fullModulePath.replace(/\//g, '.')}`)
+        } catch (e) {
+            console.error(e)
+            _debugger(e)
+        }
+    }
 
-            beepy._loadLocalModule(module, {pathToWrite: '__init__.py', addCurrentPath: false})
+    async enterRootModule (module) {
+        try {
+            beepy.loadModule(module, {pathToWrite: '__init__.py', addCurrentPath: false})
             beepy.python_api.run(`import ${rootFolder}`)
         } catch (e) {
             console.error(e)
@@ -133,12 +144,12 @@ If you have config, you must define it before loading beepy script
             } else if (attrModule[0] === '.') {
                 attrModule = `${href.split('/').slice(0, -1).join('/')}${attrModule.substring(1)}`
             }
-            await this.enterPythonModule(attrModule)
+            await this.enterRootModule(attrModule)
             return
         }
 
         try {
-            this._loadLocalModule('')
+            this.loadModule('')
             this.python_api.run(`import ${rootFolder}`)
         } catch (e) {
             console.debug(e)

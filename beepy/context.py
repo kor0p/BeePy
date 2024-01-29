@@ -9,7 +9,6 @@ import beepy
 from beepy.attrs import attr
 from beepy.utils import js
 from beepy.utils.common import get_random_name, log10_ceil, to_kebab_case
-from beepy.utils.dev import const_attribute
 from beepy.utils.js_py import Interval, create_once_callable
 
 if TYPE_CHECKING:
@@ -234,7 +233,7 @@ class Context(metaclass=_MetaContext, _root=True):
     def __states__(self) -> dict[str, AttrType]:
         return {_attr.name: _attr.__get__(self) for _attr in self.attrs.values()}
 
-    @const_attribute
+    @property
     def args_kwargs(self):
         if not hasattr(self, '_args'):
             return None
