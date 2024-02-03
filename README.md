@@ -1,13 +1,14 @@
 # 🐝 BeePy
 
 [![NPM Package](https://img.shields.io/npm/v/@kor0p/beepy)](https://www.npmjs.com/package/@kor0p/beepy)
-[![Documentation](https://readthedocs.org/projects/bee-py/badge/?version=latest)](https://bee-py.readthedocs.io/en/latest/)
+[![PyPI Package](https://img.shields.io/pypi/v/beepy-web.svg)](https://pypi.org/project/beepy-web/)
+[![Documentation](https://cdn.jsdelivr.net/gh/Andre601/devins-badges@v3.x-mkdocs-material/assets/compact-minimal/built-with/mkdocs-material_vector.svg)](https://kor0p.github.io/BeePy/)
 
 ## The _frontend_ web framework for python
 ### Thanks for [Pyodide](https://pyodide.org/) - port of Python to [Emscripten](https://emscripten.org/), based on [WASM](https://webassembly.org/).
 ### Use Python in browser to build modern frontend via BeePy!
 
-## Try it out! [CodeSandBox](https://codesandbox.io/s/beepy-two-synced-counters-k5sm9j) and [BeePy Sandbox](https://kor0p.github.io/BeePy/examples/sandbox/)
+## Try it out! [CodeSandBox](https://codesandbox.io/s/beepy-two-synced-counters-k5sm9j) and [BeePy Sandbox](https://kor0p.github.io/BeePy-examples/sandbox)
 
 ## Join our community at [Telegram chat](https://t.me/bee_py/)
 
@@ -61,4 +62,4 @@ will render html as below, and will react on buttons click like native JS
 - [Input's model](https://beepy-web-ba63e5a12994.herokuapp.com/e/text-sync)
 - [Multiple apps on one page](https://beepy-web-ba63e5a12994.herokuapp.com/multiple-apps)
 - [Just the other one example](https://beepy-web-ba63e5a12994.herokuapp.com/e/custom_url)
-- [BeePy Sandbox](https://kor0p.github.io/BeePy/examples/sandbox/)
+- [BeePy Sandbox](https://kor0p.github.io/BeePy-examples/sandbox)

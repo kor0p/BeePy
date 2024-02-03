@@ -18,7 +18,7 @@ dependencies = [
 [project.urls]
 "Homepage" = "https://bit.ly/beepy"
 "Repository" = "https://github.com/kor0p/BeePy"
-"Docs" = "https://bee-py.readthedocs.io/en/latest/"
+"Docs" = "https://kor0p.github.io/BeePy/"
 
 [project.optional-dependencies]
 dev = [
@@ -42,8 +42,8 @@ path = "beepy/framework.py"
 exclude = [
     "/.github",
     "/.idea",
+    "mkdocs.yml",
     "/docs",
-    ".readthedocs.yaml",
     "/backend",
     "/examples",
     "app.json",
