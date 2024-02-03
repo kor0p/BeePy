@@ -4,6 +4,7 @@ export const rootFolder = '__beepy_root__'
 
 
 export class Files {
+    static _enteringModule = ''
     static _lastLoadedFile = ''
 
     static mkDirPath (path, removeFileName=false) {
@@ -13,7 +14,10 @@ export class Files {
 
         for (let length = 1; length <= maxLength; length++) {
             let pathToCreate = rootFolder + '/' + pathParts.slice(0, length).join('/')
-            if (!pyodide.FS.analyzePath(pathToCreate).exists) pyodide.FS.mkdir(pathToCreate)
+            if (!pyodide.FS.analyzePath(pathToCreate).exists) {
+                pyodide.FS.mkdir(pathToCreate)
+                pyodide.FS.writeFile(`${pathToCreate}/__init__.py`, '')
+            }
         }
     }
 
@@ -40,7 +44,7 @@ export class Files {
     }
 
     static populateCurrentPath (path) {
-        const currentPath = this._lastLoadedFile.replace(/(\/(\w*.py)?)*$/, '')
+        const currentPath = this._enteringModule ? '' : this._lastLoadedFile.replace(/(\/(\w*.py)?)*$/, '')
         return `${currentPath}${currentPath && path ? '/' : ''}${path.replace(/^\/*/, '')}`
     }
 
@@ -68,7 +72,7 @@ export class SyncFiles {
     }
 
     static _writeFile (file, content) {
-        if (!content) content = this.loadFile(file)
+        if (!content && content !== '') content = this.loadFile(file)
         pyodide.FS.writeFile(`${rootFolder}/${file}`, content)
     }
 }

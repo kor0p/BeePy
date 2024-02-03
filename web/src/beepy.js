@@ -10,7 +10,7 @@ if (!!window.beepy) {
 }
 
 class BeePy {
-    __version__ = '0.8.8'
+    __version__ = '0.8.9'
 
     pyodideIndexURL = null
     globals = null
@@ -86,6 +86,12 @@ If you have config, you must define it before loading beepy script
         let moduleFile
 
         if (module.includes('/')) {
+            const href = window.location.href.substring(window.location.origin.length)
+            if (module.substring(0, 2) === '..') {
+                module = `${href.split('/').slice(0, -2).join('/')}${module.substring(2)}`
+            } else if (module[0] === '.') {
+                module = `${href.split('/').slice(0, -1).join('/')}${module.substring(1)}`
+            }
             module = _lstrip(module).replace(/\//g, '.')
         }
 
@@ -100,7 +106,11 @@ If you have config, you must define it before loading beepy script
             moduleFile = StaticFiles.loadFile(moduleFilePath)
         }
 
-        if (!pathToWrite) pathToWrite = moduleFilePath.replace(new RegExp(`^${path}`), fsPath)
+        if (pathToWrite === '_raw_') {
+            pathToWrite = moduleFilePath
+        } else if (!pathToWrite) {
+            pathToWrite = moduleFilePath.replace(new RegExp(`^${path}`), fsPath)
+        }
         if (pathToWrite.includes('/')) Files.mkDirPath(pathToWrite, true)
 
         this.dev_server._filePathToModuleAndRealFileCache[moduleFilePath] = [pathToWrite, module]
@@ -109,13 +119,15 @@ If you have config, you must define it before loading beepy script
     }
 
     async enterModule (module) {
+        Files._enteringModule = module
         try {
-            const fullModulePath = beepy.loadModule(module, {addCurrentPath: false})
-            beepy.python_api.run(`import ${rootFolder}.${fullModulePath.replace(/\//g, '.')}`)
+            const fullModulePath = beepy.loadModule(module, {pathToWrite: '_raw_', addCurrentPath: false})
+            beepy.python_api.run(`import ${fullModulePath.replace(/\//g, '.')}`)
         } catch (e) {
             console.error(e)
             _debugger(e)
         }
+        Files._enteringModule = null
     }
 
     async enterRootModule (module) {
@@ -138,12 +150,6 @@ If you have config, you must define it before loading beepy script
 
         let attrModule = _script.getAttribute('bee-module')
         if (attrModule) {
-            const href = window.location.href.substring(window.location.origin.length)
-            if (attrModule.substring(0, 2) === '..') {
-                attrModule = `${href.split('/').slice(0, -2).join('/')}${attrModule.substring(2)}`
-            } else if (attrModule[0] === '.') {
-                attrModule = `${href.split('/').slice(0, -1).join('/')}${attrModule.substring(1)}`
-            }
             await this.enterRootModule(attrModule)
             return
         }

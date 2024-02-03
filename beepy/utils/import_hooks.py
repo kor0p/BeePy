@@ -56,21 +56,12 @@ class ServerFinder(MetaPathFinder):
         if Path(f'/lib/python3.11/site-packages/{fullname}').exists() or fullname in MODULES_NOT_EXISTING_ON_SERVER:
             return
 
-        is_beepy_module = fullname.startswith('beepy.')
         current_path = js.beepy.files._lastLoadedFile
-        if is_beepy_module:
-            js.beepy.files._lastLoadedFile = __CONFIG__['path']
 
-        err = None
         try:
             js.beepy.loadModule(fullname)
-        except JsException as e:
-            err = e
-
-        if err or is_beepy_module:
+        except JsException as err:
             js.beepy.files._lastLoadedFile = current_path
-
-        if err:
             _debugger(err)
             MODULES_NOT_EXISTING_ON_SERVER.append(fullname)
             return

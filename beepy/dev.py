@@ -28,7 +28,7 @@ class MonitorFolder(FileSystemEventHandler):
             event.event_type in ('opened', 'closed')
             or event.is_directory
             or event.src_path.endswith(('~', '.tmp'))
-            or re.search(r'/(__pycache__|.idea|dist|build)/', event.src_path)
+            or re.search(r'/(__pycache__|.git|.idea|dist|build)/', event.src_path)
         ):
             self.server.handle_file_event(event)
 
