@@ -15,6 +15,6 @@ class WebappConfig(AppConfig):
         from django.conf import settings
 
         if settings.DEBUG:
-            from beepy.dev import dev_server
+            from beepy.dev import DevServer
 
-            dev_server.start(root_path=str(Path(__file__).parent.parent.parent))
+            DevServer(root_path=Path(__file__).parent.parent.parent).start(start_http=False)

@@ -13,12 +13,12 @@
 ## Join our community at [Telegram chat](https://t.me/bee_py/)
 
 ## Local development:
-### Firstly, install BeePy
+### Install BeePy
 ### `pip install -U beepy-web[dev]`
-### Then, add `index.html` and `__init__.py` to root of project
-### and start local server at same directory
-### `python -m beepy.dev`
-### That's it!
+### Then just start local server
+### `python -m beepy.dev --create`
+### And that's it!
+
 ### Now, click on link in console to visit your server
 ### and change code to see updates in browser in no time!
 

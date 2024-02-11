@@ -35,6 +35,8 @@ theme:
         name: Switch to light mode
       primary: custom
       accent: lime
+  icon:
+    annotation: material/plus-circle-outline
 
 extra_css:
   - stylesheets/extra.css
