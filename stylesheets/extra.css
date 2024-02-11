@@ -1,0 +1,15 @@
+:root {
+  --md-primary-fg-color:        #B1868F;
+  --md-primary-fg-color--light: #B1868F;
+  --md-primary-fg-color--dark:  #B1868F;
+  /*--md-primary-fg-color--light: #ECB7B7;*/
+  /*--md-primary-fg-color--dark:  #90030C;*/
+}
+
+#beepy-examples {
+    #ex-counter, #ex-synced-counters {
+        div {
+            user-select: none;
+        }
+    }
+}
