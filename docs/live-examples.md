@@ -1,6 +1,6 @@
 # Welcome to BeePy
 
-<script src='https://cdn.jsdelivr.net/npm/@kor0p/beepy@0.9.0/dist/beepy.js'></script>
+<script src='https://cdn.jsdelivr.net/npm/@kor0p/beepy@0.9.2/dist/beepy.js'></script>
 <script>
 beepy.__main__ = async () => {
     for (const demo_file of ['counter', 'synced_counters']) {
