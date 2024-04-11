@@ -2,7 +2,7 @@
     "devDependencies": {
         "css-loader": "^6.8.1",
         "html-webpack-plugin": "^5.6.0",
-        "pyodide": "^0.24.1",
+        "pyodide": "^0.25.1",
         "style-loader": "^3.3.3",
         "terser-webpack-plugin": "^5.3.10",
         "webpack": "^5.89.0",
@@ -11,7 +11,7 @@
         "webpack-merge": "^5.10.0"
     },
     "name": "@kor0p/beepy",
-    "version": "0.9.2",
+    "version": "0.9.3",
     "main": "",
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1",

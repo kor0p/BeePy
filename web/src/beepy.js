@@ -10,7 +10,7 @@ if (!!window.beepy) {
 }
 
 class BeePy {
-    __version__ = '0.9.2'
+    __version__ = '0.9.3'
 
     pyodideIndexURL = null
     globals = null
@@ -20,7 +20,7 @@ class BeePy {
 
     static DEFAULT_CONFIG = {
         include: ['.env'],
-        pyodideVersion: '0.24.1',
+        pyodideVersion: '0.25.1',
         requirements: [],  // also could be function
     }
 

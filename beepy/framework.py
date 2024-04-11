@@ -15,7 +15,7 @@ from beepy.utils.common import NONE_TYPE, get_random_name, to_kebab_case
 from beepy.utils.dev import _debugger
 from beepy.utils.internal import _PY_TAG_ATTRIBUTE
 
-__version__ = '0.9.2'  # For internal development set to 0.0a0
+__version__ = '0.9.3'  # For internal development set to 0.0a0
 __CONFIG__['version'] = __version__
 
 
@@ -431,7 +431,7 @@ class Tag(Component, metaclass=_MetaTag, _root=True):
             log.warn(
                 'Something went wrong!\n'
                 f'Real parent: {self.mount_parent} {self.parent}. Passed parent: {element} {parent} '
-                'If you override __mount__, you also should override __unmount__ too.'
+                'If you override _mount_, you also should override _unmount_ too.'
             )
             log.warn(''.join(traceback.format_stack()[:-1]))
 
@@ -517,10 +517,6 @@ def empty_tag(name):
     return _MetaTag(name, (Tag,), {}, name=name, content_tag=None)
 
 
-def inline_tag(name, content_tag=None, **attributes):
-    return _MetaTag(name, (Tag,), attributes, name=name, content_tag=content_tag)
-
-
 empty_div = empty_tag('div')
 empty_span = empty_tag('span')
 
@@ -535,16 +531,13 @@ def mount(element: Tag, root_element: str, *, clear=False):
         root.innerHTML = ''
     js.beepy.startLoading(mountPoint=root)
 
-    parent = inline_tag(root.tagName.lower(), _root_parent=state(type=Tag, move_on=True))()
-    parent._root_parent = parent
-    parent._attrs_defaults['_root_parent'] = parent
-    parent.__class__._root_parent.initial_value = parent
+    name = root.tagName.lower()
+    parent = _MetaTag(name, (Tag,), {'_root_parent': state(type=Tag, move_on=True)}, name=name, content_tag=None)()
+    parent._attrs_defaults['_root_parent'] = parent.__class__._root_parent.initial_value = parent
     parent.mount_element = root
     element.link_parent_attrs(parent)
 
-    setattr(root, _PY_TAG_ATTRIBUTE, parent)
-    _MetaTag._top_mount(element, root, parent)
-    _MetaTag._top_render(element)
+    _MetaTag._top_mount(element)
 
     if not js.document.title:
         js.document.title = 'BeePy'

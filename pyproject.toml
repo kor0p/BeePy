@@ -10,7 +10,6 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "pyodide-py==0.25.1", # Pyodide package
     "python-dotenv==1.0.0", # .env file to os.environ
     "boltons==23.1.1", # Better builtins
 ]
@@ -22,6 +21,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
+    "pyodide-py==0.25.1", # Pyodide package
     "micropip==0.3.0", # A lightweight Python package installer for the web
     "watchdog==3.0.0", # watcher for files that changes for Hot reload
     "websockets==11.0.3", # Hot reload is working using simple WebSockets server

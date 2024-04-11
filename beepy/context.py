@@ -28,7 +28,7 @@ _SPECIAL_CHILD_STRINGS = (OVERWRITE, SUPER, CONTENT)
 
 
 class _MetaContext(ABCMeta):
-    _to_load_before_top_render: dict[Context | None, list] = {None: []}
+    _to_load_before_top_render: list = []
     _wait_onload_interval: dict[Context, Interval] = {}
     _context_classes = []
     __clean_class_attribute_names = ()
@@ -103,17 +103,18 @@ class _MetaContext(ABCMeta):
                 namespace.update(extra)
 
     @classmethod
-    def _top_mount(mcs, element, root, parent):
+    def _top_mount(mcs, element):
+        parent = element._root_parent
+        root = parent.mount_element
         root.style = 'visibility: hidden'
+
         mcs._current_render[parent] = []
         element.__mount__(root, parent)
 
-    @classmethod
-    def _top_render(mcs, element):
-        mcs._wait_onload_interval[element._root_parent] = Interval(mcs.wait_onload, (element,), period=0.2)
+        mcs._wait_onload_interval[parent] = Interval(mcs._wait_onload, (element,), period=0.2)
 
     @classmethod
-    def _top_render_real(mcs, element):
+    def _top_render(mcs, element):
         element._root_parent.mount_element.style = ''
         js.beepy.stopLoading()
         element.__render__()
@@ -136,18 +137,18 @@ class _MetaContext(ABCMeta):
     def create_onload(mcs):
         @create_once_callable
         def onload(*_, **__):
-            mcs._to_load_before_top_render[None].remove(onload)
+            mcs._to_load_before_top_render.remove(onload)
 
-        mcs._to_load_before_top_render[None].append(onload)
+        mcs._to_load_before_top_render.append(onload)
         return onload
 
     @classmethod
-    def wait_onload(mcs, element):
-        if not mcs._to_load_before_top_render[None] and not mcs._to_load_before_top_render.get(element._root_parent):
+    def _wait_onload(mcs, element):
+        if not mcs._to_load_before_top_render:
             if interval := mcs._wait_onload_interval.get(element._root_parent):
                 interval.clear()
                 mcs._wait_onload_interval.pop(element._root_parent)
-            mcs._top_render_real(element)
+            mcs._top_render(element)
 
 
 class Context(metaclass=_MetaContext, _root=True):
