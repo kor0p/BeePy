@@ -189,6 +189,7 @@ class option(html_tag, name='option'):
     selected = html_attr(default=False)
 
 
+# TODO: fix bug with <select>    (click "Selector", then click "Admin panel" and see Group selection...)
 class select(html_tag, name='select'):
     value = html_attr(model='change')
 
@@ -209,7 +210,7 @@ class StandaloneTag(html_tag, _root=True):
         kwargs['_load_children'] = True
         super().__init__(*args, **kwargs)
 
-    def __mount__(self, element, parent: Tag, index=None):
+    def _mount_(self, element, parent: Tag, index=None):  # noqa: ARG002 - unused `index`
         # too many copy-paste?
         self.parent = parent
         self.mount_parent = element

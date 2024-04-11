@@ -172,15 +172,15 @@ class Style(Tag, name='style', content_tag=None, raw_html=True, force_ref=True):
             'get_vars_callback': get_vars,
         } | options
 
-    def __mount__(self, element, parent, index=None):
+    def _mount_(self, element, parent, index=None):
         self.real_parent = parent
         if __CONFIG__['style_head']:
-            super().__mount__(Head.mount_element, Head)
+            super()._mount_(Head.mount_element, Head)
         else:
-            super().__mount__(element, parent, index)
+            super()._mount_(element, parent, index)
 
-    def __unmount__(self, element, parent, *, _unsafe=False):
-        return super().__unmount__(element, parent, _unsafe=True)
+    def _unmount_(self, element, parent, *, _unsafe=False):
+        return super()._unmount_(element, parent, _unsafe=True)
 
     def mount(self):
         styles = {Raw(): '{__VARS__}'} | self.styles

@@ -83,11 +83,11 @@ class ContextMenu(ul):
         self.pos_y = y
         self.show()
 
-    def __mount__(self, element, parent, index=None):
-        super().__mount__(Body.mount_element, Body)
+    def _mount_(self, element, parent, index=None):  # noqa: ARG002 - unused arguments
+        super()._mount_(Body.mount_element, Body)
 
-    def __unmount__(self, element, parent, *, _unsafe=False):
-        return super().__unmount__(element, parent, _unsafe=True)
+    def _unmount_(self, element, parent, *, _unsafe=False):
+        return super()._unmount_(element, parent, _unsafe=True)
 
 
 class ContextMenuHandler(div):

@@ -40,6 +40,7 @@ class _MetaContext(ABCMeta):
 
         # used for checking inheritance: attributes, methods, etc.
         # for example: extending classes Tag and WithRouter must produce correct state 'router'
+        # TODO: move this (or part of this) to _MetaContext.__init__
         base_cls: type[Context] | type = type.__new__(mcs, _name, bases, {})
 
         namespace = namespace.copy()
@@ -164,7 +165,6 @@ class Context(metaclass=_MetaContext, _root=True):
     _context_name_: str
 
     def __new__(cls, *args, **kwargs):
-        parent = kwargs.pop('__parent__', None)
         self = super().__new__(cls)
         self.attrs = self._static_attrs.copy()
 
@@ -178,13 +178,14 @@ class Context(metaclass=_MetaContext, _root=True):
 
         for name, attribute in self.attrs.items():
             attribute._link_cmpt(name, self, force=False)
-            if parent and name in kwargs:
-                attribute.__set_first__(self, kwargs[name], parent)
-
-        if parent:
-            self.link_parent_attrs(parent)
 
         return self
+
+    def _clone_link_parent(self, parent):
+        for name, attribute in self.attrs.items():
+            if name in self._kwargs:
+                attribute.__set_first__(self, self._kwargs[name], parent)
+        self.link_parent_attrs(parent)
 
     def link_parent_attrs(self, parent):
         p_args, p_kwargs = parent.args_kwargs
@@ -249,9 +250,9 @@ class Context(metaclass=_MetaContext, _root=True):
 
     def clone(self, parent=None) -> Self:
         args, kwargs = self.args_kwargs
-        if parent is not None:
-            kwargs = kwargs | {'__parent__': parent}
-        return type(self)(*args, **kwargs)
+        clone = type(self)(*args, **kwargs)
+        clone._clone_link_parent(parent)
+        return clone
 
 
 _CONTEXT_INITIALIZED = True

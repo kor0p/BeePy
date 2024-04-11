@@ -54,11 +54,11 @@ class Modal(Tag, name='modal', content_tag='h2', children_tag='modal-content'):
         if self.on_close:
             self.on_close()
 
-    def __mount__(self, element, parent, index=None):
-        super().__mount__(Body.mount_element, Body)
+    def _mount_(self, element, parent, index=None):  # noqa: ARG002 - unused arguments
+        super()._mount_(Body.mount_element, Body)
 
-    def __unmount__(self, element, parent, *, _unsafe=False):
-        return super().__unmount__(element, parent, _unsafe=True)
+    def _unmount_(self, element, parent, *, _unsafe=False):
+        return super()._unmount_(element, parent, _unsafe=True)
 
 
 class ModalHandler(div, content_tag=div()):

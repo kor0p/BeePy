@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import time
 from collections import defaultdict
+from collections.abc import Callable
 from threading import Thread
 from typing import TYPE_CHECKING, Self
 
@@ -18,13 +19,14 @@ except ImportError:
 class HTMLElement:
     __PYTHON_TAG__: Tag
 
-    def __init__(self, tag_name):
+    def __init__(self, tag_name, *, _parent=None):
         self.attributes = {}
         self.data = []
         self.listeners = defaultdict(list)
         self.tagName = tag_name
         self.shadowRoot = None
         self.clientWidth = self.clientHeight = self.scrollWidth = self.scrollHeight = 1
+        self.parentElement = _parent
 
     def getAttribute(self, name):
         return self.attributes.get(name)
@@ -44,6 +46,9 @@ class HTMLElement:
         print(self)
 
     def insertChild(self, el: HTMLElement | str, index: int = None):
+        if not isinstance(el, str):
+            el.parentElement = self
+
         if index is None:
             self.data.append(el)
         else:
@@ -271,7 +276,7 @@ class BeePyModule:
     config = {}
 
     def addElement(self, mount_point, element_name, **options):
-        return HTMLElement(element_name)
+        return HTMLElement(element_name, _parent=mount_point)
 
     def startLoading(self, *a, **kw):
         return
@@ -285,7 +290,8 @@ class BeePyModule:
     class files:
         _lastLoadedFile = ''
 
-        def getPathWithCurrentPathAndOrigin(self, path):
+        @staticmethod
+        def getPathWithCurrentPathAndOrigin(path):
             return path
 
     class dev_server:
@@ -297,6 +303,9 @@ _locals = {}
 window = self = globalThis = Self
 
 
+# Mock of pyodide functions, but without `.destroy()`
+# For testing outside of browser
+
 #################
 #       .       #
 #       .       #
@@ -304,11 +313,6 @@ window = self = globalThis = Self
 #       .       #
 #       .       #
 #################
-
-
-class Destroyable:
-    def destroy(self):
-        pass
 
 
 EVENT_LISTENERS = {}
@@ -327,12 +331,10 @@ def remove_event_listener(elt, event, listener):
     """Wrapper for JavaScript's removeEventListener() which automatically manages the lifetime
     of a JsProxy corresponding to the listener param.
     """
-    proxy = EVENT_LISTENERS.pop((elt.js_id, event, listener))
-    elt.removeEventListener(event, proxy)
-    proxy.destroy()
+    elt.removeEventListener(event, EVENT_LISTENERS.pop((elt.js_id, event, listener)))
 
 
-TIMEOUTS: dict[int, Destroyable] = {}
+TIMEOUTS: dict[int, Callable] = {}
 
 
 def set_timeout(callback, timeout):
@@ -351,25 +353,15 @@ def set_timeout(callback, timeout):
     return id
 
 
-# An object with a no-op destroy method so we can do
-#
-# TIMEOUTS.pop(id, DUMMY_DESTROYABLE).destroy()
-#
-# and either it gets a real object and calls the real destroy method or it gets
-# the fake which does nothing. This is to handle the case where clear_timeout is
-# called after the timeout executes.
-DUMMY_DESTROYABLE = Destroyable()
-
-
 def clear_timeout(id):
     """Wrapper for JavaScript's clearTimeout() which automatically manages the lifetime
     of a JsProxy corresponding to the callback param.
     """
     clearTimeout(id)
-    TIMEOUTS.pop(id, DUMMY_DESTROYABLE).destroy()
+    TIMEOUTS.pop(id, None)
 
 
-INTERVAL_CALLBACKS: dict[int, Destroyable] = {}
+INTERVAL_CALLBACKS: dict[int, Callable] = {}
 
 
 def set_interval(callback, interval):
@@ -387,4 +379,4 @@ def clear_interval(id):
     of a JsProxy corresponding to the callback param.
     """
     clearInterval(id)
-    INTERVAL_CALLBACKS.pop(id, DUMMY_DESTROYABLE).destroy()
+    INTERVAL_CALLBACKS.pop(id, None)

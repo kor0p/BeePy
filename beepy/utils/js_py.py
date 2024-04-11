@@ -9,14 +9,18 @@ except ModuleNotFoundError:
 
 from pyodide.ffi import IN_BROWSER, create_once_callable, create_proxy
 from pyodide.ffi import to_js as pyodide_to_js
-from pyodide.ffi.wrappers import (
-    add_event_listener,
-    clear_interval,
-    clear_timeout,
-    remove_event_listener,
-    set_interval,
-    set_timeout,
-)
+
+if IN_BROWSER:
+    from pyodide.ffi.wrappers import (
+        add_event_listener,
+        clear_interval,
+        clear_timeout,
+        remove_event_listener,
+        set_interval,
+        set_timeout,
+    )
+else:
+    from .js import add_event_listener, clear_interval, clear_timeout, remove_event_listener, set_interval, set_timeout
 
 log = js.console
 

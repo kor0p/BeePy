@@ -36,12 +36,13 @@ class MonitorFolder(FileSystemEventHandler):
 
 
 class DevServer:
-    def __init__(self, *, root_path=None):
+    def __init__(self, *, root_path=None, parse_cmd=True):
         self.websockets = []
         self.root_path = root_path
         self.observer = None
         self.developer_mode = 'DEVELOPMENT' in os.environ
-        self.handle_cmd_args()
+        if parse_cmd:
+            self.handle_cmd_args()
 
     def handle_cmd_args(self):
         parser = argparse.ArgumentParser(prog='beepy.dev', description='Simple dev server for BeePy')

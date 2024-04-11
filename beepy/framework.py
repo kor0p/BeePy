@@ -5,7 +5,7 @@ from collections.abc import Callable, Iterable
 from functools import cache
 from types import MethodType
 
-from beepy.attrs import attr, set_html_attribute, state
+from beepy.attrs import attr, state
 from beepy.children import ChildRef, Children, ContentWrapper, CustomWrapper, StringWrapper, TagRef
 from beepy.components import Component, _MetaComponent
 from beepy.context import _SPECIAL_CHILD_STRINGS, CONTENT, OVERWRITE, SUPER
@@ -15,7 +15,7 @@ from beepy.utils.common import NONE_TYPE, get_random_name, to_kebab_case
 from beepy.utils.dev import _debugger
 from beepy.utils.internal import _PY_TAG_ATTRIBUTE
 
-__version__ = '0.8.10'  # For internal development set to 0.0a0
+__version__ = '0.9.0'  # For internal development set to 0.0a0
 __CONFIG__['version'] = __version__
 
 
@@ -167,15 +167,56 @@ class _MetaTag(_MetaComponent):
 
         return cls
 
+
+class Tag(Component, metaclass=_MetaTag, _root=True):
+    # TODO: add docstrings
+
+    __slots__ = (
+        '_content',
+        '_shadow_root',
+        'mount_parent',
+        '_mount_finished_',
+        'mount_element',
+        '_children',
+        '_children_element',
+        '_children_tag',
+    )
+
+    _root_parent: Tag = None  # see function mount in the bottom
+
+    _static_content: ContentType = ''
+
+    _content: ContentType
+    _shadow_root: js.HTMLElement
+    _ref: TagRef | None
+    _force_ref: bool = False
+
+    _tag_name_: str
+    _tags: list[Tag]
+    mount_element: js.HTMLElement
+    mount_parent: js.HTMLElement
+    _static_children: list[ContentType]
+    _children: list[Mounter]
+    _children_element: js.HTMLElement
+    _static_children_tag: Tag
+    _children_tag: Tag
+    _mount_finished_: bool
+
     @classmethod
-    def __META_mount__(cls, self: Tag, args, kwargs, _original_func):
+    def __root_declared__(cls):
+        """This method is called, when root Tag is defined"""
+
+    @classmethod
+    def __class_declared__(cls):
+        """This method is called, when common Tag is defined"""
+
+    def __mount__(self, *args, **kwargs):
         self.__class__._tags.append(self)
 
         self._mount_finished_ = False
 
-        result = _original_func(self, *args, **kwargs)
-
-        self._mount_attrs()
+        result = yield 'call'
+        yield 'attrs'
 
         for child in self.children:
             if isinstance(child, CustomWrapper):
@@ -184,34 +225,60 @@ class _MetaTag(_MetaComponent):
                 child.__mount__(self._children_element, self)
             else:
                 log.warn(f'Cannot mount: {child}')
+
         if self._children_tag:
             self.mount_element.insertChild(self._children_element)
 
-        if self.content_child is None:
-            _debugger(self)
+        if (content_child := self.get_content_child()) is None:
+            _debugger(self)  # wtf?
         else:
-            self.content_child._mount_children()
+            content_child._mount_children()
 
-        super().__META_mount__(self, args, kwargs, None, _mount_attrs=False)
+        super().__mount__.call_as_super(self, args, kwargs)
 
         self._mount_finished_ = True
 
+        yield 'post_call'
+
         return result
 
-    @classmethod
-    def __META_render__(cls, self: Tag, args, kwargs, _original_func):
+    def __unmount__(self, *args, **kwargs):
+        if self in self.__class__._tags:  # But why?
+            self.__class__._tags.remove(self)
+
+        super().__unmount__.call_as_super(self, args, kwargs)
+
+        yield 'pre_call'
+
+        for child in self.children:
+            if isinstance(child, CustomWrapper):
+                child.__unmount__(self.mount_element, self)
+            elif isinstance(child, Mounter):
+                child.__unmount__(self._children_element, self)
+        if self._children_tag:
+            self.mount_element.safeRemoveChild(self._children_element)
+
+        result = yield 'call'
+        yield 'post_call'
+        return result
+
+    def __render__(self, *args, **kwargs):
         if not self._mount_finished_ or (
             not self.mount_element.parentElement and self._root_parent != self  # dismounted
         ):
             return  # Prevent render before mount finished; Could be useful for setting intervals inside mount method
 
-        return super().__META_render__(self, args, kwargs, _original_func)
+        yield from super().__render__.original_fn(self, *args, **kwargs)
 
-    @classmethod
-    def __META_init__(cls, self: Tag, args, kwargs, _original_func):  # noqa: PLR0912, PLR0915
-        kwargs.pop('__parent__', None)  # called from clone
-        if hasattr(getattr(self, 'mount_element', None), _PY_TAG_ATTRIBUTE):
-            return
+    def __init__(self, *args, **kwargs: AttrType):
+        kwargs.setdefault('_load_children', False)
+        super().__init__(*args, **kwargs)
+
+    def __new__(cls, *args, **kwargs):  # noqa: PLR0915, PLR0912 - Statements (60 > 50)  +  Branches (23 > 12)
+        if hasattr(getattr(cls, 'mount_element', None), _PY_TAG_ATTRIBUTE):
+            return getattr(cls.mount_element, _PY_TAG_ATTRIBUTE)
+
+        self: Tag = super().__new__(cls, *args, **kwargs)
 
         self._children = self._static_children.copy()
         self._content = self._static_content
@@ -282,82 +349,6 @@ class _MetaTag(_MetaComponent):
             self._children_tag = None
             self._children_element = self.mount_element
 
-        super().__META_init__(self, args, kwargs, _original_func)
-
-    @classmethod
-    def __META_unmount__(cls, self: Tag, args, kwargs, _original_func):
-        if self in self.__class__._tags:  # But why?
-            self.__class__._tags.remove(self)
-
-        super().__META_unmount__(self, args, kwargs, None, _post_mount=False)
-
-        for child in self.children:
-            if isinstance(child, CustomWrapper):
-                child.__unmount__(self.mount_element, self)
-            elif isinstance(child, Mounter):
-                child.__unmount__(self._children_element, self)
-        if self._children_tag:
-            self.mount_element.safeRemoveChild(self._children_element)
-
-        result = _original_func(self, *args, **kwargs)
-
-        self.post_unmount()
-
-        return result
-
-
-class Tag(Component, metaclass=_MetaTag, _root=True):
-    # TODO: add docstrings
-
-    __slots__ = (
-        '_content',
-        '_shadow_root',
-        'mount_parent',
-        '_mount_finished_',
-        'mount_element',
-        '_children',
-        '_children_element',
-        '_children_tag',
-    )
-
-    _root_parent: Tag = None  # see function mount in the bottom
-
-    _static_content: ContentType = ''
-
-    _content: ContentType
-    _shadow_root: js.HTMLElement
-    _ref: TagRef | None
-    _force_ref: bool = False
-
-    _tag_name_: str
-    _tags: list[Tag]
-    mount_element: js.HTMLElement
-    mount_parent: js.HTMLElement
-    _static_children: list[ContentType]
-    _children: list[Mounter]
-    _children_element: js.HTMLElement
-    _static_children_tag: Tag
-    _children_tag: Tag
-    _mount_finished_: bool
-
-    @classmethod
-    def __root_declared__(cls):
-        """This method is called, when root Tag is defined"""
-
-    @classmethod
-    def __class_declared__(cls):
-        """This method is called, when common Tag is defined"""
-
-    def __init__(self, *args, **kwargs: AttrType):
-        kwargs.setdefault('_load_children', False)
-        super().__init__(*args, **kwargs)
-
-    def __new__(cls, *args, **kwargs):
-        if hasattr(getattr(cls, 'mount_element', None), _PY_TAG_ATTRIBUTE):
-            self = getattr(cls.mount_element, _PY_TAG_ATTRIBUTE)
-        else:
-            self = super().__new__(cls, *args, **kwargs)
-
         return self
 
     def __repr__(self):
@@ -390,17 +381,8 @@ class Tag(Component, metaclass=_MetaTag, _root=True):
         if ref.inline_def:
             setattr(type(parent), ref.name, self)
 
-    def __render__(self, attrs: dict[str, AttrType] | None = None):
+    def _render_(self, attrs: dict[str, AttrType] | None = None):  # noqa: ARG002 - unused `attrs`
         self._current_render.append(self)
-
-        if attrs is None:
-            attrs = {}
-
-        for name, value in {**self.__attrs__, **attrs}.items():
-            # TODO: optimize this - set only changed attributes
-
-            type = _attr.type if (_attr := self.attrs.get(name)) else NONE_TYPE
-            set_html_attribute(self.mount_element, name, value, type=type)
 
         content_index = self.get_content_index()
         if content_index is not None:
@@ -437,14 +419,14 @@ class Tag(Component, metaclass=_MetaTag, _root=True):
 
         super().init(*args, **kwargs)
 
-    def __mount__(self, element, parent: Tag, index=None):
+    def _mount_(self, element, parent: Tag, index=None):
         self.mount_parent = element
 
-        super().__mount__(element, parent, index=index)
+        super()._mount_(element, parent, index=index)
 
         self.mount_parent.insertChild(self.mount_element, index)
 
-    def __unmount__(self, element, parent, *, _unsafe=False):
+    def _unmount_(self, element, parent, *, _unsafe=False):
         if not _unsafe and self.mount_parent is not None and self.mount_parent is not element:
             log.warn(
                 'Something went wrong!\n'
@@ -463,8 +445,7 @@ class Tag(Component, metaclass=_MetaTag, _root=True):
     def ref_children(self) -> dict[str, Mounter]:
         return {child.name: child.__get__(self) for child in self.children if isinstance(child, ChildRef)}
 
-    @property
-    def content_child(self) -> ContentWrapper:
+    def get_content_child(self) -> ContentWrapper:
         for child in self.children:
             if isinstance(child, ContentWrapper) and child.content.__func__.__name__ == 'content':
                 return child
@@ -480,9 +461,6 @@ class Tag(Component, metaclass=_MetaTag, _root=True):
 
     @children.setter
     def children(self, children):
-        self._children = self._handle_children(children)
-
-    def _handle_children(self, children):
         result = []
 
         for new_child in children:
@@ -515,9 +493,9 @@ class Tag(Component, metaclass=_MetaTag, _root=True):
 
             result.append(child)
 
-        return result
+        self._children = result
 
-    def clone(self, parent=None) -> Tag:
+    def clone(self, parent=None):
         clone = super().clone(parent=parent)
         clone._children = self.children
         return clone

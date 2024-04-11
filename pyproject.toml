@@ -10,7 +10,7 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "pyodide-py==0.24.1", # Pyodide package
+    "pyodide-py==0.25.1", # Pyodide package
     "python-dotenv==1.0.0", # .env file to os.environ
     "boltons==23.1.1", # Better builtins
 ]
