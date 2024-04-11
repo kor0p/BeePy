@@ -11,7 +11,7 @@
         "webpack-merge": "^5.10.0"
     },
     "name": "@kor0p/beepy",
-    "version": "0.8.10",
+    "version": "0.9.0",
     "main": "",
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1",
