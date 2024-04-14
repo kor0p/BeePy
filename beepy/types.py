@@ -102,7 +102,7 @@ class Children(WebBase, TrackableList):
         self.ref = None
         self.mounted = False
 
-    def as_child(self, parent: Tag | None, *, exists_ok=False):
+    def _as_child(self, parent: Tag | None, *, exists_ok=False):
         from beepy.children import ChildrenRef
 
         if self.ref:
@@ -111,10 +111,10 @@ class Children(WebBase, TrackableList):
             else:
                 raise TypeError(f'{self} already is child')
         ref = ChildrenRef(self)
-        self.__set_parent__(parent, 0, ref)
+        self._set_parent(parent, 0, ref)
         return ref
 
-    def __set_parent__(self, parent: Tag | None, index: int, ref: ChildrenRef):
+    def _set_parent(self, parent: Tag | None, index: int, ref: ChildrenRef):
         self.parent = parent
         self.parent_index = index
         self.ref = ref
@@ -132,7 +132,7 @@ class Children(WebBase, TrackableList):
         if not self.mounted and not self.parent:
             return
 
-        child.link_parent_attrs(self.parent)
+        child._link_parent_attrs(self.parent)
         child.__mount__(self.parent._children_element, self.parent, key + self.parent_index)
         if self.parent._mount_finished_:
             child.__render__()
@@ -153,7 +153,7 @@ class Children(WebBase, TrackableList):
         if index is not None:
             index += self.parent_index
         for child in self:
-            child.link_parent_attrs(parent)
+            child._link_parent_attrs(parent)
             child.__mount__(element, parent, index)
 
     def __unmount__(self, element, parent):

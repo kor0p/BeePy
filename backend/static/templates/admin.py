@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from http.client import HTTPException
 
-from beepy import SUPER, Style, Tag, on
+from beepy import SpecialChild, Style, Tag, on
 from beepy.attrs import html_attr, state
 from beepy.modules.table import Table, TableBody, TableHead
 from beepy.modules.tabs import tab, tab_title, tabs
@@ -140,7 +140,7 @@ class UserForm(BaseForm):
         username,
         label('Group', for_=group),
         group,
-        SUPER,
+        SpecialChild.SUPER,
     ]
 
     @on('submit.prevent')
@@ -272,7 +272,7 @@ class GroupForm(BaseForm):
         name,
         label('Description', for_=description),
         description,
-        SUPER,
+        SpecialChild.SUPER,
     ]
 
     @on('submit.prevent')

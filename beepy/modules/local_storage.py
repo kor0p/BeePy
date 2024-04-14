@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Mapping
+from collections.abc import MutableMapping
 
 from beepy.utils import js
 
 
-class LocalStorage(Mapping):
+class LocalStorage(MutableMapping):
     __slots__ = ('prefix',)
 
     def __init__(self, key: str):
@@ -24,8 +24,11 @@ class LocalStorage(Mapping):
     def __setitem__(self, key, value):
         js.localStorage.setItem(self.prefix + key, json.dumps(value))
 
+    def __delitem__(self, key):
+        js.localStorage.removeItem(self.prefix + key)
+
     def __iter__(self):
-        return (key[len(self.prefix) :] for key in js.Object.keys(js.localStorage) if key.startswith(self.prefix))
+        return (key.removeprefix(self.prefix) for key in js.Object.keys(js.localStorage) if key.startswith(self.prefix))
 
     def __len__(self):
         return len(tuple(iter(self)))

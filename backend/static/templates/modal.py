@@ -1,4 +1,4 @@
-from beepy import SUPER, Style
+from beepy import SpecialChild, Style
 from beepy.modules.modal import Modal, ModalHandler
 from beepy.tags import Head, p
 
@@ -12,7 +12,7 @@ class ModalExample(Modal):
         p('Lorem ipsum dolor sit amet, consectetur adipisicing elit.'),
         p('Nobis deserunt corrupti, ut fugit magni qui quasi nisi amet repellendus non fuga omnis'),
         p('a sed impedit explicabo accusantium nihil doloremque consequuntur.'),
-        SUPER,
+        SpecialChild.SUPER,
     ]
 
 

@@ -132,7 +132,7 @@ class Router(Tag):
 
         old_components = list(self.components)
 
-        with self.components._disable_onchange:  # can Locker also be descriptor with auto-replace as in last two lines?
+        with self.components.onchange_locker:  # can Locker also be descriptor with auto-replace as in last two lines?
             self.components.clear()
 
             for path, tag_cls in self.routes.items():
@@ -149,10 +149,8 @@ class Router(Tag):
                     raise ValueError('No route to use!')
 
             for child in self.components:
-                child.link_parent_attrs(self)
-                args, kwargs = child.args_kwargs
-                kwargs = child._attrs_defaults | kwargs
-                child.init(*args, _load_children=False, **kwargs)
+                child._link_parent_attrs(self)
+                child.init(*child._args, _load_children=False, **(child._attrs_defaults | child._kwargs))
 
             new_components, self.components = list(self.components), old_components
         self.components[:] = new_components  # triggers correct onchange handlers

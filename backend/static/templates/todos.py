@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from beepy import Style, attr, on, state
+from beepy import attr, import_css, on, state
 from beepy.children import Children
 from beepy.modules.local_storage import LocalStorage
 from beepy.tags import Head, button, form, input_, li, p, span, ul
 
 Head.title = 'Todo List'
-Style.import_file('styles/todos.css')
+import_css('styles/todos.css')
 
 
 class TodoList(ul, content_tag=p()):

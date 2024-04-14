@@ -4,18 +4,19 @@ import traceback
 from collections.abc import Callable, Iterable
 from functools import cache
 from types import MethodType
+from typing import ClassVar
 
 from beepy.attrs import attr, state
 from beepy.children import ChildRef, Children, ContentWrapper, CustomWrapper, StringWrapper, TagRef
 from beepy.components import Component, _MetaComponent
-from beepy.context import _SPECIAL_CHILD_STRINGS, CONTENT, OVERWRITE, SUPER
+from beepy.context import SpecialChild
 from beepy.types import AttrType, ContentType, Mounter, Renderer
 from beepy.utils import __CONFIG__, js, log
 from beepy.utils.common import NONE_TYPE, get_random_name, to_kebab_case
 from beepy.utils.dev import _debugger
 from beepy.utils.internal import _PY_TAG_ATTRIBUTE
 
-__version__ = '0.9.3'  # For internal development set to 0.0a0
+__version__ = '0.9.5'  # For internal development set to 0.0a0
 __CONFIG__['version'] = __version__
 
 
@@ -40,7 +41,7 @@ class _MetaTag(_MetaComponent):
 
         is_root = kwargs.get('_root')
         tag_name = '' if is_root else kwargs.get('name')
-        namespace['__ROOT__'] = is_root
+        namespace['_meta_root'] = is_root
 
         if tag_name or (initialized and not hasattr(mock_cls, '_tag_name_')):
             namespace['_tag_name_'] = to_kebab_case(tag_name or _name)
@@ -80,8 +81,8 @@ class _MetaTag(_MetaComponent):
         if children_arg:
             namespace.pop('children')
             children_arg = list(children_arg)
-            if OVERWRITE not in children_arg and SUPER not in children_arg:
-                children_arg.insert(0, SUPER)
+            if SpecialChild.OVERWRITE not in children_arg and SpecialChild.SUPER not in children_arg:
+                children_arg.insert(0, SpecialChild.SUPER)
         elif children_arg not in (None, False, []):
             namespace['_static_children'] = namespace.pop('children')
             children_arg = []
@@ -100,11 +101,11 @@ class _MetaTag(_MetaComponent):
                         if (old_child := getattr(mock_cls, attribute_name, None)) and isinstance(old_child, ChildRef):
                             to_remove_children.append(old_child)
                         if isinstance(child, Component | Children):
-                            children_arg[children_arg.index(child)] = namespace[attribute_name] = child.as_child(None)
+                            children_arg[children_arg.index(child)] = namespace[attribute_name] = child._as_child(None)
 
                     if isinstance(child, Component) and child._force_ref:
                         # TODO: add support '_force_ref' for Children too
-                        namespace[attribute_name] = _ref = child.as_child(None)
+                        namespace[attribute_name] = _ref = child._as_child(None)
                         _ref.__set_name__(None, attribute_name)
                         children_arg.insert(0, _ref)
                         ref_children.append(_ref)
@@ -114,12 +115,12 @@ class _MetaTag(_MetaComponent):
                         ref_children.append(child)
 
             for _index, child in enumerate(children_arg):
-                if isinstance(child, str) and child not in _SPECIAL_CHILD_STRINGS:
+                if isinstance(child, str) and not isinstance(child, SpecialChild):
                     children_arg[_index] = StringWrapper(child)
 
                 if isinstance(child, Component) and child not in ref_children:
                     # TODO: replace 5 in get_random_name(5) with some log
-                    children_arg[_index] = namespace[f'_{get_random_name(5)}_'] = child.as_child(None)
+                    children_arg[_index] = namespace[f'_{get_random_name(5)}_'] = child._as_child(None)
 
         cls: type[Tag] | type = super().__new__(mcs, _name, bases, namespace, **kwargs)
 
@@ -141,16 +142,16 @@ class _MetaTag(_MetaComponent):
 
         if getattr(cls, '_tag_name_', None) or not isinstance(getattr(cls, 'children', None), property):
             if children_arg:
-                if CONTENT in children_arg and CONTENT in cls._static_children:
-                    cls._static_children.remove(CONTENT)
-                if SUPER in children_arg:
-                    super_children_index = children_arg.index(SUPER)
+                if SpecialChild.CONTENT in children_arg and SpecialChild.CONTENT in cls._static_children:
+                    cls._static_children.remove(SpecialChild.CONTENT)
+                if SpecialChild.SUPER in children_arg:
+                    super_children_index = children_arg.index(SpecialChild.SUPER)
                     children_arg[super_children_index : super_children_index + 1] = cls._static_children
                 else:
                     children_arg.extend(cls._static_children)
                 cls._static_children = children_arg
         else:
-            cls._static_children = [CONTENT]
+            cls._static_children = [SpecialChild.CONTENT]
 
         cls._tags = []
 
@@ -160,7 +161,7 @@ class _MetaTag(_MetaComponent):
             cls._root_parent = None
             setattr(cls.mount_element, _PY_TAG_ATTRIBUTE, cls())
 
-        if cls.__ROOT__:
+        if cls._meta_root:
             cls.__root_declared__()
         else:
             cls.__class_declared__()
@@ -202,6 +203,8 @@ class Tag(Component, metaclass=_MetaTag, _root=True):
     _children_tag: Tag
     _mount_finished_: bool
 
+    children: ClassVar[Component | state | SpecialChild | str]
+
     @classmethod
     def __root_declared__(cls):
         """This method is called, when root Tag is defined"""
@@ -229,7 +232,7 @@ class Tag(Component, metaclass=_MetaTag, _root=True):
         if self._children_tag:
             self.mount_element.insertChild(self._children_element)
 
-        if (content_child := self.get_content_child()) is None:
+        if (content_child := self._get_content_child()) is None:
             _debugger(self)  # wtf?
         else:
             content_child._mount_children()
@@ -317,7 +320,7 @@ class Tag(Component, metaclass=_MetaTag, _root=True):
                 self._content = MethodType(children_argument[0], self)
             elif is_child_arg_tag:
                 self._children = self._children.copy() + [
-                    child.clone(self).as_child(self) for child in children_argument
+                    child._clone(self)._as_child(self) for child in children_argument
                 ]
             else:
                 self._children = [*self._children.copy(), *children_argument]
@@ -326,7 +329,7 @@ class Tag(Component, metaclass=_MetaTag, _root=True):
             if not isinstance(value, Component | Children) or key in self.attrs:
                 continue
             value: Component | Children
-            child = value.as_child(self, exists_ok=True)
+            child = value._as_child(self, exists_ok=True)
             child.__set_name__(self, key)
             setattr(type(self), key, child)
             self._children.append(child)
@@ -342,7 +345,7 @@ class Tag(Component, metaclass=_MetaTag, _root=True):
         else:
             setattr(self.mount_element, _PY_TAG_ATTRIBUTE, self)
         if self._static_children_tag:
-            self._children_tag = self._static_children_tag.clone(self)
+            self._children_tag = self._static_children_tag._clone(self)
             self._children_element = self._children_tag.mount_element
             setattr(self._children_element, _PY_TAG_ATTRIBUTE, self)
         else:
@@ -361,30 +364,30 @@ class Tag(Component, metaclass=_MetaTag, _root=True):
     def __getitem__(self, key):
         return getattr(self, key)
 
-    def as_child(self, parent: Tag | None, *, exists_ok=False, inline_def=False):
+    def _as_child(self, parent: Tag | None, *, exists_ok=False, inline_def=False):
         if self._ref:
             if exists_ok:
-                self.__set_ref__(parent, self._ref)
+                self._set_ref(parent, self._ref)
                 return self._ref
             else:
                 raise TypeError(f'Tag {self._tag_name_} already is child')
         ref = TagRef(self, inline_def=inline_def)
-        self.__set_ref__(parent, ref)
+        self._set_ref(parent, ref)
         return ref
 
     def __notify__(self, attr_name: str, attribute: attr, value: AttrType):
         super().__notify__(attr_name, attribute, value)
         self.__render__()
 
-    def __set_ref__(self, parent: Tag | None, ref: TagRef):
-        super().__set_ref__(parent, ref)
+    def _set_ref(self, parent: Tag | None, ref: TagRef):
+        super()._set_ref(parent, ref)
         if ref.inline_def:
             setattr(type(parent), ref.name, self)
 
     def _render_(self, attrs: dict[str, AttrType] | None = None):  # noqa: ARG002 - unused `attrs`
         self._current_render.append(self)
 
-        content_index = self.get_content_index()
+        content_index = self._get_content_index()
         if content_index is not None:
             self.children[content_index].__render__()
 
@@ -445,12 +448,12 @@ class Tag(Component, metaclass=_MetaTag, _root=True):
     def ref_children(self) -> dict[str, Mounter]:
         return {child.name: child.__get__(self) for child in self.children if isinstance(child, ChildRef)}
 
-    def get_content_child(self) -> ContentWrapper:
+    def _get_content_child(self) -> ContentWrapper:
         for child in self.children:
             if isinstance(child, ContentWrapper) and child.content.__func__.__name__ == 'content':
                 return child
 
-    def get_content_index(self):
+    def _get_content_index(self):
         for index, child in enumerate(self.children):
             if isinstance(child, ContentWrapper) and child.content.__func__.__name__ == 'content':
                 return index
@@ -469,9 +472,9 @@ class Tag(Component, metaclass=_MetaTag, _root=True):
             if isinstance(child, ContentWrapper):
                 child = child.content.__func__
                 if child.__name__ == 'content':
-                    child = CONTENT
+                    child = SpecialChild.CONTENT
 
-            if child == CONTENT:
+            if child == SpecialChild.CONTENT:
                 child = self.content
 
             if isinstance(child, attr):
@@ -484,7 +487,7 @@ class Tag(Component, metaclass=_MetaTag, _root=True):
                 child = child._ref._update_child(self, self._children.index(child))
             elif isinstance(child, ChildRef) and child in self._children:
                 child._update_child(self, self._children.index(child))
-            # TODO: make ContentWrapper descriptor, here call .clone()
+            # TODO: make ContentWrapper descriptor, here call ._clone()
             #  make possible to use ContentWrapper separately from function 'content'
             elif callable(child):
                 if not isinstance(child, MethodType):
@@ -495,8 +498,8 @@ class Tag(Component, metaclass=_MetaTag, _root=True):
 
         self._children = result
 
-    def clone(self, parent=None):
-        clone = super().clone(parent=parent)
+    def _clone(self, parent=None):
+        clone = super()._clone(parent=parent)
         clone._children = self.children
         return clone
 
@@ -533,9 +536,9 @@ def mount(element: Tag, root_element: str, *, clear=False):
 
     name = root.tagName.lower()
     parent = _MetaTag(name, (Tag,), {'_root_parent': state(type=Tag, move_on=True)}, name=name, content_tag=None)()
-    parent._attrs_defaults['_root_parent'] = parent.__class__._root_parent.initial_value = parent
+    parent._attrs_defaults['_root_parent'] = parent.__class__._root_parent._initial_value = parent
     parent.mount_element = root
-    element.link_parent_attrs(parent)
+    element._link_parent_attrs(parent)
 
     _MetaTag._top_mount(element)
 

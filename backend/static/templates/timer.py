@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 
-from beepy import Style, Tag, state
+from beepy import Tag, import_css, state
 from beepy.tags import a, p
 from beepy.types import safe_html_content
 from beepy.utils.js_py import Interval
 
-Style.import_file('styles/timer.css')
+import_css('styles/timer.css')
 _EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
 
 

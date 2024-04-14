@@ -24,6 +24,7 @@ global_events = {
     'hashchange': js.window,
 }
 _key_codes = {
+    # TODO: add all symbols and support raw keyCodes
     'esc': (27,),
     'tab': (9,),
     'enter': (13,),
@@ -43,65 +44,66 @@ def key_code_check(key_name, event):
     return event.keyCode in _key_codes[key_name]
 
 
-RAW_JS_CHECKS = ('prevent', 'stop', 'stop_all')
+_raw_js_checks = ('prevent', 'stop', 'stop_all')
 
 
 class on:
-    __slots__ = ('name', 'callback', 'pass_event', 'child_restrict', 'modifiers', 'checks', 'js_checks')
+    __slots__ = ('_name', '_callback', '_pass_event', '_child_restrict', '_modifiers', '_checks', '_js_checks')
 
-    name: str | None
-    callback: Callable[[Component, ...], Any]
-    pass_event: bool
-    child_restrict: type[Component] | None
-    modifiers: list[str]
-    checks: list[Callable[[js.Event], bool]]
-    js_checks: list[str]
+    _name: str | None
+    _callback: Callable[[Component, ...], Any]
+    _pass_event: bool
+    _child_restrict: type[Component] | None
+    _modifiers: list[str]
+    _checks: list[Callable[[js.Event], bool]]
+    _js_checks: list[str]
 
     def __init__(self, method):  # TODO: add 'mount' callbacks?
-        self.child_restrict = None
-        self.pass_event = True
-        self.modifiers = []
-        self.checks = []
-        self.js_checks = []
+        self._child_restrict = None
+        self._pass_event = True
+        self._modifiers = []
+        self._checks = []
+        self._js_checks = []
 
-        if isinstance(method, str):
-            if '.' in method:
-                method, *self.modifiers = method.split('.')
-                for modifier in self.modifiers:
-                    if modifier in _key_codes:
-                        # TODO: check for visibility?
-                        self.checks.append(partial(key_code_check, modifier))
-                    elif modifier in RAW_JS_CHECKS:
-                        self.js_checks.append(modifier)
-                    else:
-                        raise ValueError(f'Unknown event modifier ".{modifier}"!')
-
-            self.name = method
+        if not isinstance(method, str):
+            self._name = None
+            self(method)
             return
 
-        self.name = None
-        self(method)
+        if '.' not in method:
+            self._name = method
+            return
+
+        self._name, *self._modifiers = method.split('.')
+        for modifier in self._modifiers:
+            if modifier in _key_codes:
+                # TODO: check for visibility?
+                self._checks.append(partial(key_code_check, modifier))
+            elif modifier in _raw_js_checks:
+                self._js_checks.append(modifier)
+            else:
+                raise ValueError(f'Unknown event modifier ".{modifier}"!')
 
     def __call__(self, method, child=None):
-        self.callback = method
-        self.child_restrict = child
+        self._callback = method
+        self._child_restrict = child
 
         sig = inspect.signature(method)
-        self.pass_event = 'event' in sig.parameters
+        self._pass_event = 'event' in sig.parameters
         return self
 
     def _get_cb_and_instance(self, cmpt):
         if (
-            self.child_restrict
-            and cmpt.parent_defined
-            and (self.child_restrict == cmpt or (cmpt._ref and self.child_restrict == cmpt._ref.child))
+            self._child_restrict
+            and cmpt._parent_ is not None
+            and (self._child_restrict == cmpt or (cmpt._ref and self._child_restrict == cmpt._ref.child))
         ):
             cmpt = cmpt.parent
 
-        if isinstance(self.callback, MethodType):
-            return self.callback, cmpt
+        if isinstance(self._callback, MethodType):
+            return self._callback, cmpt
         else:
-            return MethodType(self.callback, cmpt), cmpt
+            return MethodType(self._callback, cmpt), cmpt
 
     def __get__(self, instance, owner=None):
         if instance is None:
@@ -109,7 +111,7 @@ class on:
         return self._get_cb_and_instance(instance)[0]
 
     def _prepare_call(self, cmpt, event):
-        for check in self.checks:
+        for check in self._checks:
             if not check(event):
                 return
 
@@ -121,7 +123,7 @@ class on:
 
         fn, cmpt = prepare
 
-        args = (event,) if self.pass_event else ()
+        args = (event,) if self._pass_event else ()
         data = await fn(*args)
         self._after_call(cmpt, event)
         return data
@@ -131,7 +133,7 @@ class on:
             return
 
         fn, cmpt = prepare
-        args = (event,) if self.pass_event else ()
+        args = (event,) if self._pass_event else ()
         data = fn(*args)
         self._after_call(cmpt, event)
         return data
@@ -144,20 +146,20 @@ class on:
         getattr(event.currentTarget, _PY_TAG_ATTRIBUTE, cmpt).__render__()
 
     def _make_listener(self, event_name: str, cmpt: Component):
-        if inspect.iscoroutinefunction(self.callback):
+        if inspect.iscoroutinefunction(self._callback):
 
-            @wraps(self.callback)
+            @wraps(self._callback)
             async def method(event):
                 return await self._a_call(cmpt, event)
 
         else:
 
-            @wraps(self.callback)
+            @wraps(self._callback)
             def method(event):
                 return self._call(cmpt, event)
 
         return js.beepy.addAsyncListener(
-            global_events.get(event_name, cmpt.mount_element), event_name, create_proxy(method), to_js(self.js_checks)
+            global_events.get(event_name, cmpt.mount_element), event_name, create_proxy(method), to_js(self._js_checks)
         )
 
     @classmethod
@@ -165,21 +167,21 @@ class on:
         global_events.get(event_name, cmpt.mount_element).removeEventListener(event_name, event_listener)
 
     def __set__(self, instance, value):
-        raise AttributeError(f'Cannot set on_{self.name} event handler')
+        raise AttributeError(f'Cannot set on_{self._name} event handler')
 
     def __delete__(self, instance):
         pass
 
     def __set_name__(self, owner, name):
-        if self.name is None:
-            self.name = name
+        if self._name is None:
+            self._name = name
 
-        if self.child_restrict is None:
+        if self._child_restrict is None:
             owner._static_listeners = defaultdict(list, **nested_copy(owner._static_listeners))
-            owner._static_listeners[self.name].append(self)
+            owner._static_listeners[self._name].append(self)
 
     def __repr__(self):
-        return f'on_{self.name}({self.callback})'
+        return f'on_{self._name}({self._callback})'
 
 
-__all__ = ['on', '_key_codes', 'RAW_JS_CHECKS']
+__all__ = ['on']

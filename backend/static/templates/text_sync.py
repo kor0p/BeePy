@@ -1,4 +1,4 @@
-from beepy import CONTENT, Style, Tag, state
+from beepy import SpecialChild, Style, Tag, state
 from beepy.tags import button, input_
 
 
@@ -17,7 +17,7 @@ class TextSyncExample(Tag, name='example'):
         clear_btn := button('Clear'),
         '\n',
         input := input_(value=value),
-        CONTENT,
+        SpecialChild.CONTENT,
     ]
 
     def content(self):

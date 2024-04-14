@@ -132,7 +132,7 @@ class _MetaComponent(_MetaContext):
 
         if hasattr(cls, '__extra_attributes__'):
             cls.__extra_attributes__ = {
-                key: value.as_child(None) if isinstance(value, Component) else value
+                key: value._as_child(None) if isinstance(value, Component) else value
                 for key, value in cls.__extra_attributes__.items()
             }
 
@@ -161,7 +161,7 @@ class Component(WebBase, Context, metaclass=_MetaComponent, _root=True):
         result = yield 'call'
         yield 'attrs'
 
-        for name, attribute in self.__states__.items():
+        for name, attribute in self._states.items():
             if callable(attribute) and not isinstance(attribute, MethodType):
                 setattr(self, name, MethodType(attribute, self.parent))
 
@@ -222,7 +222,7 @@ class Component(WebBase, Context, metaclass=_MetaComponent, _root=True):
         if attrs is None:
             attrs = {}
 
-        for name, value in {**self.__attrs__, **attrs}.items():
+        for name, value in {**self._attrs_values, **attrs}.items():
             # TODO: optimize this - set only changed attributes
 
             type = _attr.type if (_attr := self.attrs.get(name)) else NONE_TYPE
@@ -242,10 +242,6 @@ class Component(WebBase, Context, metaclass=_MetaComponent, _root=True):
                 return self._render_(*args, **kwargs)
 
     @property
-    def parent_defined(self):
-        return self._parent_ is not None
-
-    @property
     def parent(self):
         if self._parent_ is None:
             _debugger("ValueError: Trying to get .parent, but it's undefined")
@@ -255,22 +251,22 @@ class Component(WebBase, Context, metaclass=_MetaComponent, _root=True):
     def parent(self, v):
         self._parent_ = v
 
-    def as_child(self, parent: Tag | None, *, exists_ok=False):
+    def _as_child(self, parent: Tag | None, *, exists_ok=False):
         if self._ref:
             if exists_ok:
-                self.__set_ref__(parent, self._ref)
+                self._set_ref(parent, self._ref)
                 return self._ref
             else:
                 raise TypeError(f'Component {self._context_name_} already is child')
         ref = beepy.children.ComponentRef(self)
-        self.__set_ref__(parent, ref)
+        self._set_ref(parent, ref)
         return ref
 
-    def __set_ref__(self, parent: Tag | None, ref: ComponentRef):
+    def _set_ref(self, parent: Tag | None, ref: ComponentRef):  # noqa: ARG002 - unused `parent
         self._ref = ref
 
-    def clone(self, parent=None) -> Self:
-        clone = super().clone(parent=parent)
+    def _clone(self, parent=None) -> Self:
+        clone = super()._clone(parent=parent)
         clone._listeners = defaultdict(list, **nested_copy(self._listeners))
         clone._handlers = defaultdict(list, **nested_copy(self._handlers))
         return clone
@@ -292,17 +288,15 @@ class Component(WebBase, Context, metaclass=_MetaComponent, _root=True):
         self.parent = parent
         self.pre_mount()
 
-        args, kwargs = self.args_kwargs
-        kwargs = self._attrs_defaults | kwargs
-        self.init(*args, **kwargs)
+        self.init(*self._args, **(self._attrs_defaults | self._kwargs))
 
     def _mount_attrs(self):
         for attribute in self.attrs.values():
-            attribute.__mount_cmpt__(self)
+            attribute._mount_cmpt(self)
 
     def _post_mount_attrs(self):
         for attribute in self.attrs.values():
-            attribute.__post_mount_cmpt__(self)
+            attribute._post_mount_cmpt(self)
 
     def pre_mount(self):
         """empty method for easy override with code for run before mount"""
@@ -346,7 +340,7 @@ class Component(WebBase, Context, metaclass=_MetaComponent, _root=True):
 
         def wrapper(callback: Callable):
             event_listener = on(method)(callback, child=self)
-            event_name = event_listener.name or callback.__name__
+            event_name = event_listener._name or callback.__name__
             event_listener.__set_name__(self, event_name)
             self._listeners[event_name] = [*self._listeners[event_name].copy(), event_listener]
             return callback

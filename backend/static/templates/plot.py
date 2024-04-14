@@ -1,11 +1,11 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from beepy import Style, Tag
+from beepy import Tag, import_css
 from beepy.modules.plot import get_plot_img_src
 from beepy.tags import button, img
 
-Style.import_file('styles/plot.css')
+import_css('styles/plot.css')
 
 
 def create_plot():

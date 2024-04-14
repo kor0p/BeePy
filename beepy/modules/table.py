@@ -90,7 +90,7 @@ class TableHead(thead, children_tag=TR(), force_ref=True):
 
     @columns.on('mount', 'change')
     def sync(self):
-        if not self.parent_defined:
+        if self._parent_ is None:
             return
 
         self._columns[:] = [TH(column['label']) for column in self.columns]
@@ -109,7 +109,7 @@ class TableBody(tbody, force_ref=True):
 
     @rows.on('mount', 'change')
     def sync(self):
-        if not self.parent_defined:
+        if self._parent_ is None:
             return
 
         self._rows[:] = [

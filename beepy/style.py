@@ -1,7 +1,8 @@
 import re
 from collections.abc import Iterable
-from typing import Any
+from typing import Any, Protocol
 
+from beepy.context import Context
 from beepy.framework import __CONFIG__, Tag, attr, state
 from beepy.tags import Head
 from beepy.types import AttrValue, safe_html, safe_html_content
@@ -136,6 +137,10 @@ class Raw:
         return False
 
 
+class TagWithStyle(Protocol):
+    style_id: StyleRef
+
+
 class Style(Tag, name='style', content_tag=None, raw_html=True, force_ref=True):
     __slots__ = ('styles', '_main_style', 'real_parent')
 
@@ -148,12 +153,12 @@ class Style(Tag, name='style', content_tag=None, raw_html=True, force_ref=True):
     }
 
     options = state(type=dict)
-    real_parent: Tag | None
+    real_parent: Tag | TagWithStyle | None  # Actually it's only `Tag`;   `TagWithStyle` is used only for type checking
 
     @classmethod
     def from_css(cls, _file):
-        # TODO: implement import from css/scss/pycss
-        raise NotImplementedError
+        # TODO: implement converting from css/scss/pycss to Style
+        raise NotImplementedError('TBD...')
 
     def __init__(self, styles=None, options=None, get_vars=None, **styles_dict):
         super().__init__()
@@ -210,7 +215,7 @@ class Style(Tag, name='style', content_tag=None, raw_html=True, force_ref=True):
         params: dict[str, Any] = {'__VARS__': ''}
 
         if self.options['render_states']:
-            params.update(parent.__states__)
+            params.update(parent._states)
 
         if self.options['render_children']:
             params.update(parent.ref_children)
@@ -240,16 +245,16 @@ class Style(Tag, name='style', content_tag=None, raw_html=True, force_ref=True):
             if parent._mount_finished_:
                 parent.__render__()
 
-    @classmethod
-    def import_file(cls, file_path):
-        return js.beepy.addElement(
-            js.document.head,
-            'link',
-            href=js.beepy.files.getPathWithCurrentPathAndOrigin(file_path),
-            onload=cls.create_onload(),
-            type='text/css',
-            rel='stylesheet',
-        )
+
+def import_css(file_path):
+    return js.beepy.addElement(
+        js.document.head,
+        'link',
+        href=js.beepy.files.getPathWithCurrentPathAndOrigin(file_path),
+        onload=Context.create_onload(),
+        type='text/css',
+        rel='stylesheet',
+    )
 
 
 def with_style(style_or_tag_cls: Style | type[Tag] | None = None):
@@ -271,4 +276,4 @@ def with_style(style_or_tag_cls: Style | type[Tag] | None = None):
     return wrapper
 
 
-__all__ = ['dict_to_css_iter', 'dict_to_css', 'Style', 'with_style']
+__all__ = ['Style', 'import_css', 'with_style', 'dict_to_css_iter', 'dict_to_css']

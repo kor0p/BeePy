@@ -16,8 +16,8 @@ class html_tag(Tag, _root=True, content_tag=None):
     id = html_attr(type=str)
     class_ = html_attr(type=str)
 
-    def __set_ref__(self, parent, ref):
-        super().__set_ref__(parent, ref)
+    def _set_ref(self, parent, ref):
+        super()._set_ref(parent, ref)
         if type(self).id is html_tag.id and (self.id is AUTO_ID or (__CONFIG__['inputs_auto_id'] and self.id is None)):
             # TODO: replace 5 and 2 with some log value
             self.id = f'{ref.name or get_random_name(5)}-{get_random_name(2)}'
@@ -100,8 +100,8 @@ class td(html_tag, name='td'):
 class label(html_tag, name='label'):
     for_ = attr(type=str)
 
-    def __set_ref__(self, parent, ref):
-        super().__set_ref__(parent, ref)
+    def _set_ref(self, parent, ref):
+        super()._set_ref(parent, ref)
         if parent and isinstance(self.for_, Tag):
             self.for_ = self.for_._ref.__get__(parent).id
 
@@ -216,11 +216,11 @@ class StandaloneTag(html_tag, _root=True):
         self.mount_parent = element
         self.pre_mount()
 
-    def clone(self, parent=None):  # noqa: ARG002 - arguments for overriding
+    def _clone(self, parent=None):  # noqa: ARG002 - arguments for overriding
         return self
 
-    def as_child(self, parent: Tag | None, *, exists_ok=False, inline_def=False):  # noqa: ARG002 - args for overriding
-        return super().as_child(parent, exists_ok=True, inline_def=inline_def)
+    def _as_child(self, parent: Tag | None, *, exists_ok=False, inline_def=False):  # noqa: ARG002 - args for overriding
+        return super()._as_child(parent, exists_ok=True, inline_def=inline_def)
 
 
 class Head(StandaloneTag, name='head', mount=js.document.head):

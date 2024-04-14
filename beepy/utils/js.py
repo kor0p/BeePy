@@ -192,6 +192,9 @@ class LocalStorage(dict):
     def setItem(self, key, value):
         self[key] = value
 
+    def removeItem(self, key):
+        del self[key]
+
 
 localStorage = LocalStorage()
 

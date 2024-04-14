@@ -1,8 +1,8 @@
-from beepy import __CONFIG__, Style, Tag, mount, safe_html_content
+from beepy import __CONFIG__, Tag, import_css, mount, safe_html_content
 from beepy.router import Link, Router, WithRouter
 from beepy.tags import Head, div
 
-Style.import_file('styles/main.css')
+import_css('styles/main.css')
 
 
 class PageNotFound(Tag, WithRouter, name='error'):
@@ -48,12 +48,12 @@ class AppRouter(Router):
 
     fallback_tag_cls = PageNotFound
 
-    def add_tag_component(self, tag_cls, match, path, **kwargs):
-        super().add_tag_component(tag_cls, match=match, path=path, **kwargs)
+    def add_tag_component(self, tag_cls, match, path):
+        super().add_tag_component(tag_cls, match=match, path=path)
         if path == '$':
             return
 
-        super().add_tag_component(BottomNavbar, match=match, path=path, **kwargs)
+        super().add_tag_component(BottomNavbar, match=match, path=path)
 
 
 class App(Tag, name='main-app'):

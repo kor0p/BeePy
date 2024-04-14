@@ -5,7 +5,7 @@ from collections import defaultdict
 from typing import TYPE_CHECKING, Any, get_type_hints
 
 from boltons.iterutils import first
-from boltons.typeutils import issubclass, make_sentinel
+from boltons.typeutils import issubclass
 
 from beepy.types import AttrType, AttrValue
 from beepy.utils import log
@@ -32,9 +32,6 @@ def convert_boolean_attribute_value(value):
     return '' if value else None
 
 
-_MISSING = make_sentinel(var_name='_MISSING')
-
-
 def set_html_attribute(el, name: str, value, *, type: builtins.type = NONE_TYPE):
     if value is None:
         el.removeAttribute(name)
@@ -49,7 +46,7 @@ def set_html_attribute(el, name: str, value, *, type: builtins.type = NONE_TYPE)
 class attr:
     __slots__ = (
         'name',
-        'initial_value',
+        '_initial_value',
         'type',
         'const',
         'required',
@@ -71,7 +68,7 @@ class attr:
     _set_on_render = False
 
     name: str | None
-    initial_value: T
+    _initial_value: T
     type: builtins.type | None
     const: bool
     required: bool
@@ -111,7 +108,7 @@ class attr:
         self.name = None
         self.const = const
         assert not const or default is None, f'Const {type(self).__name__} cannot have initial value'
-        self.initial_value = default
+        self._initial_value = default
         self.required = required or const  # const attr must be also required
         self.notify = notify
         self.static = static
@@ -141,7 +138,7 @@ class attr:
         self._cache = {}
 
     @property
-    def priority(self):
+    def _priority(self):
         if self.move_on:
             return 0
         elif self.model:
@@ -150,8 +147,8 @@ class attr:
             return 1
 
     @classmethod
-    def order_dict_by_priority(cls, dict_attrs):
-        return dict(sorted(dict_attrs.items(), key=lambda item: item[1].priority))
+    def _order_dict_by_priority(cls, dict_attrs):
+        return dict(sorted(dict_attrs.items(), key=lambda item: item[1]._priority))
 
     def __get__(self, instance, owner=None):
         if instance is None:
@@ -159,7 +156,7 @@ class attr:
         return (self.fget or self._fget)(instance)
 
     def _fget(self, instance):
-        return self._cache.get(None if self.static else instance, self.initial_value)
+        return self._cache.get(None if self.static else instance, self._initial_value)
 
     def __call__(self, fget):
         self.fget = fget
@@ -180,7 +177,7 @@ class attr:
 
         (self.fset or self._fset)(instance, value)
 
-        if instance.parent_defined:
+        if instance._parent_ is not None:
             for handler in self.handlers['change']:
                 if _prevent_model and _prevent_model in (True, self) and handler.__name__.startswith('@attr'):
                     continue
@@ -189,7 +186,7 @@ class attr:
         if self.notify:
             instance.__notify__(self.name, self, value)
 
-    def __set_first__(self, instance, value, parent):
+    def _set_first_value(self, instance, value, parent):  # noqa: ARG002 - unused `parent
         if self.model and (
             isinstance(value, attr) and value.name is not None and (instance, self, None) not in value._from_model_cache
         ):
@@ -257,11 +254,11 @@ class attr:
             return attribute
 
     def _set_model_value(self, instance, attr_, component: Component):
-        initial_value = self.__get__(instance.parent if instance.parent_defined else component)
+        initial_value = self.__get__(instance.parent if instance._parent_ is not None else component)
 
         if initial_value is None:
-            if self.initial_value is not None:
-                initial_value = self.initial_value
+            if self._initial_value is not None:
+                initial_value = self._initial_value
             elif self.type and (value_from_type := self._get_type_instance()) is not None:
                 initial_value = value_from_type
         if attribute_ := self._prepare_attribute_for_model(instance):
@@ -281,7 +278,7 @@ class attr:
                 to_remove_indexes.append(index)
                 continue
 
-            if instance.parent_defined and instance.parent != component:
+            if instance._parent_ is not None and instance.parent != component:
                 continue
 
             attribute_ = self._set_model_value(instance, attr_, component)
@@ -312,14 +309,14 @@ class attr:
         for index in reversed(to_remove_indexes):
             self._from_model_cache.pop(index)
 
-    def __init_ctx__(self, ctx: Context, value):
+    def _init_ctx(self, ctx: Context, value):
         for handler in self.handlers['init']:
             call_handler_with_optional_arguments(handler, ctx, {'value': value})
 
-    def __mount_cmpt__(self, component: Component):
+    def _mount_cmpt(self, component: Component):
         self._handle_model_listeners(component)
 
-    def __post_mount_cmpt__(self, component: Component):
+    def _post_mount_cmpt(self, component: Component):
         for instance, attr_, _ in self._from_model_cache:
             self._set_model_value(instance, attr_, component)
 
@@ -346,11 +343,11 @@ class attr:
     def __repr__(self):
         return (
             f'{self.name} = {type(self).__name__}'
-            f'(default={self.initial_value!r}, type={self.type}, static={self.static})'
+            f'(default={self._initial_value!r}, type={self.type}, static={self.static})'
         )
 
     def __str__(self):
-        return f'{self.name}({self.initial_value!r})'
+        return f'{self.name}({self._initial_value!r})'
 
     def on(self, *triggers):
         def wrapper(handler):
@@ -438,7 +435,7 @@ class listen_state(state):
         self.provider = None
         self.subscribers = []
 
-    def __mount_cmpt__(self, component: Component):
+    def _mount_cmpt(self, component: Component):
         if self.provider is None:
             self.provider = component
         else:

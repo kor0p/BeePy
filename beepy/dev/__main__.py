@@ -32,7 +32,7 @@ class MonitorFolder(FileSystemEventHandler):
             or event.src_path.endswith(('~', '.tmp'))
             or re.search(r'/(__pycache__|.git|.idea|dist|build)/', event.src_path)
         ):
-            self.server.handle_file_event(event)
+            self.server._handle_file_event(event)
 
 
 class DevServer:
@@ -42,9 +42,9 @@ class DevServer:
         self.observer = None
         self.developer_mode = 'DEVELOPMENT' in os.environ
         if parse_cmd:
-            self.handle_cmd_args()
+            self._handle_cmd_args()
 
-    def handle_cmd_args(self):
+    def _handle_cmd_args(self):
         parser = argparse.ArgumentParser(prog='beepy.dev', description='Simple dev server for BeePy')
         parser.add_argument(
             '-d', '--root-dir', default=Path.cwd(), help='Root directory to start server and watch file changes'
@@ -80,7 +80,7 @@ class DevServer:
         if not self.websockets:
             print('[BeePy] No clients connected! Please, restart your page to connect to the dev server')
 
-    def handle_file_event(self, event):
+    def _handle_file_event(self, event):
         path: str = event.src_path.removeprefix(str(self.root_path)).removeprefix('/')
 
         print(f'[BeePy] Found file change: {path}')

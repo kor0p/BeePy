@@ -65,7 +65,7 @@ class ContentWrapper(CustomWrapper):
         self.parent = parent
         self.mount_parent = element
         if self.tag:
-            self.mount_element = self.tag.clone(parent).mount_element
+            self.mount_element = self.tag._clone(parent).mount_element
             self.mount_parent.insertChild(self.mount_element, index)
         else:
             self.mount_element = js.document.createDocumentFragment()
@@ -198,8 +198,8 @@ class ComponentRef(ChildRef[Component]):
     child: Component
 
     def _update_child(self, parent: Tag, index):  # noqa: ARG002 - arguments for overriding
-        clone = self.__get__(parent).clone(parent)
-        clone.__set_ref__(parent, self)
+        clone = self.__get__(parent)._clone(parent)
+        clone._set_ref(parent, self)
         self.__set__(parent, clone)
         return clone
 
@@ -217,7 +217,7 @@ class ChildrenRef(ChildRef):
 
     def _update_child(self, parent, index):
         copy = self.__get__(parent).copy()
-        copy.__set_parent__(parent, index, self)
+        copy._set_parent(parent, index, self)
         self.__set__(parent, copy)
         return copy
 

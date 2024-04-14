@@ -10,6 +10,4 @@ class Action(button, _root=True):
 
     @classmethod
     def __class_declared__(cls):
-        super().__class_declared__()
-
         cls.components[cls.action_name] = cls

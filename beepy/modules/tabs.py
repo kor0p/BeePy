@@ -32,8 +32,8 @@ class tab(div, name='tab'):
 
     parent: tabs
 
-    def __set_ref__(self, parent, ref):
-        super().__set_ref__(parent, ref)
+    def _set_ref(self, parent, ref):
+        super()._set_ref(parent, ref)
         self.tab_id = ref.name
 
 
@@ -112,7 +112,7 @@ class tabs(Tag, name='tabs'):
 
     def mount(self):
         for tab_id, _tab in self.tabs_list.items():
-            getattr(self.tabs_titles, tab_id).link_parent_attrs(self)
+            getattr(self.tabs_titles, tab_id)._link_parent_attrs(self)
 
         url = js.URL.new(js.location.href)
 

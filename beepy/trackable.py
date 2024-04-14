@@ -13,7 +13,7 @@ class Trackable(ABC):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.onchange_triggers = []
-        self._disable_onchange = Locker('Disable onchange()')
+        self.onchange_locker = Locker('Disable onchange()')
 
     @abstractmethod
     def onchange_notify(self):
@@ -21,7 +21,7 @@ class Trackable(ABC):
 
     def onchange(self, handler=None):
         if handler is None:
-            if not self._disable_onchange:
+            if not self.onchange_locker:
                 self.onchange_notify()
         else:
             if handler in self.onchange_triggers:
@@ -51,7 +51,7 @@ class Trackable(ABC):
 
 
 class TrackableList(Trackable, list):
-    __slots__ = ('onchange_triggers', '_disable_onchange')
+    __slots__ = ('onchange_triggers', 'onchange_locker')
 
     def _notify_add(self, key: SupportsIndex | slice, added: Iterable):
         length = len(self)
@@ -85,20 +85,20 @@ class TrackableList(Trackable, list):
     def append(self, __object):
         super().append(__object)
 
-        if not self._disable_onchange:
+        if not self.onchange_locker:
             self._notify_add(-1, (self[-1],))
 
     def clear(self):
         length = len(self)
-        if not self._disable_onchange:
+        if not self.onchange_locker:
             self._notify_remove(slice(0, length), self)
         super().clear()
-        if not self._disable_onchange and length:
+        if not self.onchange_locker and length:
             self._notify_post_remove()
             self.onchange()
 
     def extend(self, __iterable):
-        if self._disable_onchange:
+        if self.onchange_locker:
             super().extend(__iterable)
             return
 
@@ -107,7 +107,7 @@ class TrackableList(Trackable, list):
         self._notify_add(slice(length, len(self)), self[length : len(self)])
 
     def insert(self, __index, __object):
-        if self._disable_onchange:
+        if self.onchange_locker:
             super().insert(__index, __object)
             return
 
@@ -116,7 +116,7 @@ class TrackableList(Trackable, list):
         self._notify_add(index, (self[index],))
 
     def pop(self, __index=None):
-        if self._disable_onchange:
+        if self.onchange_locker:
             return super().pop(__index)
 
         index = len(self) - 1 if __index is None else __index.__index__()
@@ -128,7 +128,7 @@ class TrackableList(Trackable, list):
         return result
 
     def remove(self, __value):
-        if self._disable_onchange:
+        if self.onchange_locker:
             super().remove(__value)
             return
 
@@ -143,7 +143,7 @@ class TrackableList(Trackable, list):
         return result
 
     def reverse(self):
-        if self._disable_onchange:
+        if self.onchange_locker:
             super().reverse()
             return
 
@@ -158,7 +158,7 @@ class TrackableList(Trackable, list):
         self._notify_add(slice(0, len(self)), self)
 
     def sort(self, *, key=..., reverse=...):
-        if self._disable_onchange:
+        if self.onchange_locker:
             super().sort(key=key, reverse=reverse)
             return
 
@@ -174,7 +174,7 @@ class TrackableList(Trackable, list):
         self._notify_add(slice(0, len(self)), self)
 
     def __delitem__(self, key):
-        if self._disable_onchange:
+        if self.onchange_locker:
             super().__delitem__(key)
             return
 
@@ -193,7 +193,7 @@ class TrackableList(Trackable, list):
         return self
 
     def __imul__(self, n):
-        if self._disable_onchange:
+        if self.onchange_locker:
             return super().__imul__(n)
 
         length = len(self)
@@ -209,7 +209,7 @@ class TrackableList(Trackable, list):
         return self
 
     def __setitem__(self, key, value):
-        if self._disable_onchange:
+        if self.onchange_locker:
             super().__setitem__(key, value)
             return
 

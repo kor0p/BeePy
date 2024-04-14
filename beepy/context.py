@@ -1,9 +1,8 @@
 from __future__ import annotations
 
+import enum
 from abc import ABCMeta
 from typing import TYPE_CHECKING, TypeVar
-
-from boltons.typeutils import make_sentinel
 
 import beepy
 from beepy.attrs import attr
@@ -15,16 +14,14 @@ if TYPE_CHECKING:
     from beepy.types import AttrType
 
 _base_obj_dir = (*dir(object()), '__abstractmethods__')
-
-
 Self = TypeVar('Self', bound='Context')
-
 _CONTEXT_INITIALIZED = False
 
-OVERWRITE = make_sentinel('_OVERWRITE', var_name='OVERWRITE')
-SUPER = make_sentinel('_SUPER', var_name='SUPER')
-CONTENT = make_sentinel('_CONTENT', var_name='CONTENT')
-_SPECIAL_CHILD_STRINGS = (OVERWRITE, SUPER, CONTENT)
+
+class SpecialChild(enum.StrEnum):
+    OVERWRITE = 'OVERWRITE'
+    SUPER = 'SUPER'
+    CONTENT = 'CONTENT'
 
 
 class _MetaContext(ABCMeta):
@@ -70,7 +67,7 @@ class _MetaContext(ABCMeta):
 
         is_root = kwargs.get('_root')
         ctx_name = '' if is_root else kwargs.get('name')
-        namespace['__ROOT__'] = is_root
+        namespace['_meta_root'] = is_root
 
         if ctx_name or (initialized and not hasattr(base_cls, '_context_name_')):
             namespace['_context_name_'] = ctx_name or to_kebab_case(_name)
@@ -78,7 +75,7 @@ class _MetaContext(ABCMeta):
         cls: type[Context] | type = super().__new__(mcs, _name, bases, namespace)
 
         if initialized:
-            cls._static_attrs = attr.order_dict_by_priority(cls._static_attrs.copy() | static_attrs)
+            cls._static_attrs = attr._order_dict_by_priority(cls._static_attrs.copy() | static_attrs)
             cls._attrs_defaults = cls._attrs_defaults.copy() | attrs_defaults
         else:
             cls._static_attrs = {}
@@ -154,7 +151,7 @@ class _MetaContext(ABCMeta):
 class Context(metaclass=_MetaContext, _root=True):
     __slots__ = ('_id_', '_args', '_kwargs', 'attrs')
 
-    __ROOT__ = False
+    _meta_root = False
 
     _id_: str
     _args: tuple[AttrType, ...]
@@ -185,12 +182,11 @@ class Context(metaclass=_MetaContext, _root=True):
     def _clone_link_parent(self, parent):
         for name, attribute in self.attrs.items():
             if name in self._kwargs:
-                attribute.__set_first__(self, self._kwargs[name], parent)
-        self.link_parent_attrs(parent)
+                attribute._set_first_value(self, self._kwargs[name], parent)
+        self._link_parent_attrs(parent)
 
-    def link_parent_attrs(self, parent):
-        p_args, p_kwargs = parent.args_kwargs
-        p_data = parent._attrs_defaults | p_kwargs
+    def _link_parent_attrs(self, parent):
+        p_data = parent._attrs_defaults | parent._kwargs
 
         for name, attr_to_move_on in parent.attrs.items():
             if attr_to_move_on.move_on:
@@ -212,7 +208,7 @@ class Context(metaclass=_MetaContext, _root=True):
 
             value = kwargs[key]
             setattr(self, key, value)
-            attr_.__init_ctx__(self, value)
+            attr_._init_ctx(self, value)
 
         self.post_init()
 
@@ -220,11 +216,7 @@ class Context(metaclass=_MetaContext, _root=True):
         pass
 
     @property
-    def __view_attrs__(self) -> dict[str, AttrType]:
-        return {_attr.name: _attr._get_view_value(self) for _attr in self.attrs.values() if _attr._view}
-
-    @property
-    def __attrs__(self) -> dict[str, AttrType]:
+    def _attrs_values(self) -> dict[str, AttrType]:
         return {
             _attr.name: _attr._get_view_value(self)
             for _attr in self.attrs.values()
@@ -232,11 +224,11 @@ class Context(metaclass=_MetaContext, _root=True):
         }
 
     @property
-    def __states__(self) -> dict[str, AttrType]:
+    def _states(self) -> dict[str, AttrType]:
         return {_attr.name: _attr.__get__(self) for _attr in self.attrs.values()}
 
     @property
-    def args_kwargs(self):
+    def _args_kwargs(self):
         if not hasattr(self, '_args'):
             return None
         # TODO: make self._kwargs as frozendict
@@ -249,9 +241,8 @@ class Context(metaclass=_MetaContext, _root=True):
     def __notify__(self, attr_name: str, attribute: attr, value: AttrType):
         pass
 
-    def clone(self, parent=None) -> Self:
-        args, kwargs = self.args_kwargs
-        clone = type(self)(*args, **kwargs)
+    def _clone(self, parent=None) -> Self:
+        clone = type(self)(*self._args, **self._kwargs)
         clone._clone_link_parent(parent)
         return clone
 
@@ -259,4 +250,4 @@ class Context(metaclass=_MetaContext, _root=True):
 _CONTEXT_INITIALIZED = True
 
 
-__all__ = ['OVERWRITE', 'SUPER', 'CONTENT', '_SPECIAL_CHILD_STRINGS', '_MetaContext', 'Context']
+__all__ = ['SpecialChild', '_MetaContext', 'Context']
