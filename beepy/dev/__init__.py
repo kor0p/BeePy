@@ -151,5 +151,4 @@ class DevServer:
             Thread(target=start_http, daemon=True).start()
 
 
-if __name__ == '__main__':
-    DevServer().start()
+__all__ = ['DevServer']
