@@ -49,7 +49,9 @@ class DevServer:
         parser.add_argument(
             '-d', '--root-dir', default=Path.cwd(), help='Root directory to start server and watch file changes'
         )
-        parser.add_argument('--create', action='store_true', help='Create a default .html and .py files before start')
+        parser.add_argument(
+            '--create', action='store_true', help='Create a default .html, .py and .env files before start'
+        )
         args = parser.parse_args()
 
         if not self.root_path:
@@ -66,6 +68,7 @@ class DevServer:
 
         shutil.copyfile(BASE_DIR / 'example.html', dst)
         shutil.copyfile(BASE_DIR / 'example.py', self.root_path / '__init__.py')
+        shutil.copyfile(BASE_DIR / '../.env', self.root_path / '.env')
         print('[BeePy] Created default files in root directory')
 
     async def ws_send(self, message):

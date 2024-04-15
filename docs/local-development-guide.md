@@ -8,7 +8,7 @@ pip install -U beepy-web[dev]
 python -m beepy.dev --create # (1)!
 ```
 
-1. Argument `--create` will automatically create default `.html` and `.py` files for easy start
+1. Argument `--create` will automatically create default `.html`, `.py` and `.env` files for easy start
 
 That's all! :tada:
 
