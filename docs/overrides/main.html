@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block scripts %}
+    {{ super() }}
+    <script>
+        // https://stackoverflow.com/a/61511955
+        function waitForElement(selector) {
+            return new Promise(resolve => {
+                if (document.querySelector(selector)) {
+                    return resolve(document.querySelector(selector));
+                }
+
+                const observer = new MutationObserver(mutations => {
+                    if (document.querySelector(selector)) {
+                        observer.disconnect();
+                        resolve(document.querySelector(selector));
+                    }
+                });
+
+                observer.observe(document.body, {childList: true, subtree: true});
+            });
+        }
+        waitForElement('readthedocs-flyout').then(flyout => {
+            const style = document.createElement('style');
+            style.innerHTML = `
+.container.bottom-right {
+    bottom: 12px !important;
+    left: 20px !important;
+    right: unset !important;
+    font-size: 12px !important;
+}
+`
+            flyout.shadowRoot.appendChild(style)
+        })
+    </script>
+{% endblock %}
