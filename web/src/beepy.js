@@ -10,7 +10,7 @@ if (!!window.beepy) {
 }
 
 class BeePy {
-    __version__ = '0.9.8'
+    __version__ = '0.9.9'
 
     pyodideIndexURL = null
     globals = null

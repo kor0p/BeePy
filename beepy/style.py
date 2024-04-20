@@ -2,8 +2,9 @@ import re
 from collections.abc import Iterable
 from typing import Any, Protocol
 
+from beepy.attrs import attr, state
 from beepy.context import Context
-from beepy.framework import Tag, __config__, attr, state
+from beepy.framework import Tag, __config__
 from beepy.tags import Head
 from beepy.types import AttrValue, safe_html, safe_html_content
 from beepy.utils import js
