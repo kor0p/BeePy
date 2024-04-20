@@ -6,7 +6,7 @@ from functools import wraps
 from typing import TYPE_CHECKING
 
 from beepy.trackable import TrackableList
-from beepy.utils import __CONFIG__, js
+from beepy.utils import __config__, js
 from beepy.utils.common import escape_html
 
 if TYPE_CHECKING:
@@ -58,7 +58,7 @@ class Renderer:
             return value.__html__()
 
         if isinstance(value, str):
-            return escape_html(value, whitespace=__CONFIG__['html_replace_whitespaces'])
+            return escape_html(value, whitespace=__config__['html_replace_whitespaces'])
 
         if isinstance(value, Iterable):
             return ''.join(self._render(child) for child in value)

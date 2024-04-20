@@ -116,6 +116,9 @@ ignore-overlong-task-comments = true
 [tool.ruff.lint.pydocstyle]
 convention = "google"
 
+[tool.ruff.pylint]
+max-args = 7
+
 [tool.ruff.lint.mccabe]
 # Flag errors (`C901`) whenever the complexity level exceeds 11.
 max-complexity = 11

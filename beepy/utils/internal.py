@@ -12,13 +12,13 @@ from beepy.utils.js_py import IN_BROWSER, js, to_js
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-BEEPY_ROOT_PACKAGE = '__beepy_root__'
-_PY_TAG_ATTRIBUTE = '__PYTHON_TAG__'
+_beepy_root_package = '__beepy_root__'
+_py_tag_attribute = '__PYTHON_TAG__'
 
-dotenv.load_dotenv(f'{BEEPY_ROOT_PACKAGE}/.env' if IN_BROWSER else '.env')
+dotenv.load_dotenv(f'{_beepy_root_package}/.env' if IN_BROWSER else '.env')
 
 # TODO: make it with dataclass
-__CONFIG__ = {
+__config__ = {
     'debug': os.environ.get('DEBUG') == '1',
     'development': os.environ.get('DEVELOPMENT') == '1',
     'style_head': True,
@@ -31,8 +31,8 @@ __CONFIG__ = {
 
 
 def merge_configs():
-    __CONFIG__.update(js.beepy.config.to_py())
-    js.beepy.config = to_js(__CONFIG__)
+    __config__.update(js.beepy.config.to_py())
+    js.beepy.config = to_js(__config__)
 
 
 if IN_BROWSER:  # TODO: check support for non-browser runs
@@ -40,7 +40,7 @@ if IN_BROWSER:  # TODO: check support for non-browser runs
 
 
 async def reload_requirements():
-    get_requirements: list | Callable = __CONFIG__['requirements']
+    get_requirements: list | Callable = __config__['requirements']
     if not callable(get_requirements):  # static requirements, must be already loaded
         return
 
@@ -94,8 +94,8 @@ __beepy_global_handlers__ = [_default_global_handlers]
 
 
 __all__ = [
-    '_PY_TAG_ATTRIBUTE',
-    '__CONFIG__',
+    '_py_tag_attribute',
+    '__config__',
     'merge_configs',
     'lazy_import',
     'import_string',

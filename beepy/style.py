@@ -3,7 +3,7 @@ from collections.abc import Iterable
 from typing import Any, Protocol
 
 from beepy.context import Context
-from beepy.framework import __CONFIG__, Tag, attr, state
+from beepy.framework import Tag, __config__, attr, state
 from beepy.tags import Head
 from beepy.types import AttrValue, safe_html, safe_html_content
 from beepy.utils import js
@@ -179,7 +179,7 @@ class Style(Tag, name='style', content_tag=None, raw_html=True, force_ref=True):
 
     def _mount_(self, element, parent, index=None):
         self.real_parent = parent
-        if __CONFIG__['style_head']:
+        if __config__['style_head']:
             super()._mount_(Head.mount_element, Head)
         else:
             super()._mount_(element, parent, index)
@@ -237,13 +237,13 @@ class Style(Tag, name='style', content_tag=None, raw_html=True, force_ref=True):
 
         if new_value is MISSING:
             return parent.style_id.vars[name]
+
+        if new_value is None:
+            del parent.style_id.vars[name]
         else:
-            if new_value is None:
-                del parent.style_id.vars[name]
-            else:
-                parent.style_id.vars[name] = new_value
-            if parent._mount_finished_:
-                parent.__render__()
+            parent.style_id.vars[name] = new_value
+        if parent._mount_finished_:
+            parent.__render__()
 
 
 def import_css(file_path):

@@ -6,21 +6,21 @@ from functools import cache
 from types import MethodType
 from typing import ClassVar
 
-from beepy.attrs import attr, state
+from beepy.attrs import state, state_move_on
 from beepy.children import ChildRef, Children, ContentWrapper, CustomWrapper, StringWrapper, TagRef
 from beepy.components import Component, _MetaComponent
 from beepy.context import SpecialChild
 from beepy.types import AttrType, ContentType, Mounter, Renderer
-from beepy.utils import __CONFIG__, js, log
+from beepy.utils import __config__, js, log
 from beepy.utils.common import NONE_TYPE, get_random_name, to_kebab_case
 from beepy.utils.dev import _debugger
-from beepy.utils.internal import _PY_TAG_ATTRIBUTE
+from beepy.utils.internal import _py_tag_attribute
 
-__version__ = '0.9.7'  # For internal development set to 0.0a0
-__CONFIG__['version'] = __version__
+__version__ = '0.9.8'  # For internal development set to 0.0a0
+__config__['version'] = __version__
 
 
-_TAG_INITIALIZED = False
+_tag_initialized = False
 
 
 class _MetaTag(_MetaComponent):
@@ -37,7 +37,7 @@ class _MetaTag(_MetaComponent):
         # for example: extending classes Tag and WithRouter must produce correct state 'router'
         mock_cls: type[Tag] | type = type.__new__(mcs, _name, bases, {})
 
-        initialized = _TAG_INITIALIZED  # As base classes is also declared here, we must be sure base class exists
+        initialized = _tag_initialized  # As base classes is also declared here, we must be sure base class exists
 
         is_root = kwargs.get('_root')
         tag_name = '' if is_root else kwargs.get('name')
@@ -159,7 +159,7 @@ class _MetaTag(_MetaComponent):
 
         if initialized and 'mount' in kwargs:
             cls._root_parent = None
-            setattr(cls.mount_element, _PY_TAG_ATTRIBUTE, cls())
+            setattr(cls.mount_element, _py_tag_attribute, cls())
 
         if cls._meta_root:
             cls.__root_declared__()
@@ -174,7 +174,6 @@ class Tag(Component, metaclass=_MetaTag, _root=True):
 
     __slots__ = (
         '_content',
-        '_shadow_root',
         'mount_parent',
         '_mount_finished_',
         'mount_element',
@@ -188,7 +187,6 @@ class Tag(Component, metaclass=_MetaTag, _root=True):
     _static_content: ContentType = ''
 
     _content: ContentType
-    _shadow_root: js.HTMLElement
     _ref: TagRef | None
     _force_ref: bool = False
 
@@ -278,8 +276,8 @@ class Tag(Component, metaclass=_MetaTag, _root=True):
         super().__init__(*args, **kwargs)
 
     def __new__(cls, *args, **kwargs):  # noqa: PLR0915, PLR0912, C901 - Statements (60 > 50)  +  Branches (23 > 12)
-        if hasattr(getattr(cls, 'mount_element', None), _PY_TAG_ATTRIBUTE):
-            return getattr(cls.mount_element, _PY_TAG_ATTRIBUTE)
+        if hasattr(getattr(cls, 'mount_element', None), _py_tag_attribute):
+            return getattr(cls.mount_element, _py_tag_attribute)
 
         self: Tag = super().__new__(cls, *args, **kwargs)
 
@@ -334,20 +332,19 @@ class Tag(Component, metaclass=_MetaTag, _root=True):
             setattr(type(self), key, child)
             self._children.append(child)
 
-        self._shadow_root = None
         self.mount_parent = None
         self._mount_finished_ = False
 
         if not hasattr(self, 'mount_element'):
             self.mount_element = js.document.createElement(self._tag_name_)
-        if getattr(self.mount_element, _PY_TAG_ATTRIBUTE, None):
+        if getattr(self.mount_element, _py_tag_attribute, None):
             raise ValueError(f'Coping or using as child is not allowed for "{self._tag_name_}"')
         else:
-            setattr(self.mount_element, _PY_TAG_ATTRIBUTE, self)
+            setattr(self.mount_element, _py_tag_attribute, self)
         if self._static_children_tag:
             self._children_tag = self._static_children_tag._clone(self)
             self._children_element = self._children_tag.mount_element
-            setattr(self._children_element, _PY_TAG_ATTRIBUTE, self)
+            setattr(self._children_element, _py_tag_attribute, self)
         else:
             self._children_tag = None
             self._children_element = self.mount_element
@@ -375,7 +372,7 @@ class Tag(Component, metaclass=_MetaTag, _root=True):
         self._set_ref(parent, ref)
         return ref
 
-    def __notify__(self, attr_name: str, attribute: attr, value: AttrType):
+    def __notify__(self, attr_name: str, attribute: state, value: AttrType):
         super().__notify__(attr_name, attribute, value)
         self.__render__()
 
@@ -477,7 +474,7 @@ class Tag(Component, metaclass=_MetaTag, _root=True):
             if child == SpecialChild.CONTENT:
                 child = self.content
 
-            if isinstance(child, attr):
+            if isinstance(child, state):
 
                 def child(s, _n=child.name):
                     return getattr(s, _n)
@@ -512,7 +509,7 @@ class Tag(Component, metaclass=_MetaTag, _root=True):
             raise ValueError('It looks like element is not mounted correctly, please see the docs') from None
 
 
-_TAG_INITIALIZED = True
+_tag_initialized = True
 
 
 @cache
@@ -535,8 +532,8 @@ def mount(element: Tag, root_element: str, *, clear=False):
     js.beepy.startLoading(mountPoint=root)
 
     name = root.tagName.lower()
-    parent = _MetaTag(name, (Tag,), {'_root_parent': state(type=Tag, move_on=True)}, name=name, content_tag=None)()
-    parent._attrs_defaults['_root_parent'] = parent.__class__._root_parent._initial_value = parent
+    parent = _MetaTag(name, (Tag,), {'_root_parent': state_move_on(type=Tag)}, name=name, content_tag=None)()
+    parent._attrs_defaults['_root_parent'] = parent.__class__._root_parent._default = parent
     parent.mount_element = root
     element._link_parent_attrs(parent)
 

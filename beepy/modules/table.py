@@ -2,11 +2,8 @@ from __future__ import annotations
 
 from typing import Literal, TypeVar
 
-from beepy.attrs import state
-from beepy.children import Children
-from beepy.listeners import on
+from beepy import Children, Style, on, state
 from beepy.modules.actions import Action
-from beepy.style import Style
 from beepy.tags import table, tbody, td, th, thead, tr
 from beepy.utils.asyncio import ensure_sync_many
 from beepy.utils.common import call_handler_with_optional_arguments

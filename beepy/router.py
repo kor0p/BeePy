@@ -4,9 +4,7 @@ import re
 from dataclasses import dataclass
 from re import Match
 
-from beepy import Tag
-from beepy.attrs import html_attr, state
-from beepy.listeners import on
+from beepy import Tag, html_attr, on, state, state_move_on
 from beepy.tags import a
 from beepy.types import Children
 from beepy.utils import js
@@ -16,8 +14,8 @@ from beepy.utils.js_py import push_url
 
 
 class WithRouter:
-    match: Match = state(move_on=True)
-    router: Router = state(move_on=True)
+    match: Match = state_move_on()
+    router: Router = state_move_on()
 
 
 @dataclass

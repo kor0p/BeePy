@@ -6,12 +6,12 @@ from pathlib import Path
 from pyodide.ffi import JsException
 
 from beepy.utils.dev import _debugger
-from beepy.utils.internal import __CONFIG__, BEEPY_ROOT_PACKAGE
+from beepy.utils.internal import __config__, _beepy_root_package
 from beepy.utils.js_py import IN_BROWSER, js
 
-requirements = __CONFIG__['requirements']
-MODULES_NOT_EXISTING_ON_SERVER = [
-    BEEPY_ROOT_PACKAGE,
+requirements = __config__['requirements']
+_modules_not_existing_on_server = [
+    _beepy_root_package,
     *(requirements() if callable(requirements) else requirements),
     '_hashlib',  # TODO: FIX THIS...
     '_strptime',
@@ -53,7 +53,7 @@ class ServerFinder(MetaPathFinder):
         if path and any(p.startswith('/lib') for p in path):
             return
 
-        if Path(f'/lib/python3.11/site-packages/{fullname}').exists() or fullname in MODULES_NOT_EXISTING_ON_SERVER:
+        if Path(f'/lib/python3.11/site-packages/{fullname}').exists() or fullname in _modules_not_existing_on_server:
             return
 
         current_path = js.beepy.files._lastLoadedFile
@@ -63,7 +63,7 @@ class ServerFinder(MetaPathFinder):
         except JsException as err:
             js.beepy.files._lastLoadedFile = current_path
             _debugger(err)
-            MODULES_NOT_EXISTING_ON_SERVER.append(fullname)
+            _modules_not_existing_on_server.append(fullname)
             return
 
         return spec_from_file_location(fullname)
@@ -71,4 +71,4 @@ class ServerFinder(MetaPathFinder):
 
 if IN_BROWSER:
     sys.meta_path.insert(0, ServerFinder())
-    sys.path.append(BEEPY_ROOT_PACKAGE)
+    sys.path.append(_beepy_root_package)

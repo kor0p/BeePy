@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from beepy import attr, import_css, on, state
-from beepy.children import Children
+from beepy import Children, attr, import_css, on, state
 from beepy.modules.local_storage import LocalStorage
 from beepy.tags import Head, button, form, input_, li, p, span, ul
 

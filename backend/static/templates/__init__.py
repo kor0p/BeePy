@@ -1,4 +1,4 @@
-from beepy import __CONFIG__, Tag, import_css, mount, safe_html_content
+from beepy import Tag, __config__, import_css, mount, safe_html_content
 from beepy.router import Link, Router, WithRouter
 from beepy.tags import Head, div
 
@@ -13,7 +13,7 @@ class PageNotFound(Tag, WithRouter, name='error'):
 
     @safe_html_content
     def content(self):
-        if not __CONFIG__['debug']:
+        if not __config__['debug']:
             return self._base_content
 
         return self._base_content + (f'<p>Available routes: {list(self.router.routes.keys())}</p>')

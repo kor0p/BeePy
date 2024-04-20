@@ -74,7 +74,7 @@ export function _lstrip (text) {
     return text.replace(/^\/+/, '')
 }
 
-export const _PY_TAG_ATTRIBUTE = '__PYTHON_TAG__'
+export const _py_tag_attribute = '__PYTHON_TAG__'
 
 function getPyTag(i) {
     /**
@@ -83,7 +83,7 @@ function getPyTag(i) {
      * evaluates $0.__PYTHON_TAG__
      * available for py0-py9
      */
-    return () => window[`$${i}`][_PY_TAG_ATTRIBUTE]
+    return () => window[`$${i}`][_py_tag_attribute]
 }
 
 Object.defineProperties(

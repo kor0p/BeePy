@@ -89,12 +89,12 @@ class LifecycleMethod:
                 raise ValueError(f'Invalid lifecycle step found: {step}. Available steps: {self.steps}')
 
 
-_COMPONENT_INITIALIZED = False
+_component_initialized = False
 
 
 class _MetaComponent(_MetaContext):
     def __new__(mcs, _name: str, bases: tuple, namespace: dict, **kwargs):
-        initialized = _COMPONENT_INITIALIZED  # As base classes is also declared here, we must be sure base class exists
+        initialized = _component_initialized  # As base classes is also declared here, we must be sure base class exists
 
         static_onchange_handlers = []
         _lifecycle_methods = []
@@ -351,7 +351,7 @@ class Component(WebBase, Context, metaclass=_MetaComponent, _root=True):
         return wrapper
 
 
-_COMPONENT_INITIALIZED = True
+_component_initialized = True
 
 
 class Directive(Component, _root=True):

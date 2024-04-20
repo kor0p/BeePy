@@ -4,7 +4,7 @@ from datetime import datetime
 from http import HTTPStatus
 from http.client import HTTPException
 
-from beepy.utils.internal import __CONFIG__
+from beepy.utils.internal import __config__
 from beepy.utils.js_py import IN_BROWSER
 
 
@@ -13,7 +13,7 @@ class UpgradedJSONEncoder(json.JSONEncoder):  # TODO: consider on rewriting json
         if dataclasses.is_dataclass(o):
             return dataclasses.asdict(o)
         if isinstance(o, datetime):
-            return o.strftime(__CONFIG__['default_datetime_format'])
+            return o.strftime(__config__['default_datetime_format'])
         return super().default(o)
 
 
@@ -36,7 +36,7 @@ if IN_BROWSER:
             },
         )
 
-        response = await pyfetch(__CONFIG__['api_url'] + url, method=method, body=body, headers=headers, **opts)
+        response = await pyfetch(__config__['api_url'] + url, method=method, body=body, headers=headers, **opts)
 
         try:
             response.raise_for_status()
@@ -57,7 +57,7 @@ else:
 
         # TODO: check opts argument compatibility
 
-        response = requests.request(method, __CONFIG__['api_url'] + url, data=body, headers=headers)
+        response = requests.request(method, __config__['api_url'] + url, data=body, headers=headers)
 
         if int(response.status_code) >= HTTPStatus.BAD_REQUEST:
             raise HTTPException(response.status_code)

@@ -318,7 +318,7 @@ window = self = globalThis = Self
 #################
 
 
-EVENT_LISTENERS = {}
+_event_listeners = {}
 
 
 def add_event_listener(elt, event, listener):
@@ -326,7 +326,7 @@ def add_event_listener(elt, event, listener):
     of a JsProxy corresponding to the listener param.
     """
     proxy = create_proxy(listener)
-    EVENT_LISTENERS[(elt.js_id, event, listener)] = proxy
+    _event_listeners[(elt.js_id, event, listener)] = proxy
     elt.addEventListener(event, proxy)
 
 
@@ -334,10 +334,10 @@ def remove_event_listener(elt, event, listener):
     """Wrapper for JavaScript's removeEventListener() which automatically manages the lifetime
     of a JsProxy corresponding to the listener param.
     """
-    elt.removeEventListener(event, EVENT_LISTENERS.pop((elt.js_id, event, listener)))
+    elt.removeEventListener(event, _event_listeners.pop((elt.js_id, event, listener)))
 
 
-TIMEOUTS: dict[int, Callable] = {}
+_timeouts: dict[int, Callable] = {}
 
 
 def set_timeout(callback, timeout):
@@ -348,11 +348,11 @@ def set_timeout(callback, timeout):
 
     def wrapper():
         callback()
-        TIMEOUTS.pop(id, None)
+        _timeouts.pop(id, None)
 
     callable = create_once_callable(wrapper)
     id = setTimeout(callable, timeout)
-    TIMEOUTS[id] = callable
+    _timeouts[id] = callable
     return id
 
 
@@ -361,10 +361,10 @@ def clear_timeout(id):
     of a JsProxy corresponding to the callback param.
     """
     clearTimeout(id)
-    TIMEOUTS.pop(id, None)
+    _timeouts.pop(id, None)
 
 
-INTERVAL_CALLBACKS: dict[int, Callable] = {}
+_interval_callbacks: dict[int, Callable] = {}
 
 
 def set_interval(callback, interval):
@@ -373,7 +373,7 @@ def set_interval(callback, interval):
     """
     proxy = create_proxy(callback)
     id = setInterval(proxy, interval)
-    INTERVAL_CALLBACKS[id] = proxy
+    _interval_callbacks[id] = proxy
     return id
 
 
@@ -382,4 +382,4 @@ def clear_interval(id):
     of a JsProxy corresponding to the callback param.
     """
     clearInterval(id)
-    INTERVAL_CALLBACKS.pop(id, None)
+    _interval_callbacks.pop(id, None)

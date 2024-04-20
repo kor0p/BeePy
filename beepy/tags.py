@@ -3,9 +3,9 @@ from typing import Any
 from boltons.typeutils import make_sentinel
 
 from beepy.attrs import attr, html_attr, state
-from beepy.children import Children
 from beepy.framework import Tag
-from beepy.utils import __CONFIG__, js
+from beepy.types import Children
+from beepy.utils import __config__, js
 from beepy.utils.common import AnyOfType, get_random_name
 
 AUTO_ID = make_sentinel(var_name='AUTO_ID')
@@ -18,7 +18,7 @@ class html_tag(Tag, _root=True, content_tag=None):
 
     def _set_ref(self, parent, ref):
         super()._set_ref(parent, ref)
-        if type(self).id is html_tag.id and (self.id is AUTO_ID or (__CONFIG__['inputs_auto_id'] and self.id is None)):
+        if type(self).id is html_tag.id and (self.id is AUTO_ID or (__config__['inputs_auto_id'] and self.id is None)):
             # TODO: replace 5 and 2 with some log value
             self.id = f'{ref.name or get_random_name(5)}-{get_random_name(2)}'
 
@@ -226,7 +226,8 @@ class StandaloneTag(html_tag, _root=True):
 class Head(StandaloneTag, name='head', mount=js.document.head):
     title = state()
 
-    def render(self):
+    @title.on('change')
+    def _upd_title(self):
         if self.title:
             js.document.title = self.title
 

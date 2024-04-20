@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import builtins
 import keyword
 from collections import defaultdict
+from functools import partial
 from typing import TYPE_CHECKING, Any, get_type_hints
 
 from boltons.iterutils import first
@@ -12,7 +14,6 @@ from beepy.utils import log
 from beepy.utils.common import NONE_TYPE, call_handler_with_optional_arguments, to_kebab_case, wraps_with_name
 
 if TYPE_CHECKING:
-    import builtins
     from collections.abc import Callable, Sequence
     from typing import TypeVar
 
@@ -21,7 +22,7 @@ if TYPE_CHECKING:
 
     T = TypeVar('T')
 
-SPECIAL_CONVERT_ATTRIBUTES = {
+_special_convert_attributes = {
     'contenteditable': lambda tag, val: (
         convert_boolean_attribute_value(val) if val == tag.mount_element.isContentEditable else val
     ),
@@ -43,95 +44,48 @@ def set_html_attribute(el, name: str, value, *, type: builtins.type = NONE_TYPE)
         setattr(el, name, value)
 
 
-class attr:
+class state:
     __slots__ = (
         'name',
-        '_initial_value',
         'type',
-        'const',
         'required',
-        'notify',
-        'static',
-        'move_on',
         'model',
-        'model_options',
-        '_from_model_cache',
-        'fget',
-        'fset',
-        'fdel',
+        'model_opts',
         'handlers',
         'enum',
+        '_default',
+        '_from_model_cache',
         '_cache',
     )
 
-    _view = True
-    _set_on_render = False
-
     name: str | None
-    _initial_value: T
     type: builtins.type | None
-    const: bool
     required: bool
-    notify: bool
-    static: bool
-    move_on: bool
     model: str | None
-    model_options: dict[str, Any]
-    _from_model_cache: list[tuple[Component, attr, str | None]]
-    fget: Callable[[Component], T]
-    fset: Callable[[Component, T], None]
-    fdel: Callable[[Component], None]
+    model_opts: dict[str, Any]
     handlers: dict[str, list[Callable[[Component, T], None]]]
     enum: Sequence
 
+    _default: T
+    _from_model_cache: list[tuple[Component, state, str | None]]
     _cache: dict[Component, AttrType]
 
-    def __init__(  # noqa: PLR0913    # TODO: think about splitting logic
-        self,
-        default=None,
-        *,
-        const=False,
-        required=False,
-        notify=False,
-        static=False,
-        move_on=False,
-        model=None,
-        model_options=None,
-        fget=None,
-        fset=None,
-        fdel=None,
-        enum=None,
-        **kwargs,
-    ):
-        _type = kwargs.get('type')
+    def __init__(self, default=None, *, required=False, model=None, model_opts=None, enum=None, type=None):
+        # TO THINK: add `const` (removed feature)
 
         self.name = None
-        self.const = const
-        if const and default is not None:  # TODO: Add example for usage of const
-            raise ValueError(f'Const {type(self).__name__} cannot have initial value')
-        self._initial_value = default
-        self.required = required or const  # const attr must be also required
-        self.notify = notify
-        self.static = static
-        self.move_on = move_on
+        self._default = default
+        self.required = required
         self.model = 'change' if model is True else model
-        self.model_options = {'attribute': None} | (model_options or {})
+        self.model_opts = {'attribute': None} | (model_opts or {})
         self._from_model_cache = []
 
-        if default is None and _type is None:
+        if default is None and type is None:
             self.type = NONE_TYPE
         else:
-            if _type is None:
-                _type = default.type if self.model and isinstance(default, attr) else type(default)
-            self._set_type(_type)
-
-        # TODO: think on: is this needed?
-        # behaviour like @property
-        self.fget = fget
-        self.fset = fset
-        self.fdel = fdel
-        if fget:
-            self(fget)
+            if type is None:
+                type = default.type if self.model and isinstance(default, state) else builtins.type(default)
+            self._set_type(type)
 
         self.handlers = defaultdict(list)
         self.enum = enum
@@ -140,12 +94,7 @@ class attr:
 
     @property
     def _priority(self):
-        if self.move_on:
-            return 0
-        elif self.model:
-            return 2
-        else:
-            return 1
+        return 2 if self.model else 1
 
     @classmethod
     def _order_dict_by_priority(cls, dict_attrs):
@@ -154,29 +103,18 @@ class attr:
     def __get__(self, instance, owner=None):
         if instance is None:
             return self
-        return (self.fget or self._fget)(instance)
+        return self._fget(instance)
 
     def _fget(self, instance):
-        return self._cache.get(None if self.static else instance, self._initial_value)
-
-    def __call__(self, fget):
-        self.fget = fget
-        self.name = to_kebab_case(fget.__name__)
-        if self.type is NONE_TYPE:
-            type_hints = get_type_hints(fget)
-            if 'return' in type_hints:
-                self._set_type(type_hints['return'])
-        return self
+        return self._cache.get(instance, self._default)
 
     def __set__(self, instance, value, *, _prevent_model=False):
         current_value = self.__get__(instance)
-        if self.const and current_value is not None:
-            raise AttributeError
 
         if current_value == value:
             return
 
-        (self.fset or self._fset)(instance, value)
+        self._fset(instance, value)
 
         if instance._parent_ is not None:
             for handler in self.handlers['change']:
@@ -184,36 +122,21 @@ class attr:
                     continue
                 call_handler_with_optional_arguments(handler, instance, {'value': value})
 
-        if self.notify:
-            instance.__notify__(self.name, self, value)
-
     def _set_first_value(self, instance, value, parent):  # noqa: ARG002 - unused `parent
         if self.model and (
-            isinstance(value, attr) and value.name is not None and (instance, self, None) not in value._from_model_cache
+            isinstance(value, state) and value.name and (instance, self, None) not in value._from_model_cache
         ):
             value._from_model_cache.append((instance, self, value.name))
             instance._kwargs.pop(self.name)
 
     def _fset(self, instance, value):
-        if self.fget is not None:
-            raise AttributeError
-
         if self.enum is not None and value not in self.enum:
             raise TypeError(f'Possible values: {self.enum}. Provided value: {value}')
 
-        self._cache[None if self.static else instance] = value
-
-    def setter(self, fset):
-        self.fset = fset
-        if self.type is NONE_TYPE:
-            self._set_type(first(get_type_hints(fset).values()))
-        return self
+        self._cache[instance] = value
 
     def __set_name__(self, owner, name):
-        if self._view:
-            self.name = to_kebab_case(name)
-        else:
-            self.name = name
+        self.name = name
 
     def _set_type(self, _type, *, raise_error=False):
         if hasattr(_type, '__origin__'):  # TODO: add support of strict check of type on change/etc
@@ -243,13 +166,13 @@ class attr:
         try:
             return self.type()
         except Exception as e:  # noqa: BLE001 - trying to call empty constructor
-            log.debug(
+            log.warn(
                 f'Got error when trying to empty-args constructor of {self.type}: {e}\n'
                 f'Will be better to set {self.name} not to None'
             )
 
     def _prepare_attribute_for_model(self, instance):
-        if attribute := self.model_options['attribute']:
+        if attribute := self.model_opts['attribute']:
             if callable(attribute):
                 return attribute(instance)
             return attribute
@@ -258,8 +181,8 @@ class attr:
         initial_value = self.__get__(instance.parent if instance._parent_ is not None else component)
 
         if initial_value is None:
-            if self._initial_value is not None:
-                initial_value = self._initial_value
+            if self._default is not None:
+                initial_value = self._default
             elif self.type and (value_from_type := self._get_type_instance()) is not None:
                 initial_value = value_from_type
         if attribute_ := self._prepare_attribute_for_model(instance):
@@ -327,45 +250,27 @@ class attr:
                 call_handler_with_optional_arguments(handler, component, {'value': value})
 
     def __delete__(self, instance):
-        return (self.fdel or self._fdel)(instance)
+        return self._fdel(instance)
 
     def _fdel(self, instance):
-        if self.fget is not None:
-            raise AttributeError
-        if self.static:
-            return
-
         self._cache.pop(instance, None)
 
-    def deleter(self, fdel):
-        self.fdel = fdel
-        return self
-
     def __repr__(self):
-        return (
-            f'{self.name} = {type(self).__name__}'
-            f'(default={self._initial_value!r}, type={self.type}, static={self.static})'
-        )
+        return f'{self.name} = {type(self).__name__}(default={self._default!r}, type={self.type})'
 
     def __str__(self):
-        return f'{self.name}({self._initial_value!r})'
+        return f'{self.name}({self._default!r})'
+
+    def _on_wrapper(self, handler, *, triggers):
+        for trigger in triggers:
+            if handler in self.handlers[trigger]:
+                raise AttributeError(f"This @on('{trigger}') handler is already set")
+        for trigger in triggers:
+            self.handlers[trigger].append(handler)
+        return handler
 
     def on(self, *triggers):
-        def wrapper(handler):
-            if self.static or self._from_model_cache:  # check if _from_model_cache is required
-                if not hasattr(handler, '_attrs_static_'):
-                    handler._attrs_static_ = defaultdict(list)
-                for trigger in triggers:
-                    handler._attrs_static_[trigger].append(self)
-
-            for trigger in triggers:
-                if handler in self.handlers[trigger]:
-                    raise AttributeError(f"This @on('{trigger}') handler is already set")
-            for trigger in triggers:
-                self.handlers[trigger].append(handler)
-            return handler
-
-        return wrapper
+        return partial(self._on_wrapper, triggers=triggers)
 
     def _get_view_value(self, instance=None, value=None):
         if instance is not None:
@@ -373,7 +278,7 @@ class attr:
                 raise ValueError('You cannot provide both instance and value arguments')
             value = self.__get__(instance)
 
-        if check_fn := SPECIAL_CONVERT_ATTRIBUTES.get(self.name):
+        if check_fn := _special_convert_attributes.get(self.name):
             return check_fn(instance, value)
 
         if issubclass(self.type, bool):
@@ -386,16 +291,100 @@ class attr:
         return value
 
 
-class state(attr):
+class attr(state):
     __slots__ = ()
 
-    _view = False
+    def __set_name__(self, owner, name):
+        self.name = to_kebab_case(name)
+
+
+class state_move_on(state):
+    __slots__ = ()
+
+    _move_on = True
+    _priority = 0
+
+
+class attr_prop(attr):
+    __slots__ = ('fget', 'fset', 'fdel')
+
+    fget: Callable[[Component], T]
+    fset: Callable[[Component, T], None]
+    fdel: Callable[[Component], None]
+
+    def __init__(self, *args, fget=None, fset=None, fdel=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fget = fget
+        self.fset = fset
+        self.fdel = fdel
+        if fget:
+            self(fget)
+
+    def _fget(self, instance):
+        if self.fget is not None:
+            return self.fget(instance)
+        return super()._fget(instance)
+
+    def __call__(self, fget):
+        self.fget = fget
+        self.name = to_kebab_case(fget.__name__)
+        if self.type is NONE_TYPE:
+            type_hints = get_type_hints(fget)
+            if 'return' in type_hints:
+                self._set_type(type_hints['return'])
+        return self
+
+    def _fset(self, instance, value):
+        if self.fset is not None:
+            return self.fset(instance, value)
+        if self.fget is not None:
+            raise AttributeError('This attr have no setter')
+        return super()._fset(instance, value)
+
+    def setter(self, fset):
+        self.fset = fset
+        if self.type is NONE_TYPE:
+            self._set_type(first(get_type_hints(fset).values()))
+        return self
+
+    def _fdel(self, instance):
+        if self.fdel is not None:
+            return self.fdel(instance)
+        if self.fget is not None:
+            raise AttributeError('This attr have no deleter')
+        return super()._fdel(instance)
+
+    def deleter(self, fdel):
+        self.fdel = fdel
+        return self
+
+
+class state_static(state):
+    __slots__ = ()
+
+    def _fget(self, instance):  # noqa: ARG002 - unused `instance`
+        return super()._fget(None)
+
+    def _fset(self, instance, value):  # noqa: ARG002 - unused `instance`
+        super()._fset(None, value)
+
+    def _fdel(self, instance):  # noqa: ARG002 - unused `instance`
+        return  # Static state shouldn't be deleted by `__delete__`
+
+    def clear(self):
+        super()._fdel(None)
+
+    def _on_wrapper(self, handler, *, triggers):
+        if not hasattr(handler, '_attrs_static_'):
+            handler._attrs_static_ = defaultdict(list)
+        for trigger in triggers:
+            handler._attrs_static_[trigger].append(self)
+
+        return super()._on_wrapper(handler, triggers=triggers)
 
 
 class html_attr(attr):
     __slots__ = ()
-
-    _set_on_render = True
 
     def __init__(self, *args, name=None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -449,4 +438,4 @@ class listen_state(state):
                 component.__notify__(self.name, self, value)
 
 
-__all__ = ['attr', 'state', 'html_attr']
+__all__ = ['state', 'attr', 'attr_prop', 'state_move_on', 'state_static', 'html_attr']

@@ -10,7 +10,7 @@ if (!!window.beepy) {
 }
 
 class BeePy {
-    __version__ = '0.9.7'
+    __version__ = '0.9.8'
 
     pyodideIndexURL = null
     globals = null
@@ -18,7 +18,7 @@ class BeePy {
     dev_path = ''
     python_api = python
 
-    static DEFAULT_CONFIG = {
+    static _default_config = {
         include: ['.env'],
         pyodideVersion: '0.25.1',
         requirements: [],  // also could be function
@@ -36,7 +36,7 @@ If you have config, you must define it before loading beepy script
             `)
         }
 
-        this.config = mergeDeep(BeePy.DEFAULT_CONFIG, localConfig.config || {})
+        this.config = mergeDeep(BeePy._default_config, localConfig.config || {})
         this._loadPyodideScript()
 
         const path = _script.src.substring(0, _script.src.indexOf('beepy.js') - 1).replace(/\/+$/, '')

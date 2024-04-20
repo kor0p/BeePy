@@ -8,7 +8,7 @@ import beepy
 from beepy.components import Component
 from beepy.types import Children, ContentType, Renderer, WebBase
 from beepy.utils import js, log
-from beepy.utils.internal import _PY_TAG_ATTRIBUTE
+from beepy.utils.internal import _py_tag_attribute
 
 if TYPE_CHECKING:
     from beepy.context import Context
@@ -36,9 +36,6 @@ class StringWrapper(CustomWrapper):
 
 class ContentWrapper(CustomWrapper):
     __slots__ = ('content', 'tag', 'mount_element', '_current_render', 'parent', 'mount_parent', 'children')
-
-    SHADOW_ROOTS = ('article', 'aside', 'blockquote', 'body', 'div', 'footer', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6')
-    SHADOW_ROOTS += ('header', 'main', 'nav', 'p', 'section', 'span')
 
     content: Callable[[], ContentType | Tag]
     tag: Tag | None
@@ -70,7 +67,7 @@ class ContentWrapper(CustomWrapper):
         else:
             self.mount_element = js.document.createDocumentFragment()
             self.mount_parent.insertChild(self.mount_element, index)
-        setattr(self.mount_element, _PY_TAG_ATTRIBUTE, self)
+        setattr(self.mount_element, _py_tag_attribute, self)
 
     def _mount_children(self):
         content = self.content()
@@ -78,7 +75,7 @@ class ContentWrapper(CustomWrapper):
         if isinstance(content, beepy.framework.Tag):
             content = (content,)
         elif isinstance(content, Iterable) and not isinstance(content, str) and content:
-            content = tuple(content)
+            content = list(content)
             for _child in content[:]:
                 if not isinstance(_child, beepy.framework.Tag):
                     content = None
@@ -118,7 +115,7 @@ class ContentWrapper(CustomWrapper):
         if not isinstance(result, str):
             raise TypeError(f'Function {self.content} cannot return {result}!')
 
-        if self.tag or (self.parent and self.parent._shadow_root):
+        if self.tag:
             self.mount_element.innerHTML = result
         else:  # fragment can't be re-rendered
             self.mount_element.innerHTML = result

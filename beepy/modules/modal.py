@@ -1,9 +1,6 @@
 from collections.abc import Callable
 
-from beepy import Tag
-from beepy.attrs import attr, state
-from beepy.listeners import on
-from beepy.style import Style
+from beepy import Style, Tag, attr, on, state
 from beepy.tags import Body, button, div
 
 

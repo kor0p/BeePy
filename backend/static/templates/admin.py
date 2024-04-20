@@ -4,22 +4,22 @@ import asyncio
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from http.client import HTTPException
+from typing import TypeAlias
 
-from beepy import SpecialChild, Style, Tag, on
-from beepy.attrs import html_attr, state
+from beepy import SpecialChild, Style, Tag, html_attr, on, state, state_static
 from beepy.modules.table import Table, TableBody, TableHead
 from beepy.modules.tabs import tab, tab_title, tabs
 from beepy.style import with_style
 from beepy.tags import Head, button, by__ref, change, h2, label, option, select, textarea, ul
 from beepy.types import AttrValue
-from beepy.utils import __CONFIG__, force_sync
+from beepy.utils import __config__, force_sync
 from beepy.utils.api import request
 
 Head.title = 'Admin panel example'
 
-dt_input_format = __CONFIG__['default_datetime_format'] = '%Y-%m-%dT%H:%M:%S.%fZ'
+dt_input_format = __config__['default_datetime_format'] = '%Y-%m-%dT%H:%M:%S.%fZ'
 dt_view_format = '%a, %b %d %Y %X'
-__CONFIG__['api_url'] = '/api/'
+__config__['api_url'] = '/api/'
 store = {'groups': []}
 
 
@@ -53,10 +53,10 @@ class Group:
         return cls(id=None, name='')
 
 
-Users = list[User]
-Groups = list[Group]
-users = state([], type=Users, static=True)
-groups = state([], type=Groups, static=True)
+Users: TypeAlias = list[User]
+Groups: TypeAlias = list[Group]
+users = state_static([], type=Users)
+groups = state_static([], type=Groups)
 
 
 @groups.on('change')
@@ -123,11 +123,7 @@ class UsersTable(Table):
 
 
 class UserForm(BaseForm):
-    user = state(
-        User.default(),
-        type=User,
-        model_options={'attribute': by__ref},
-    )
+    user = state(User.default(), type=User, model_opts={'attribute': by__ref})
 
     def title(self):
         if self.user and self.user.id is not None:
@@ -253,11 +249,7 @@ class GroupsTable(Table):
 
 
 class GroupForm(BaseForm):
-    group = state(
-        Group.default(),
-        type=Group,
-        model_options={'attribute': by__ref},
-    )
+    group = state(Group.default(), type=Group, model_opts={'attribute': by__ref})
 
     def title(self):
         if self.group and self.group.id is not None:

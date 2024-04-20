@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any
 
 from beepy.utils import js, to_js
 from beepy.utils.common import nested_copy
-from beepy.utils.internal import _PY_TAG_ATTRIBUTE
+from beepy.utils.internal import _py_tag_attribute
 from beepy.utils.js_py import create_proxy
 
 if TYPE_CHECKING:
@@ -143,7 +143,7 @@ class on:
             # TODO: move to other place
             dependent.__render__()
 
-        getattr(event.currentTarget, _PY_TAG_ATTRIBUTE, cmpt).__render__()
+        getattr(event.currentTarget, _py_tag_attribute, cmpt).__render__()
 
     def _make_listener(self, event_name: str, cmpt: Component):
         if inspect.iscoroutinefunction(self._callback):

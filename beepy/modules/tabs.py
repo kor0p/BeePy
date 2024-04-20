@@ -2,9 +2,7 @@ from __future__ import annotations
 
 from boltons.iterutils import first
 
-from beepy import Tag
-from beepy.attrs import attr, html_attr, state
-from beepy.style import Style
+from beepy import Style, Tag, attr, attr_prop, html_attr, state
 from beepy.tags import div, ul
 from beepy.utils import js
 from beepy.utils.js_py import replace_url
@@ -26,7 +24,7 @@ class tab(div, name='tab'):
         },
     )
 
-    @attr()
+    @attr_prop()
     def id(self) -> str:
         return f'tab-{self.parent.name}/{self.tab_id}'
 
