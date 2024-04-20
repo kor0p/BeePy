@@ -32,7 +32,7 @@ class App(Tag, name='div'):
     style_highlight = Style(
         p={
             'backgroundColor': Var('highlight_color'),
-        }
+        },
     )
 
     color = state('red')

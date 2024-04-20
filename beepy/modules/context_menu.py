@@ -25,7 +25,7 @@ class MenuItem(li):
                 'background-color': '#2d2d2d',
                 'border-left': '4px solid #333',
             },
-        }
+        },
     )
 
 
@@ -61,7 +61,7 @@ class ContextMenu(ul):
                 'opacity': 1,
                 'visibility': 'visible',
             },
-        }
+        },
     )
 
     def show(self):

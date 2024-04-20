@@ -21,7 +21,7 @@ class ColoredButton(Tag, name='button'):
             '& *': {
                 'color': '{color}',
             },
-        }
+        },
     )
 
     @on

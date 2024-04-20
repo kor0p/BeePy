@@ -33,8 +33,8 @@ class Path:
 
         if path:
             if '#' in path:
-                path, hash = path.split('#', 1)
-                result.hash = '#' + hash
+                path, hash_ = path.split('#', 1)
+                result.hash = '#' + hash_
 
             if '?' in path:
                 path, search = path.split('?', 1)

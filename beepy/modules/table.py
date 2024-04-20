@@ -120,7 +120,7 @@ class TableBody(tbody, force_ref=True):
                         for col, cell in self.parent._zip_column_row(row)
                     ),
                     [TableCellAction.components[action]() for action in self.parent.actions],
-                ]
+                ],
             )
             for row in self.rows
         ]
@@ -150,7 +150,7 @@ class Table(table):
                     'padding': '8px',
                 },
             },
-        }
+        },
     )
 
     def _zip_column_row(self, row):

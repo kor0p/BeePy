@@ -37,7 +37,7 @@ class Modal(Tag, name='modal', content_tag='h2', children_tag='modal-content'):
                 'background-color': '#333',
                 'box-shadow': '0 0 1.5rem rgb(255 255 255 / 33%)',  # TODO: create beepy.style.rgb function
             },
-        }
+        },
     )
 
     children = [

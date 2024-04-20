@@ -26,7 +26,7 @@ class ButtonsView(Tag):
         button={
             'backgroundColor': 'lightblue',
             ('width', 'height'): '25px',
-        }
+        },
     )
 
     children = [

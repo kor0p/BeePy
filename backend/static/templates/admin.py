@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from http.client import HTTPException
 
 from beepy import SpecialChild, Style, Tag, on
@@ -35,7 +35,11 @@ class User:
 
     @classmethod
     def default(cls):
-        return cls(id=None, username='', created=datetime.now())
+        return cls(id=None, username='', created=datetime.now(tz=UTC))
+
+    def __post_init__(self):
+        if isinstance(self.created, str):  # Converting to correct type
+            self.created = datetime.strptime(self.created, dt_input_format).replace(tzinfo=UTC)
 
 
 @dataclass
@@ -73,7 +77,7 @@ class BaseForm(Tag, name='form', content_tag=h2()):
                 'opacity': 1,
                 'visibility': 'visible',
             },
-        }
+        },
     )
 
     children = [
@@ -111,7 +115,7 @@ class UsersTable(Table):
             {'id': 'username', 'label': 'Username'},
             {'id': 'created', 'label': 'Created', 'view': ViewTimestamp},
             {'id': 'group', 'label': 'Group', 'view': ViewGroup},
-        ]
+        ],
     )
     body = TableBody(rows=[])
 
@@ -219,7 +223,6 @@ class UsersTab(tab, name='users', content_tag=h2()):
             await asyncio.sleep(0.5)
             return await self.load_users()
 
-        user |= {'created': datetime.strptime(user['created'], dt_input_format)}
         self.users[index] = User(**user)
         self.table.body.rows[index] = user
         self.table.body.sync()  # TODO: make .rows - TrackableList?
@@ -230,7 +233,6 @@ class UsersTab(tab, name='users', content_tag=h2()):
         except HTTPException as error:
             self.error = f'Error in request: {error}'
         else:
-            new_users = [user | {'created': datetime.strptime(user['created'], dt_input_format)} for user in new_users]
             self.users = [User(**user) for user in new_users]
             self.table.body.rows = new_users
             self.form.user = None
@@ -243,7 +245,7 @@ class GroupsTable(Table):
             {'id': 'id', 'label': 'ID'},
             {'id': 'name', 'label': 'Name'},
             {'id': 'description', 'label': 'Description'},
-        ]
+        ],
     )
     body = TableBody(rows=[])
 

@@ -23,7 +23,7 @@ class tab(div, name='tab'):
             '&[visible]': {
                 'display': 'block',
             },
-        }
+        },
     )
 
     @attr()
@@ -93,7 +93,7 @@ class tabs(Tag, name='tabs'):
                     },
                 },
             },
-        }
+        },
     )
 
     children = [
@@ -111,7 +111,7 @@ class tabs(Tag, name='tabs'):
             _tab_title.on('click')(lambda _ul, _tab_id=tab_id: _ul.parent.select_tab(_tab_id))
 
     def mount(self):
-        for tab_id, _tab in self.tabs_list.items():
+        for tab_id in self.tabs_list:
             getattr(self.tabs_titles, tab_id)._link_parent_attrs(self)
 
         url = js.URL.new(js.location.href)

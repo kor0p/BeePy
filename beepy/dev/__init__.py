@@ -7,6 +7,7 @@ import os
 import re
 import shutil
 import socketserver
+import subprocess
 import time
 from pathlib import Path
 from threading import Thread
@@ -40,7 +41,7 @@ class DevServer:
         self.websockets = []
         self.root_path = root_path
         self.observer = None
-        self.developer_mode = 'DEVELOPMENT' in os.environ
+        self.developer_mode = os.environ.get('DEVELOPMENT') == '1'
         if parse_cmd:
             self._handle_cmd_args()
 
@@ -89,9 +90,9 @@ class DevServer:
         print(f'[BeePy] Found file change: {path}')
         if self.developer_mode:
             if path.endswith('.py'):
-                os.system('hatch build')
+                subprocess.call('hatch build', shell=True)
             elif path.endswith('.js'):
-                os.system(f'cd {self.root_path}/web; npm run build; cd -')  # rebuild dist
+                subprocess.call(f'cd {self.root_path}/web; npm run build; cd -', shell=True)  # rebuild dist
             asyncio.run(self.ws_send('__'))
         else:
             asyncio.run(self.ws_send(path))

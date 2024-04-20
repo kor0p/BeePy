@@ -7,12 +7,14 @@ from beepy.tags import button, img
 
 import_css('styles/plot.css')
 
+rng = np.random.default_rng()
+
 
 def create_plot():
     plt.clf()
     # example from https://matplotlib.org/stable/tutorials/introductory/pyplot.html
-    data = {'a': np.arange(50), 'c': np.random.randint(0, 50, 50), 'd': np.random.randn(50)}
-    data['b'] = data['a'] + 10 * np.random.randn(50)
+    data = {'a': np.arange(50), 'c': rng.integers(0, 50, 50), 'd': rng.standard_normal(50)}
+    data['b'] = data['a'] + 10 * rng.standard_normal(50)
     data['d'] = np.abs(data['d']) * 100
 
     plt.scatter('a', 'b', c='c', s='d', data=data)

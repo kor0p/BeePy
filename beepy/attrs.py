@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 SPECIAL_CONVERT_ATTRIBUTES = {
     'contenteditable': lambda tag, val: (
         convert_boolean_attribute_value(val) if val == tag.mount_element.isContentEditable else val
-    )
+    ),
 }
 
 
@@ -107,7 +107,8 @@ class attr:
 
         self.name = None
         self.const = const
-        assert not const or default is None, f'Const {type(self).__name__} cannot have initial value'
+        if const and default is not None:  # TODO: Add example for usage of const
+            raise ValueError(f'Const {type(self).__name__} cannot have initial value')
         self._initial_value = default
         self.required = required or const  # const attr must be also required
         self.notify = notify

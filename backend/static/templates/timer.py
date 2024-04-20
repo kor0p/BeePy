@@ -63,7 +63,7 @@ class CountUpTimer(Tag, name='timer', children_tag=a()):
         self._interval.clear()
 
     def timer(self):
-        td = datetime.now() - self.start
+        td = datetime.now(tz=UTC) - self.start
         dt = _EPOCH + td
         self.days = td // timedelta(days=1)
         self.hours = dt.hour
@@ -76,5 +76,5 @@ class App(Tag, name='app', content_tag=p()):
     _content = 'The full-scale invasion of Ukraine has been going on for'
 
     children = [
-        CountUpTimer(start=datetime(2022, 2, 24, 3, 40, 0)),
+        CountUpTimer(start=datetime(2022, 2, 24, 1, 40, 0, tzinfo=UTC)),
     ]

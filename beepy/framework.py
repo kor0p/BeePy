@@ -16,7 +16,7 @@ from beepy.utils.common import NONE_TYPE, get_random_name, to_kebab_case
 from beepy.utils.dev import _debugger
 from beepy.utils.internal import _PY_TAG_ATTRIBUTE
 
-__version__ = '0.9.6'  # For internal development set to 0.0a0
+__version__ = '0.9.7'  # For internal development set to 0.0a0
 __CONFIG__['version'] = __version__
 
 
@@ -27,7 +27,7 @@ class _MetaTag(_MetaComponent):
     _tag_classes: list[type[Tag]] = []
     __clean_class_attribute_names = ('_content_tag', '_static_children_tag')
 
-    def __new__(mcs, _name: str, bases: tuple, namespace: dict, **kwargs):  # noqa: PLR0912, PLR0915
+    def __new__(mcs, _name: str, bases: tuple, namespace: dict, **kwargs):  # noqa: PLR0912, PLR0915, C901
         namespace = namespace.copy()
         namespace.setdefault('__slots__', ())
         if '_content' in namespace:
@@ -277,7 +277,7 @@ class Tag(Component, metaclass=_MetaTag, _root=True):
         kwargs.setdefault('_load_children', False)
         super().__init__(*args, **kwargs)
 
-    def __new__(cls, *args, **kwargs):  # noqa: PLR0915, PLR0912 - Statements (60 > 50)  +  Branches (23 > 12)
+    def __new__(cls, *args, **kwargs):  # noqa: PLR0915, PLR0912, C901 - Statements (60 > 50)  +  Branches (23 > 12)
         if hasattr(getattr(cls, 'mount_element', None), _PY_TAG_ATTRIBUTE):
             return getattr(cls.mount_element, _PY_TAG_ATTRIBUTE)
 

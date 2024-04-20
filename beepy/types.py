@@ -36,6 +36,8 @@ class AttrValue:
 
 
 class safe_html(str):
+    __slots__ = ()
+
     def __html__(self) -> str:
         return self
 

@@ -19,8 +19,8 @@ dotenv.load_dotenv(f'{BEEPY_ROOT_PACKAGE}/.env' if IN_BROWSER else '.env')
 
 # TODO: make it with dataclass
 __CONFIG__ = {
-    'debug': 'DEBUG' in os.environ,
-    'development': 'DEVELOPMENT' in os.environ,
+    'debug': os.environ.get('DEBUG') == '1',
+    'development': os.environ.get('DEVELOPMENT') == '1',
     'style_head': True,
     'api_url': '/',
     'default_datetime_format': '%Y-%m-%dT%H:%M:%S.%f%Z',

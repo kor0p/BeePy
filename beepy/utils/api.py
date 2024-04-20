@@ -33,7 +33,7 @@ if IN_BROWSER:
                 'Content-Type': 'application/json',
                 'Access-Control-Allow-Headers': '*',
                 'Access-Control-Allow-Origin': '*',
-            }
+            },
         )
 
         response = await pyfetch(__CONFIG__['api_url'] + url, method=method, body=body, headers=headers, **opts)

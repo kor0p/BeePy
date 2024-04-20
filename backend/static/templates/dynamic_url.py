@@ -7,11 +7,11 @@ from beepy.utils.js_py import replace_url
 Head.title = 'Dynamic URL'
 
 
-def push_hash(hash):
+def push_hash(new_hash):
     url = js.URL.new(js.location.href)
-    url.hash = hash
+    url.hash = new_hash
 
-    replace_url(url, new_hash=hash)
+    replace_url(url, new_hash=new_hash)
 
 
 push_hash('/')
