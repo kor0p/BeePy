@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from collections.abc import Callable, Iterable
-from typing import TYPE_CHECKING, Generic, TypeVar
+from typing import TYPE_CHECKING, Generic, Self, TypeVar, overload
 
 import beepy
 from beepy.components import Component
@@ -159,7 +159,13 @@ class ChildRef(WebBase, Generic[C]):
     def __repr__(self):
         return f'{type(self).__name__}(Tag.{self.name} = {self.child})'
 
-    def __get__(self, instance: Context | None, owner: type[Context] | None = None) -> ChildRef | C:
+    @overload
+    def __get__(self, instance: None, owner: type[Context]) -> Self: ...
+
+    @overload
+    def __get__(self, instance: Context | Tag, owner: type[Context] | None = None) -> C: ...
+
+    def __get__(self, instance: Context | Tag | None, owner: type[Context] | None = None) -> Self | C:
         if instance is None:
             return self
 
@@ -225,10 +231,7 @@ class ChildrenRef(ChildRef):
         if isinstance(value, Children):
             super().__set__(instance, value)
         else:
-            current_value = self.__get__(instance)
-            current_value[:] = value
+            self.__get__(instance)[:] = value
 
-
-from beepy.framework import Tag  # noqa: E402, isort: skip - circular import
 
 __all__ = ['CustomWrapper', 'StringWrapper', 'ContentWrapper', 'TagRef', 'ChildrenRef']

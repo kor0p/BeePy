@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import enum
 from abc import ABCMeta
-from typing import TYPE_CHECKING, TypeVar
+from typing import TYPE_CHECKING, Self
 
 import beepy
 from beepy.attrs import attr
@@ -14,7 +14,6 @@ if TYPE_CHECKING:
     from beepy.types import AttrType
 
 _base_obj_dir = (*dir(object()), '__abstractmethods__')
-Self = TypeVar('Self', bound='Context')
 _CONTEXT_INITIALIZED = False
 
 
