@@ -96,6 +96,8 @@ class BaseForm(Tag, name='form', content_tag=h2()):
 
 class ViewTimestamp(AttrValue):
     def __view_value__(self):
+        if isinstance(self.value, str):
+            return self.value
         return self.value.strftime(dt_view_format)
 
 
