@@ -1,9 +1,8 @@
 #!/bin/bash
 
 ### Prepare part ###
-# Replace dot with escaped dot :)
-old_version=${1//\./\\.}
-new_version=${2//\./\\.}
+old_version=${1//\./\\.}  # Replace dot with escaped dot
+new_version=$2
 
 declare -a files=(
     "web/src/beepy.js" "web/package.json"
@@ -15,7 +14,6 @@ declare -a files=(
 for file in "${files[@]}"; do
     sed -i "s/$old_version/$new_version/g" $file
 done
-
 
 ### JS part ###
 cd web
@@ -32,4 +30,4 @@ cd ..
 # Create dist/* files
 hatch build
 # Actual publishing
-twine upload "dist/*$2[-.]*"
+twine upload "dist/*$new_version[-.]*"

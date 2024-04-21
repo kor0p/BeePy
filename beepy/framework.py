@@ -4,7 +4,7 @@ import traceback
 from collections.abc import Callable, Iterable
 from functools import cache
 from types import MethodType
-from typing import ClassVar
+from typing import TYPE_CHECKING
 
 from beepy.attrs import state, state_move_on
 from beepy.children import ChildRef, Children, ContentWrapper, CustomWrapper, StringWrapper, TagRef
@@ -16,7 +16,10 @@ from beepy.utils.common import NONE_TYPE, get_random_name, to_kebab_case
 from beepy.utils.dev import _debugger
 from beepy.utils.internal import _py_tag_attribute
 
-__version__ = '0.9.9'  # For internal development set to 0.0a0
+if TYPE_CHECKING:
+    from typing import Any, ClassVar
+
+__version__ = '0.9.10'  # For internal development set to 0.0a0
 __config__['version'] = __version__
 
 
@@ -157,16 +160,14 @@ class _MetaTag(_MetaComponent):
 
         mcs._tag_classes.append(cls)
 
-        if initialized and 'mount' in kwargs:
+        # TODO: move logic with `mount=` to StandaloneTag
+        if 'mount' in kwargs:
             cls._root_parent = None
             setattr(cls.mount_element, _py_tag_attribute, cls())
 
-        if cls._meta_root:
-            cls.__root_declared__()
-        else:
-            cls.__class_declared__()
+        result = cls.__root_declared__() if cls._meta_root else cls.__class_declared__()
 
-        return cls
+        return cls if result is None else result
 
 
 class Tag(Component, metaclass=_MetaTag, _root=True):
@@ -204,11 +205,11 @@ class Tag(Component, metaclass=_MetaTag, _root=True):
     children: ClassVar[Component | state | SpecialChild | str]
 
     @classmethod
-    def __root_declared__(cls):
+    def __root_declared__(cls) -> Any:
         """This method is called, when root Tag is defined"""
 
     @classmethod
-    def __class_declared__(cls):
+    def __class_declared__(cls) -> Any:
         """This method is called, when common Tag is defined"""
 
     def __mount__(self, *args, **kwargs):

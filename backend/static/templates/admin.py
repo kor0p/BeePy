@@ -23,7 +23,7 @@ __config__['api_url'] = '/api/'
 store = {'groups': []}
 
 
-styled_button = with_style()(button)
+styled_button = with_style(button)
 
 
 @dataclass

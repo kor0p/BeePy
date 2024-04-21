@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Self
 
 from boltons.typeutils import make_sentinel
 
@@ -206,6 +206,10 @@ class select(html_tag, name='select'):
 
 
 class StandaloneTag(html_tag, _root=True):
+    @classmethod
+    def __class_declared__(cls) -> Self:
+        return cls()
+
     def __init__(self, *args, **kwargs):
         kwargs['_load_children'] = True
         super().__init__(*args, **kwargs)
@@ -216,7 +220,7 @@ class StandaloneTag(html_tag, _root=True):
         self.mount_parent = element
         self.pre_mount()
 
-    def _clone(self, parent=None):  # noqa: ARG002 - arguments for overriding
+    def _clone(self, parent=None):  # noqa: ARG002 - unused `parent`
         return self
 
     def _as_child(self, parent: Tag | None, *, exists_ok=False, inline_def=False):  # noqa: ARG002 - args for overriding
@@ -226,24 +230,23 @@ class StandaloneTag(html_tag, _root=True):
 class Head(StandaloneTag, name='head', mount=js.document.head):
     title = state()
 
-    @title.on('change')
-    def _upd_title(self):
+    def render(self):
         if self.title:
             js.document.title = self.title
 
 
-Head = Head()
-
-
 class Body(StandaloneTag, name='body', mount=js.document.body):
-    style = html_attr()
+    pass
 
 
-Body = Body()
+# Fun things are doing inside `mount=` Tags...
+# For type-checking be correct :)
+Head: Head
+Body: Body
 
 
 # TODO: add all HTML tags
 
 
 __all__ = ['html_tag', 'div', 'a', 'p', 'b', 'i', 'ul', 'li', 'span', 'form', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']
-__all__ += ['input_', 'textarea', 'header', 'main', 'footer', 'nav', 'button', 'option', 'select', 'Head']
+__all__ += ['input_', 'textarea', 'header', 'main', 'footer', 'nav', 'button', 'option', 'select', 'Head', 'Body']
