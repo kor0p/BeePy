@@ -1,0 +1,58 @@
+<html lang="en"><head>
+        <meta name="beepy::config:server_side" content="client"><meta name="beepy::config:random_seed" content="701259014924844323"><meta charset="UTF-8">
+        <title>BeePy</title>
+        <style>
+            * {
+                background: #333333;
+                color: white;
+            }
+        </style>
+        <script>
+            window.beepy = {
+                config: {
+                    requirements: () => window.location.href.includes('plot') ? ['numpy', 'matplotlib'] : [],
+                },
+            }
+        </script>
+        <script bee-module="/static/templates" src="https://unpkg.com/@kor0p/beepy/dist/beepy.js"></script><style>#beepy-loading {
+    visibility: visible;
+    background: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    z-index: 1;
+}
+
+#beepy-loading::before {
+    content: '';
+    display: inline-block;
+    width: 50px;
+    height: 50px;
+    border: 3px solid rgba(172, 237, 255, 0.5);
+    border-radius: 50%;
+    border-top-color: #dddddd;
+    animation: spin 1s ease-in-out infinite;
+}
+
+#beepy-loading > span {
+    display: block;
+    opacity: 0.5;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+</style><script type="module" src="https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js"></script>
+    <link href="/static/templates/styles/main.css" type="text/css" rel="stylesheet"><style>div[style-id="eQ"] {
+
+    font-size: 48px;
+}</style></head>
+    <body>
+        <div id="root" style=""><main-app><div></div><div style-id="eQ"><div></div><item url="/"><p>Index</p></item><item url="/about"><p>About us</p></item><item url="/my-cool-url"><p>My Cool Url</p></item></div><div class="bottom-navbar"><a href="/e">⬅️ Back to examples</a></div></main-app></div>
+
+
+</body></html>

@@ -1,0 +1,155 @@
+<html lang="en"><head>
+        <meta name="beepy::config:server_side" content="client"><meta name="beepy::config:random_seed" content="701259014924844323"><meta charset="UTF-8">
+        <title>BeePy</title>
+        <style>
+            * {
+                background: #333333;
+                color: white;
+            }
+        </style>
+        <script>
+            window.beepy = {
+                config: {
+                    requirements: () => window.location.href.includes('plot') ? ['numpy', 'matplotlib'] : [],
+                },
+            }
+        </script>
+        <script bee-module="/static/templates" src="https://unpkg.com/@kor0p/beepy/dist/beepy.js"></script><style>#beepy-loading {
+    visibility: visible;
+    background: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    z-index: 1;
+}
+
+#beepy-loading::before {
+    content: '';
+    display: inline-block;
+    width: 50px;
+    height: 50px;
+    border: 3px solid rgba(172, 237, 255, 0.5);
+    border-radius: 50%;
+    border-top-color: #dddddd;
+    animation: spin 1s ease-in-out infinite;
+}
+
+#beepy-loading > span {
+    display: block;
+    opacity: 0.5;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+</style><script type="module" src="https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js"></script>
+    <link href="/static/templates/styles/main.css" type="text/css" rel="stylesheet"><style>context-example[style-id="H_"] {
+
+    font-size: 48px;
+}</style><style>context-example[style-id="H_"] {
+
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}</style><style>ul[style-id="rQ"] {
+
+    visibility: hidden;
+    background-color: #353535;
+    font-size: 24px;
+    border-radius: 2px;
+    padding: 5px 0 5px 0;
+    width: 180px;
+    height: auto;
+    margin: 0;
+    z-index: 50;
+    position: absolute;
+    list-style: none;
+    box-shadow: 0 0 20px 0 #222;
+    opacity: 0;
+    transition: 0.2s;
+}
+ul[style-id="rQ"][visible] {
+    opacity: 1;
+    visibility: visible;
+}</style><style>ul[style-id="rQ"] {
+
+    left: 0px;
+    top: 0px;
+}</style><style>li[style-id="k1"] {
+
+    padding: 0.5em 1em;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+li[style-id="k1"]:hover {
+    background-color: #2d2d2d;
+    border-left: 4px solid #333;
+}</style><style>li[style-id="JF"] {
+
+    padding: 0.5em 1em;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+li[style-id="JF"]:hover {
+    background-color: #2d2d2d;
+    border-left: 4px solid #333;
+}</style><style>li[style-id="C5"] {
+
+    padding: 0.5em 1em;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+li[style-id="C5"]:hover {
+    background-color: #2d2d2d;
+    border-left: 4px solid #333;
+}</style><style>li[style-id="P0"] {
+
+    padding: 0.5em 1em;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+li[style-id="P0"]:hover {
+    background-color: #2d2d2d;
+    border-left: 4px solid #333;
+}</style><style>hr[style-id="j2"] {
+
+    border-bottom: 1px solid #eee;
+    margin: 10px 0;
+}</style><style>li[style-id="JZ"] {
+
+    padding: 0.5em 1em;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+li[style-id="JZ"]:hover {
+    background-color: #2d2d2d;
+    border-left: 4px solid #333;
+}</style><style>li[style-id="ko"] {
+
+    padding: 0.5em 1em;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+li[style-id="ko"]:hover {
+    background-color: #2d2d2d;
+    border-left: 4px solid #333;
+}</style></head>
+    <body>
+        <div id="root" style=""><main-app><div></div><context-example style-id="H_"><p>Right click somewhere on the page...</p></context-example><div class="bottom-navbar"><a href="/e">⬅️ Back to examples</a></div></main-app></div>
+
+
+<ul style-id="rQ"><li style-id="k1">Share To...</li><li style-id="JF">Cut</li><li style-id="C5">Copy</li><li style-id="P0">Paste</li><hr style-id="j2"><li style-id="JZ">Refresh</li><li style-id="ko">Exit</li></ul></body></html>

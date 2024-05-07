@@ -16,11 +16,13 @@ class Command(BaseCommand):
 
     def handle(self, *args, port, **kwargs):  # noqa: ARG002 - unused args and kwargs
         manage_py_script = (settings.BASE_DIR / 'manage.py').resolve()
-        proc = subprocess.Popen(
-            f'{manage_py_script} runserver {port}', env=os.environ | {'USE_SERVER_SIDE': '0'}, shell=True
+        subprocess.Popen(
+            f'{manage_py_script} runserver {port}'.split(' '),
+            env=os.environ | {'USE_SERVER_SIDE': '0', 'DEVELOPMENT': '0'},
         )
         time.sleep(2)
 
         create_ssr_dist(settings.STATICFILES_DIRS[0], f'http://0.0.0.0:{port}', '/e/')
 
-        proc.terminate()
+        os.system(f'pkill -9 -f "runserver {port}"')  # I don't understand why other ways to stop Popen doesn't work :(
+        time.sleep(1)

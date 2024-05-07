@@ -51,7 +51,7 @@ export class Files {
 
     static getPathWithCurrentPathAndOrigin (path) {
         path = this.populateCurrentPath(path)
-        if (!path.includes('http')) path = `${window.location.origin}/${path}`
+        if (path[0] !== '/') path = `/${path}`
         return path
     }
 }

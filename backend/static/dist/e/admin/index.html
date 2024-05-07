@@ -1,0 +1,169 @@
+<html lang="en"><head>
+        <meta name="beepy::config:server_side" content="client"><meta name="beepy::config:random_seed" content="701259014924844323"><meta charset="UTF-8">
+        <title>BeePy</title>
+        <style>
+            * {
+                background: #333333;
+                color: white;
+            }
+        </style>
+        <script>
+            window.beepy = {
+                config: {
+                    requirements: () => window.location.href.includes('plot') ? ['numpy', 'matplotlib'] : [],
+                },
+            }
+        </script>
+        <script bee-module="/static/templates" src="https://unpkg.com/@kor0p/beepy/dist/beepy.js"></script><style>#beepy-loading {
+    visibility: visible;
+    background: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    z-index: 1;
+}
+
+#beepy-loading::before {
+    content: '';
+    display: inline-block;
+    width: 50px;
+    height: 50px;
+    border: 3px solid rgba(172, 237, 255, 0.5);
+    border-radius: 50%;
+    border-top-color: #dddddd;
+    animation: spin 1s ease-in-out infinite;
+}
+
+#beepy-loading > span {
+    display: block;
+    opacity: 0.5;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+</style><script type="module" src="https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js"></script>
+    <link href="/static/templates/styles/main.css" type="text/css" rel="stylesheet"><style>app[style-id="k1"] {
+
+}
+app[style-id="k1"] a {
+    color: lightskyblue;
+    text-decoration: none;
+}
+app[style-id="k1"] ul {
+
+                list-style-type: none;
+                margin: 0;
+                padding: 0;
+                overflow: hidden;
+                background-color: #e1e1e1;
+
+}
+app[style-id="k1"] ul li {
+
+                    float: left;
+                    font-family: "Lato", sans-serif;
+                    display: inline-block;
+                    text-align: center;
+                    padding: 14px 16px;
+                    text-decoration: none;
+                    transition: 0.3s;
+                    font-size: 12px;
+
+}
+app[style-id="k1"] ul li:hover {
+    background-color: #cdcdcd;
+}
+app[style-id="k1"] ul li[selected] {
+    background-color: #b1b1b1;
+}
+app[style-id="k1"][dark-theme] ul {
+    background-color: #1e1e1e;
+}
+app[style-id="k1"][dark-theme] ul li:hover {
+    background-color: #222222;
+}
+app[style-id="k1"][dark-theme] ul li[selected] {
+    background-color: #3e3e3e;
+}</style><style>users[style-id="yJ"] {
+
+}
+users[style-id="yJ"] [style-id="xZ"] {
+    margin: 8px;
+}</style><style>users[style-id="yJ"] {
+
+    padding: 6px 12px;
+    animation: fadeEffect 1s;
+    display: none;
+}
+users[style-id="yJ"][visible] {
+    display: block;
+}</style><style>table[style-id="hU"] {
+
+}
+table[style-id="hU"] {
+    border-spacing: 0;
+    border-collapse: collapse;
+}
+table[style-id="hU"] >, th, td {
+    border: 1px solid #333;
+}
+table[style-id="hU"] > th, td {
+    padding: 8px;
+}</style><style>button[style-id="xZ"] {
+
+}</style><style>form[style-id="h4"] {
+
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s, visibility 0.2s;
+}
+form[style-id="h4"][visible] {
+    opacity: 1;
+    visibility: visible;
+}</style><style>groups[style-id="q_"] {
+
+}
+groups[style-id="q_"] [style-id="Er"] {
+    margin: 8px;
+}</style><style>groups[style-id="q_"] {
+
+    padding: 6px 12px;
+    animation: fadeEffect 1s;
+    display: none;
+}
+groups[style-id="q_"][visible] {
+    display: block;
+}</style><style>table[style-id="6e"] {
+
+}
+table[style-id="6e"] {
+    border-spacing: 0;
+    border-collapse: collapse;
+}
+table[style-id="6e"] >, th, td {
+    border: 1px solid #333;
+}
+table[style-id="6e"] > th, td {
+    padding: 8px;
+}</style><style>button[style-id="Er"] {
+
+}</style><style>form[style-id="Rs"] {
+
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s, visibility 0.2s;
+}
+form[style-id="Rs"][visible] {
+    opacity: 1;
+    visibility: visible;
+}</style></head>
+    <body>
+        <div id="root" style=""><main-app><div></div><app dark-theme="" selected-id="users" style-id="k1"><div></div><ul><li selected="">Users</li><li>Groups</li></ul><users visible="" id="tab-admin/users" style-id="yJ"><h2></h2><h2></h2><table style-id="hU"><tbody><tr><td>5</td><td>test user ! heh</td><td>2022-07-12T23:24:04.676000Z</td><td>test_group</td><td><button type="button">Edit</button><button type="button">Delete</button></td></tr><tr><td>6</td><td>wow!</td><td>2022-07-13T00:06:13.986000Z</td><td>wo)</td><td><button type="button">Edit</button><button type="button">Delete</button></td></tr><tr><td>7</td><td>901786233</td><td>2022-07-13T00:51:07.905000Z</td><td>test_group</td><td><button type="button">Edit</button><button type="button">Delete</button></td></tr><tr><td>8</td><td>hehe</td><td>2022-07-13T12:33:58.463000Z</td><td>wo)</td><td><button type="button">Edit</button><button type="button">Delete</button></td></tr></tbody><thead><tr><th>ID</th><th>Username</th><th>Created</th><th>Group</th><th>Actions</th></tr></thead></table><button type="button" style-id="xZ">Add User</button><form style-id="h4"><h2>Add user</h2><label for="change(<input/>, id#4)">Username</label><input type="text"><label for="select(<select/>, id#g)">Group</label><select><option value="0" label="wo)"></option><option value="1" label="test_group"></option></select><h2></h2><button type="submit">Save</button><button type="button">Cancel</button><h2></h2></form></users><groups id="tab-admin/groups" style-id="q_"><h2></h2><h2></h2><table style-id="6e"><tbody><tr><td>0</td><td>wo)</td><td>000010101</td><td><button type="button">Edit</button><button type="button">Delete</button></td></tr><tr><td>1</td><td>test_group</td><td>2</td><td><button type="button">Edit</button><button type="button">Delete</button></td></tr></tbody><thead><tr><th>ID</th><th>Name</th><th>Description</th><th>Actions</th></tr></thead></table><button type="button" style-id="Er">Add Group</button><form style-id="Rs"><h2>Add group</h2><label for="change(<input/>, id#Md)">Name</label><input type="text"><label for="textarea(<textarea/>, id#p)">Description</label><textarea></textarea><h2></h2><button type="submit">Save</button><button type="button">Cancel</button><h2></h2></form></groups></app><div class="bottom-navbar"><a href="/e">⬅️ Back to examples</a></div></main-app></div>
+
+
+</body></html>

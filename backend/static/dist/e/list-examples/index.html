@@ -1,0 +1,140 @@
+<html lang="en"><head>
+        <meta name="beepy::config:server_side" content="client"><meta name="beepy::config:random_seed" content="701259014924844323"><meta charset="UTF-8">
+        <title>BeePy</title>
+        <style>
+            * {
+                background: #333333;
+                color: white;
+            }
+        </style>
+        <script>
+            window.beepy = {
+                config: {
+                    requirements: () => window.location.href.includes('plot') ? ['numpy', 'matplotlib'] : [],
+                },
+            }
+        </script>
+        <script bee-module="/static/templates" src="https://unpkg.com/@kor0p/beepy/dist/beepy.js"></script><style>#beepy-loading {
+    visibility: visible;
+    background: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    z-index: 1;
+}
+
+#beepy-loading::before {
+    content: '';
+    display: inline-block;
+    width: 50px;
+    height: 50px;
+    border: 3px solid rgba(172, 237, 255, 0.5);
+    border-radius: 50%;
+    border-top-color: #dddddd;
+    animation: spin 1s ease-in-out infinite;
+}
+
+#beepy-loading > span {
+    display: block;
+    opacity: 0.5;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+</style><script type="module" src="https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js"></script>
+    <link href="/static/templates/styles/main.css" type="text/css" rel="stylesheet"><style>view[style-id="74"] {
+
+    color: white;
+    zoom: 4;
+    font-size: 12px;
+}</style><style>tabs[style-id="MF"] {
+
+}
+tabs[style-id="MF"] a {
+    color: lightskyblue;
+    text-decoration: none;
+}
+tabs[style-id="MF"] ul {
+
+                list-style-type: none;
+                margin: 0;
+                padding: 0;
+                overflow: hidden;
+                background-color: #e1e1e1;
+
+}
+tabs[style-id="MF"] ul li {
+
+                    float: left;
+                    font-family: "Lato", sans-serif;
+                    display: inline-block;
+                    text-align: center;
+                    padding: 14px 16px;
+                    text-decoration: none;
+                    transition: 0.3s;
+                    font-size: 12px;
+
+}
+tabs[style-id="MF"] ul li:hover {
+    background-color: #cdcdcd;
+}
+tabs[style-id="MF"] ul li[selected] {
+    background-color: #b1b1b1;
+}
+tabs[style-id="MF"][dark-theme] ul {
+    background-color: #1e1e1e;
+}
+tabs[style-id="MF"][dark-theme] ul li:hover {
+    background-color: #222222;
+}
+tabs[style-id="MF"][dark-theme] ul li[selected] {
+    background-color: #3e3e3e;
+}</style><style>tab[style-id="kW"] {
+
+    padding: 6px 12px;
+    animation: fadeEffect 1s;
+    display: none;
+}
+tab[style-id="kW"][visible] {
+    display: block;
+}</style><style>tab[style-id="Ve"] {
+
+    padding: 6px 12px;
+    animation: fadeEffect 1s;
+    display: none;
+}
+tab[style-id="Ve"][visible] {
+    display: block;
+}</style><style>buttons-view[style-id="aB"] {
+
+}
+buttons-view[style-id="aB"] button {
+    background-color: lightblue;
+    width: 25px;    height: 25px;
+}</style><style>button[style-id="jz"] {
+
+    margin: 8px;
+    color: red;
+}</style><style>button[style-id="KG"] {
+
+    margin: 8px;
+    color: gray;
+}</style><style>tab[style-id="jM"] {
+
+    padding: 6px 12px;
+    animation: fadeEffect 1s;
+    display: none;
+}
+tab[style-id="jM"][visible] {
+    display: block;
+}</style></head>
+    <body>
+        <div id="root" style=""><main-app><div></div><view style-id="74"><div></div><tabs dark-theme="" selected-id="main" style-id="MF"><div></div><ul><li selected="">Examples</li><li>Increment Buttons</li><li>Selector </li></ul><tab visible="" id="tab-ex/main" style-id="kW"><p><span>🐝 BeePy v10.0.0</span><span><br></span><span>The </span><i>frontend</i><span> framework for python, using </span><a href="https://pyodide.org/" target="_blank">Pyodide</a><span> via </span><a href="https://emscripten.org/" target="_blank">Emscripten</a><span> and </span><a href="https://webassembly.org/" target="_blank">WebAssembly</a></p><p><span>More examples:</span><span><br></span><a href="/e/admin">Admin panel (Django)</a><span><br></span><a href="https://kor0p.github.io/BeePy-examples/sandbox" target="_blank">BeePy Sandbox</a><span><br></span><a href="/e/plot">Dynamic plot</a><span><br></span><a href="/e/buttons">First try</a><span><br></span><a href="/e/focus">Focus directive</a><span><br></span><a href="/e/highlight">Highlight directive</a><span><br></span><a href="/e/">Tabs (this one)</a><span><br></span><a href="/e/todos">Todo List</a><span><br></span><a href="/e/modal">Modal</a><span><br></span><a href="/e/context-menu">Context Menu</a><span><br></span><a href="/e/dynamic-url">Dynamic URL</a><span><br></span><a href="/e/timer">Timer</a><span><br></span><a href="/e/text-sync">Input's model</a><span><br></span><a href="/multiple-apps" target="_blank">Multiple apps on one page</a><span><br></span><a href="/custom_url" target="_blank">Just the other one example</a><span><br></span></p><p><span>Made by </span><a href="https://t.me/kor0p" target="_blank">© kor0p</a><span><br></span><span>Source code of BeePy: </span><a href="https://github.com/kor0p/BeePy" target="_blank">GitHub</a></p></tab><tab id="tab-ex/buttons" style-id="Ve"><buttons-view count="0" style-id="aB"><div>Colored Increment Buttons<br>Count: 0</div><button type="button" style-id="jz">+</button><button type="button" style-id="KG">-</button></buttons-view></tab><tab id="tab-ex/selector" style-id="jM"><div selected="1"><span><p>Key: 1</p><p>Value: second</p></span><select><option value="0" label="first"></option><option value="1" label="second"></option><option value="2" label="third"></option></select></div></tab></tabs></view><div class="bottom-navbar"><a href="/e">⬅️ Back to examples</a></div></main-app></div>
+
+
+</body></html>
