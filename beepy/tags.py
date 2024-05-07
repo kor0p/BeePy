@@ -230,7 +230,8 @@ class StandaloneTag(html_tag, _root=True):
 class Head(StandaloneTag, name='head', mount=js.document.head):
     title = state()
 
-    def render(self):
+    @title.on('change')
+    def _upd_title(self):
         if self.title:
             js.document.title = self.title
 

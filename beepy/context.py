@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Self
 
 import beepy
 from beepy.attrs import attr, html_attr, state, state_move_on
-from beepy.utils import js
+from beepy.utils import IN_BROWSER, __config__, js
 from beepy.utils.common import get_random_name, log10_ceil, to_kebab_case
 from beepy.utils.js_py import Interval, create_once_callable
 
@@ -102,18 +102,57 @@ class _MetaContext(ABCMeta):
     def _top_mount(mcs, element):
         parent = element._root_parent
         root = parent.mount_element
-        root.style = 'visibility: hidden'
+        using_ssr = __config__['server_side'] == 'client'
+        if not using_ssr:
+            root.style = 'visibility: hidden'
 
         mcs._current_render[parent] = []
-        element.__mount__(root, parent)
+
+        if using_ssr:
+            element.__mount__(js.beepy.addElement(root, 'template'), parent)
+            element.mount_parent = root
+        else:
+            element.__mount__(root, parent)
 
         mcs._wait_onload_interval[parent] = Interval(mcs._wait_onload, (element,), period=0.2)
 
+        if not IN_BROWSER:
+            mcs._ssr2__finish()
+
+    @classmethod
+    def _ssr2__finish(mcs):
+        # SSR implementation without selenium
+        # I want to try using bs4 instead of js.py mock
+        # Not really working right now
+        import time
+
+        mcs._to_load_before_top_render.clear()
+
+        time.sleep(1)
+
+        for thread in js.threads_to_join:
+            thread.join()
+        js.threads_to_join.clear()
+        for thread in (*js.threads['timeout'].values(), *js.threads['interval'].values()):
+            thread.join()
+
+        print(js.document.documentElement.outerHTML)
+
     @classmethod
     def _top_render(mcs, element):
-        element._root_parent.mount_element.style = ''
-        js.beepy.stopLoading()
+        root = element._root_parent.mount_element
+        using_ssr = __config__['server_side'] == 'client'
+
+        if not using_ssr:
+            root.style = ''
+            js.beepy.stopLoading()
+
         element.__render__()
+
+        if using_ssr:
+            template = element.mount_element.parentElement
+            root.replaceChild(element.mount_element, root.children[0])
+            template.remove()
 
     @classmethod
     def _clean_namespace(mcs, namespace):

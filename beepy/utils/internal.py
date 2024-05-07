@@ -1,5 +1,6 @@
 import asyncio
 import os
+import random
 import sys
 from importlib import import_module
 from typing import TYPE_CHECKING
@@ -17,7 +18,8 @@ _py_tag_attribute = '__PYTHON_TAG__'
 
 dotenv.load_dotenv(f'{_beepy_root_package}/.env' if IN_BROWSER else '.env')
 
-# TODO: make it with dataclass
+# TODO: make it with dataclass?
+# TODO: consider using .toml/.yaml usage instead of .env + window.beepy.config
 __config__ = {
     'debug': os.environ.get('DEBUG') == '1',
     'development': os.environ.get('DEVELOPMENT') == '1',
@@ -26,6 +28,8 @@ __config__ = {
     'default_datetime_format': '%Y-%m-%dT%H:%M:%S.%f%Z',
     'inputs_auto_id': True,
     'html_replace_whitespaces': True,
+    'random_seed': int(os.environ.get('RANDOM_SEED', 0)),
+    'server_side': '',
     'requirements': [],
 }
 
@@ -69,11 +73,18 @@ def lazy_import_cls(cls):
     return cls
 
 
+def get_seed():
+    if not __config__['random_seed']:
+        __config__['random_seed'] = int.from_bytes(os.urandom(8), 'big')
+    return __config__['random_seed']
+
+
 def _init_js():
     from beepy import __version__
 
     js.console.log(f'%cBeePy version: {__version__}', 'color: lightgreen; font-size: 35px')
     merge_configs()
+    rnd.seed(get_seed())
 
 
 class _BeePyGlobals(dict):
@@ -91,6 +102,7 @@ def _default_global_handlers(locals_dict, key, result):
 
 
 __beepy_global_handlers__ = [_default_global_handlers]
+rnd = random.Random()
 
 
 __all__ = [
@@ -102,4 +114,5 @@ __all__ = [
     'lazy_import_cls',
     'reload_requirements',
     '__beepy_global_handlers__',
+    'rnd',
 ]

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-import argparse
 import asyncio
 import functools
 import http.server
@@ -17,6 +16,8 @@ from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 from websockets.exceptions import ConnectionClosedOK
 from websockets.server import serve
+
+from beepy.ssr import get_server_html
 
 dotenv.load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent
@@ -37,40 +38,46 @@ class MonitorFolder(FileSystemEventHandler):
 
 
 class DevServer:
-    def __init__(self, *, root_path=None, parse_cmd=True):
+    def __init__(self, *, root=None, port=8888, create=False, ssr=False):
         self.websockets = []
-        self.root_path = root_path
+        self.root = (root or Path.cwd()).resolve()
+        self.port = port
+        self.ssr = ssr
+
         self.observer = None
         self.developer_mode = os.environ.get('DEVELOPMENT') == '1'
-        if parse_cmd:
-            self._handle_cmd_args()
 
-    def _handle_cmd_args(self):
-        parser = argparse.ArgumentParser(prog='beepy.dev', description='Simple dev server for BeePy')
-        parser.add_argument(
-            '-d', '--root-dir', default=Path.cwd(), help='Root directory to start server and watch file changes'
-        )
-        parser.add_argument(
-            '--create', action='store_true', help='Create a default .html, .py and .env files before start'
-        )
-        args = parser.parse_args()
+        if create:
+            self._create_default_files()
 
-        if not self.root_path:
-            self.root_path = Path(args.root_dir)
-
-        if not args.create:
-            return
-
-        dst = self.root_path / 'index.html'
+    def _create_default_files(self):
+        dst = self.root / 'index.html'
 
         if dst.exists():
             print('[BeePy] Warning: File "index.html" already exists, skipping creating default files')
             return
 
         shutil.copyfile(BASE_DIR / 'example.html', dst)
-        shutil.copyfile(BASE_DIR / 'example.py', self.root_path / '__init__.py')
-        shutil.copyfile(BASE_DIR / '../.env', self.root_path / '.env')
+        shutil.copyfile(BASE_DIR / 'example.py', self.root / '__init__.py')
+        shutil.copyfile((BASE_DIR / '../.env').resolve(), self.root / '.env')
         print('[BeePy] Created default files in root directory')
+
+    def _ssr_create_dist(self):
+        if not self.ssr:
+            return
+
+        dist = Path(self.root / 'dist')
+        dist.mkdir(parents=True, exist_ok=True)
+
+        # TODO: add support for Router (load_all_routes=True)
+        ssr_data = get_server_html(f'http://localhost:{self.port}', '/')
+        (dist / 'index.html').write_text(ssr_data)
+        shutil.copyfile(self.root / '__init__.py', dist / '__init__.py')
+        print(f'[BeePy] [SSR] dist is done. Visit: http://localhost:{self.port}')
+
+    def _cleanup(self):
+        if self.ssr:
+            shutil.rmtree(self.root / 'dist', ignore_errors=True)
 
     async def ws_send(self, message):
         await asyncio.sleep(1)  # Hack for Django autoreload
@@ -85,23 +92,24 @@ class DevServer:
             print('[BeePy] No clients connected! Please, restart your page to connect to the dev server')
 
     def _handle_file_event(self, event):
-        path: str = event.src_path.removeprefix(str(self.root_path)).removeprefix('/')
+        path: str = event.src_path.removeprefix(str(self.root)).removeprefix('/')
 
         print(f'[BeePy] Found file change: {path}')
         if self.developer_mode:
             if path.endswith('.py'):
                 subprocess.call('hatch build', shell=True)
             elif path.endswith('.js'):
-                subprocess.call(f'cd {self.root_path}/web; npm run build; cd -', shell=True)  # rebuild dist
-            asyncio.run(self.ws_send('__'))
-        else:
-            asyncio.run(self.ws_send(path))
+                subprocess.call(f'cd {self.root}/web; npm run build; cd -', shell=True)  # rebuild dist
+            path = '__'
+
+        self._ssr_create_dist()
+        asyncio.run(self.ws_send(path))
 
     def _watcher_start(self):
         event_handler = MonitorFolder(self)
         observer = Observer()
-        observer.schedule(event_handler, path=self.root_path, recursive=True)
-        print(f'[BeePy] Monitoring started for {self.root_path}')
+        observer.schedule(event_handler, path=str(self.root), recursive=True)
+        print(f'[BeePy] Monitoring started for {self.root}')
         observer.start()
         self.observer = observer
         try:
@@ -125,17 +133,20 @@ class DevServer:
     def _ws_start(self):
         asyncio.run(self._ws_main())
 
-    def _simple_http_start(self, port=8888):
+    def _simple_http_start(self):
         # Fixes "Address already in use"
         socketserver.TCPServer.allow_reuse_address = True
 
         with socketserver.TCPServer(
-            ('', port), functools.partial(http.server.SimpleHTTPRequestHandler, directory=self.root_path)
+            ('', self.port), functools.partial(http.server.SimpleHTTPRequestHandler, directory=self.root)
         ) as httpd:
-            print(f'[BeePy] Serving at port {port}\nOpen server: http://localhost:{port}')
-            httpd.serve_forever()
+            print(f'[BeePy] Serving at port {self.port}\nOpen server: http://localhost:{self.port}')
+            try:
+                httpd.serve_forever()
+            finally:
+                self._cleanup()
 
-    def start(self, *, start_http=True, forever=True):
+    def start(self, *, start_http=False, forever=True):
         if self.observer is not None:
             print('[BeePy] Server is already started')
             return
@@ -149,10 +160,11 @@ class DevServer:
         if start_http is True:
             start_http = self._simple_http_start
 
+        thread = Thread(target=start_http, daemon=True)
+        thread.start()
+        self._ssr_create_dist()
         if forever:
-            start_http()
-        else:
-            Thread(target=start_http, daemon=True).start()
+            thread.join()
 
 
 __all__ = ['DevServer']

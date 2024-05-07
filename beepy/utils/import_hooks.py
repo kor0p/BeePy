@@ -5,6 +5,7 @@ from pathlib import Path
 
 from pyodide.ffi import JsException
 
+from beepy.utils.common import get_random_name
 from beepy.utils.dev import _debugger
 from beepy.utils.internal import __config__, _beepy_root_package
 from beepy.utils.js_py import IN_BROWSER, js
@@ -56,12 +57,15 @@ class ServerFinder(MetaPathFinder):
         if Path(f'/lib/python3.11/site-packages/{fullname}').exists() or fullname in _modules_not_existing_on_server:
             return
 
-        current_path = js.beepy.files._lastLoadedFile
+        Files = js.beepy.files
+        current_path = Files._lastLoadedFile
+        Files._devExtraQuery = get_random_name(3)
 
         try:
             js.beepy.loadModule(fullname)
         except JsException as err:
-            js.beepy.files._lastLoadedFile = current_path
+            Files._lastLoadedFile = current_path
+            Files._devExtraQuery = ''
             _debugger(err)
             _modules_not_existing_on_server.append(fullname)
             return

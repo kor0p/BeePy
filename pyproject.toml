@@ -24,11 +24,15 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
+    "click==8.1.3",  # Easy cli commands
     "pyodide-py==0.25.1", # Pyodide package
     "micropip==0.3.0", # A lightweight Python package installer for the web
     "watchdog==3.0.0", # watcher for files that changes for Hot reload
     "websockets==11.0.3", # Hot reload is working using simple WebSockets server
     "requests==2.31.0", # HTTP synchronous requests lib
+]
+ssr = [
+    "selenium==4.19.0", # Rendering HTML on server side to start faster
 ]
 docs = [
     "mkdocs-material==9.5.17",

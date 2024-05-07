@@ -7,7 +7,7 @@ from re import Match
 from beepy import Tag, html_attr, on, state, state_move_on
 from beepy.tags import a
 from beepy.types import Children
-from beepy.utils import js
+from beepy.utils import __config__, js
 from beepy.utils.dev import _debugger
 from beepy.utils.internal import lazy_import_cls, reload_requirements
 from beepy.utils.js_py import push_url
@@ -90,18 +90,22 @@ class Link(a, WithRouter):
 class Router(Tag):
     basename = ''
     routes: dict[str, str | type[Tag]] = {
-        # r'/$': Tag,
-        # r'/app/(?P<id>.*)$': 'app.App',  # lazy import!
+        # '/': Root,
+        # '/app/': 'app.App',  # lazy import!
     }
 
     fallback_tag_cls = None
     single_tag = True
+    add_trailing_slash = True
 
     children = [
         components := Children(),
     ]
 
     def pre_mount(self):
+        if __config__['server_side'] == 'server':
+            js.beepy.config._ssr_all_routes.extend([self.basename + route for route in self.routes])
+
         self._load_children()
 
     @on('popstate')
@@ -133,8 +137,13 @@ class Router(Tag):
         with self.components.onchange_locker:  # can Locker also be descriptor with auto-replace as in last two lines?
             self.components.clear()
 
+            location = js.location.pathname
+            if self.add_trailing_slash and not location.endswith('/'):
+                location += '/'
+
             for path, tag_cls in self.routes.items():
-                if match := re.search(self.basename + path, js.location.pathname):
+                # TODO: consider support re in some format  /  allow using re.compile() too
+                if match := re.search(f'^{self.basename}{path}$', location):
                     self.add_tag_component(tag_cls, match=match, path=path)
                     if self.single_tag:
                         break
@@ -146,7 +155,7 @@ class Router(Tag):
                     # TODO: maybe create BeePyError?
                     raise ValueError('No route to use!')
 
-            for child in self.components:
+            for child in self.components:  # TODO: simplify this
                 child._link_parent_attrs(self)
                 child.init(*child._args, _load_children=False, **(child._attrs_defaults | child._kwargs))
 

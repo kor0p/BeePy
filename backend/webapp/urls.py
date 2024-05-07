@@ -6,10 +6,22 @@ from django.views.static import serve
 
 from . import views
 
+
+def auto_html_serve(*args, **kwargs):
+    print(kwargs['path'])
+    kwargs['path'] += '/index.html'
+    return serve(*args, **kwargs)
+
+
+if settings.USE_SERVER_SIDE:
+    urlpatterns_e = static('/', view=auto_html_serve, document_root=settings.STATICFILES_DIRS[0] / 'dist')
+else:
+    urlpatterns_e = [re_path('e/.*', views.render_page('index.html'))]
+
 urlpatterns = [
     path('custom_url', views.render_page('custom_url/index.html')),
     path('multiple-apps', views.render_page('multiple_apps/index.html')),
-    re_path('e/.*', views.render_page('index.html')),
+    *urlpatterns_e,
     *static(settings.STATIC_URL, document_root=settings.STATIC_ROOT, show_indexes=True),
 ]
 

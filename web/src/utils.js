@@ -43,6 +43,10 @@ export function addHTMLElement (mountPoint, elementName, options={}) {
     return element
 }
 
+export function isObjectEmpty(obj) {
+    return Object.keys(obj).length === 0;
+}
+
 export function isObject (obj) {
     return obj && typeof obj === 'object'
 }
@@ -72,6 +76,11 @@ window.delay = async function delay(ms) {
 
 export function _lstrip (text) {
     return text.replace(/^\/+/, '')
+}
+
+export function get_meta (name) {
+    const el = document.querySelector(`meta[name="${name}"]`)
+    return el ? el.content : ''
 }
 
 export const _py_tag_attribute = '__PYTHON_TAG__'

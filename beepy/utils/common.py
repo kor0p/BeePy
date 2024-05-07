@@ -1,10 +1,11 @@
 import inspect
 import math
-import random
 import re
 import string
 
 from boltons.typeutils import make_sentinel
+
+from beepy.utils.internal import rnd
 
 NONE_TYPE = type(None)
 MISSING = make_sentinel(var_name='MISSING')
@@ -60,7 +61,7 @@ _w = string.ascii_letters + string.digits + '_'
 
 
 def get_random_name(length=6):
-    return ''.join(random.choice(_w) for _ in range(length))
+    return ''.join(rnd.choice(_w) for _ in range(length))
 
 
 def safe_issubclass(type_or_Any, class_or_tuple_to_check):

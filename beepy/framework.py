@@ -19,7 +19,7 @@ from beepy.utils.internal import _py_tag_attribute
 if TYPE_CHECKING:
     from typing import Any, ClassVar
 
-__version__ = '0.9.10'  # For internal development set to 0.0a0
+__version__ = '10.0.0'  # For internal development set to 0.0a0
 __config__['version'] = __version__
 
 
@@ -527,16 +527,22 @@ def mount(element: Tag, root_element: str, *, clear=False):
     if root is None:
         raise NameError('Mount point not found')
 
+    using_ssr = __config__['server_side'] == 'client'
     js.beepy.stopLoading()
     if clear or js.beepy.dev_server.started:
         root.innerHTML = ''
-    js.beepy.startLoading(mountPoint=root)
+
+    if not using_ssr:
+        js.beepy.startLoading(mountPoint=root)
 
     name = root.tagName.lower()
     parent = _MetaTag(name, (Tag,), {'_root_parent': state_move_on(type=Tag)}, name=name, content_tag=None)()
     parent._attrs_defaults['_root_parent'] = parent.__class__._root_parent._default = parent
     parent.mount_element = root
     element._link_parent_attrs(parent)
+
+    if not using_ssr:
+        root.innerHTML = ''
 
     _MetaTag._top_mount(element)
 

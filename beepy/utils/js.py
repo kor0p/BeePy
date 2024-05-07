@@ -24,7 +24,6 @@ class HTMLElement:
         self.data = []
         self.listeners = defaultdict(list)
         self.tagName = tag_name
-        self.shadowRoot = None
         self.clientWidth = self.clientHeight = self.scrollWidth = self.scrollHeight = 1
         self.parentElement = _parent
 
@@ -39,11 +38,10 @@ class HTMLElement:
 
     def append(self, string: str):
         self.data.append(string)
-        print(self)
 
     def appendChild(self, el: HTMLElement):
+        el.parentElement = self
         self.data.append(el)
-        print(self)
 
     def insertChild(self, el: HTMLElement | str, index: int = None):
         if not isinstance(el, str):
@@ -53,7 +51,6 @@ class HTMLElement:
             self.data.append(el)
         else:
             self.data.insert(index, el)
-        print(self)
 
     def removeChild(self, child: HTMLElement):
         self.data.remove(child)
@@ -62,21 +59,26 @@ class HTMLElement:
         if child in self.data:
             self.data.remove(child)
 
+    def replaceChild(self, newChild: HTMLElement, oldChild: HTMLElement):
+        self.data[self.data.index(oldChild)] = newChild
+
+    def remove(self):
+        self.parentElement.removeChild(self)
+
     def addEventListener(self, name, js_proxy):
         self.listeners[name].append(js_proxy)
 
-    def attachShadow(self, **kwargs):
-        self.shadowRoot = HTMLElement('-')
-        return self.shadowRoot
-
     @property
     def innerHTML(self):
-        return repr(self)
+        return ''.join(map(str, self.data))
 
     @innerHTML.setter
     def innerHTML(self, value):
         self.data = [value]
-        print(self)
+
+    @property
+    def outerHTML(self) -> str:
+        return repr(self)
 
     def __repr__(self):
         attrs = ' '
@@ -88,6 +90,14 @@ class HTMLElement:
         if not self.data:
             return f'<{self.tagName}{attrs}/>'
         return f"<{self.tagName}{attrs}>{''.join(map(str, self.data))}</{self.tagName}>"
+
+
+class Fragment(HTMLElement):
+    def __init__(self, *args, **kwargs):
+        super().__init__(None, *args, **kwargs)
+
+    def __repr__(self):
+        return self.innerHTML
 
 
 class Element(HTMLElement):
@@ -108,15 +118,23 @@ class Document:
     head = el_cls('head')
     body = el_cls('body')
 
+    documentElement = el_cls('html')
+    documentElement.appendChild(head)
+    documentElement.appendChild(body)
+
     title = 'BeePy'
 
     def createElement(self, tag_name):
         return self.el_cls(tag_name)
 
-    querySelector = createElement
+    # Actually, this just creates strange elements, like <#root>, but it's not very cool HTML emulator :)
+    def querySelector(self, query):
+        el = self.el_cls(query)
+        self.body.appendChild(el)
+        return el
 
     def createDocumentFragment(self):
-        return self.createElement('-')
+        return Fragment()
 
 
 class Location:
@@ -213,6 +231,7 @@ def _DEBUGGER(error=None):
 
 max_id = {'interval': 1, 'timeout': 1}
 threads = {'interval': {}, 'timeout': {}}
+threads_to_join = []
 listeners = defaultdict(lambda: defaultdict(list))
 intervals = {}
 
@@ -236,6 +255,8 @@ def removeEventListener(element, name, proxy):
 def setInterval(callback, ms):
     def interval():
         while True:
+            if t in threads_to_join:
+                break
             time.sleep(ms / 1000)
             callback()
 
@@ -245,11 +266,13 @@ def setInterval(callback, ms):
     threads['interval'][id] = t = Thread(target=interval, daemon=True)
     t.start()
 
+    return id
+
 
 @_js_func
 def clearInterval(interval_id):
     if interval_id in threads['interval']:
-        threads['interval'][interval_id].join()
+        threads_to_join.append(threads['interval'].pop(interval_id))
 
 
 @_js_func
@@ -264,11 +287,13 @@ def setTimeout(callback, ms):
     threads['timeout'][id] = t = Thread(target=timeout, daemon=True)
     t.start()
 
+    return id
+
 
 @_js_func
 def clearTimeout(timeout_id):
     if timeout_id in threads['timeout']:
-        threads['timeout'][timeout_id].join()
+        threads_to_join.append(threads['timeout'].pop(timeout_id))
 
 
 if TYPE_CHECKING:

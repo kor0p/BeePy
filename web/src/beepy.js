@@ -1,4 +1,4 @@
-import {_debugger, _lstrip, addHTMLElement, mergeDeep} from './utils'
+import {_debugger, _lstrip, addHTMLElement, get_meta, isObjectEmpty, mergeDeep} from './utils'
 import {AsyncFiles, Files, rootFolder, SyncFiles, SyncFiles as StaticFiles} from './files'
 import {dev_server} from './dev-server'
 import {python} from './python'
@@ -10,7 +10,7 @@ if (!!window.beepy) {
 }
 
 class BeePy {
-    __version__ = '0.9.10'
+    __version__ = '10.0.0'
 
     pyodideIndexURL = null
     globals = null
@@ -21,6 +21,8 @@ class BeePy {
     static _default_config = {
         include: ['.env'],
         pyodideVersion: '0.25.1',
+        random_seed: get_meta('beepy::config:random_seed') || 0,
+        server_side: get_meta('beepy::config:server_side') || '',
         requirements: [],  // also could be function
     }
 
@@ -29,7 +31,7 @@ class BeePy {
     files = Files
 
     constructor (localConfig) {
-        if (!localConfig) {
+        if (isObjectEmpty(localConfig)) {
             console.log(`
 No beepy config found! Default config will be used
 If you have config, you must define it before loading beepy script
@@ -37,7 +39,21 @@ If you have config, you must define it before loading beepy script
         }
 
         this.config = mergeDeep(BeePy._default_config, localConfig.config || {})
-        this._loadPyodideScript()
+
+        if (!window.navigator.webdriver) {
+            this._updateConfig()
+        }
+
+        // Here never will be 'server' (this is set a little later). But it's fine
+        if (this.config.server_side !== 'client') {
+            this._loadPyodideScript()
+        }
+    }
+
+    _updateConfig () {
+        if (this.config.server_side === 'server') {
+            this.config._ssr_all_routes = []
+        }
 
         const path = _script.src.substring(0, _script.src.indexOf('beepy.js') - 1).replace(/\/+$/, '')
         this.dev_path = path.split('/').slice(0, -2).join('/')
@@ -195,7 +211,13 @@ If you have config, you must define it before loading beepy script
 
     async _load () {
         window.removeEventListener('load', this._load)
-        this.startLoading()
+        if (window.navigator.webdriver) {
+            this._updateConfig()
+        }
+
+        if (this.config.server_side !== 'client') {
+            this.startLoading()
+        }
 
         window.pyodide = await window.loadPyodide({ indexURL: this.pyodideIndexURL })
 
@@ -229,4 +251,7 @@ If you have config, you must define it before loading beepy script
 
 export const beepy = new BeePy(window.beepy || {})
 
-window.addEventListener('load', () => beepy._load())
+window.addEventListener(
+    window.navigator.webdriver ? 'beepy::server_side:load' : 'load',
+    () => beepy._load(),
+)

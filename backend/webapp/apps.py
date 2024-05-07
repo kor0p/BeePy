@@ -17,4 +17,4 @@ class WebappConfig(AppConfig):
         if settings.DEBUG:
             from beepy.dev import DevServer
 
-            DevServer(root_path=Path(__file__).parent.parent.parent, parse_cmd=False).start(start_http=False)
+            DevServer(root=Path(__file__) / '..' / '..' / '..').start()
