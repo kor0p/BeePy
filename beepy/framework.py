@@ -19,7 +19,7 @@ from beepy.utils.internal import _py_tag_attribute
 if TYPE_CHECKING:
     from typing import Any, ClassVar
 
-__version__ = '0.10.0'  # For internal development set to 0.0a0
+__version__ = '0.10.1'  # For internal development set to 0.0a0
 __config__['version'] = __version__
 
 

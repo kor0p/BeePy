@@ -41,6 +41,9 @@ contributing = [
     "pre-commit", # for pre-commit git hooks
 ]
 
+[project.scripts]
+beepy = "beepy.__main__:main"
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"

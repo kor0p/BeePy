@@ -17,7 +17,7 @@
 ### Install BeePy
 ### `pip install -U beepy-web[dev]`
 ### Then just start local server
-### `python -m beepy.dev server --create`
+### `beepy dev --init`
 ### And that's it!
 
 ### Now, click on link in console to visit your server

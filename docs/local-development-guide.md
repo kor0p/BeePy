@@ -5,10 +5,10 @@ pip install -U beepy-web[dev]
 ```
 
 ```shell title="Start local server"
-python -m beepy.dev server --create # (1)!
+beepy dev --init # (1)!
 ```
 
-1. Argument `--create` will automatically create default `.html`, `.py` and `.env` files for easy start
+1. Argument `--init` will automatically create default `.html`, `.py` and `.env` files for easy start
 
 That's all! :tada:
 

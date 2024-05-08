@@ -38,7 +38,7 @@ class MonitorFolder(FileSystemEventHandler):
 
 
 class DevServer:
-    def __init__(self, *, root=None, port=8888, create=False, ssr=False):
+    def __init__(self, *, root=None, port=8888, init=False, ssr=False):
         self.websockets = []
         self.root = (root or Path.cwd()).resolve()
         self.port = port
@@ -47,7 +47,7 @@ class DevServer:
         self.observer = None
         self.developer_mode = os.environ.get('DEVELOPMENT') == '1'
 
-        if create:
+        if init:
             self._create_default_files()
 
     def _create_default_files(self):
@@ -59,7 +59,7 @@ class DevServer:
 
         shutil.copyfile(BASE_DIR / 'example.html', dst)
         shutil.copyfile(BASE_DIR / 'example.py', self.root / '__init__.py')
-        shutil.copyfile((BASE_DIR / '../.env').resolve(), self.root / '.env')
+        shutil.copyfile(BASE_DIR / '.env.example', self.root / '.env')
         print('[BeePy] Created default files in root directory')
 
     def _ssr_create_dist(self):
@@ -74,10 +74,6 @@ class DevServer:
         (dist / 'index.html').write_text(ssr_data)
         shutil.copyfile(self.root / '__init__.py', dist / '__init__.py')
         print(f'[BeePy] [SSR] dist is done. Visit: http://localhost:{self.port}')
-
-    def _cleanup(self):
-        if self.ssr:
-            shutil.rmtree(self.root / 'dist', ignore_errors=True)
 
     async def ws_send(self, message):
         await asyncio.sleep(1)  # Hack for Django autoreload
@@ -141,10 +137,7 @@ class DevServer:
             ('', self.port), functools.partial(http.server.SimpleHTTPRequestHandler, directory=self.root)
         ) as httpd:
             print(f'[BeePy] Serving at port {self.port}\nOpen server: http://localhost:{self.port}')
-            try:
-                httpd.serve_forever()
-            finally:
-                self._cleanup()
+            httpd.serve_forever()
 
     def start(self, *, start_http=False, forever=True):
         if self.observer is not None:
