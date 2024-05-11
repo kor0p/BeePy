@@ -8,6 +8,7 @@ declare -a files=(
     "web/src/beepy.js" "web/package.json"
     "beepy/framework.py"
     "beepy/dev/example.html" "docs/live-examples.md"
+    "backend/static/dist/e/index.html" "backend/static/dist/e/list-examples/index.html"
 )
 
 # Update version in main files

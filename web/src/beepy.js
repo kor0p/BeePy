@@ -234,7 +234,7 @@ If you have config, you must define it before loading beepy script
 
         await this._load_env()
 
-        if (this.__version__ === 'dev') {
+        if (this.__version__ === '0.0a0') {
             await this.pip.install(`${this.dev_path}/dist/beepy_web-0.0a0-py3-none-any.whl`)
         } else {
             await this.pip.install(`beepy_web==${this.__version__}`)
